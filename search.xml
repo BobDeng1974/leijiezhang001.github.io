@@ -3,7 +3,7 @@
   <entry>
     <title><![CDATA[Traveling-in-Serbia-Montenegro-Bosnia]]></title>
     <url>%2Ftraveling-in-Serbia-Montenegro-Bosnia%2F</url>
-    <content type="text"><![CDATA[(function(){var player = new DPlayer({"container":document.getElementById("dplayer0"),"theme":"#FADFA3","loop":true,"video":{"url":"https://leijie.oss-cn-shenzhen.aliyuncs.com/travel/Serbia-Montenegro-Bosnia.mov","pic":"https://leijie.oss-cn-shenzhen.aliyuncs.com/travel/Serbia-Montenegro-Bosnia.mov"}});window.dplayers||(window.dplayers=[]);window.dplayers.push(player);})()]]></content>
+    <content type="text"><![CDATA[(function(){var player = new DPlayer({"container":document.getElementById("dplayer0"),"theme":"#FADFA3","loop":true,"video":{"url":"https://leijie.oss-cn-shenzhen.aliyuncs.com/travel/Serbia-Montenegro-Bosnia.mp4","pic":"https://leijie.oss-cn-shenzhen.aliyuncs.com/travel/Serbia-Montenegro-Bosnia.mp4"}});window.dplayers||(window.dplayers=[]);window.dplayers.push(player);})()]]></content>
       <categories>
         <category>Travel</category>
       </categories>
