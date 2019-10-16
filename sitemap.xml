@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/</loc>
+    
+    <lastmod>2019-10-16T02:17:01.351Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/paperreading-MT-MS-Fusion-for-3D-Object-Detection/</loc>
     
     <lastmod>2019-10-14T10:15:34.592Z</lastmod>
@@ -16,7 +23,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/about/index.html</loc>
+    <loc>https://leijiezhang001.github.io/paperreading-PointPillars/</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -37,6 +44,13 @@
   </url>
   
   <url>
+    <loc>https://leijiezhang001.github.io/about/index.html</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/categories/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
@@ -44,7 +58,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/paperreading-PointPillars/</loc>
+    <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -52,13 +66,6 @@
   
   <url>
     <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Visual_Odometry_Part_I_II/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -93,7 +100,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
@@ -107,14 +114,14 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/KLT/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</loc>
+    <loc>https://leijiezhang001.github.io/KLT/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     

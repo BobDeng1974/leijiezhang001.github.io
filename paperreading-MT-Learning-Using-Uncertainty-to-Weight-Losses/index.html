@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="Deep Learning,paper reading,Uncertainty,">
 
 
 
@@ -88,17 +88,22 @@
 
 
 
-<meta name="description" content="本文罗列了相关领域知识的学习资料。 1. Detection 1.1. 2D Detection  入门 amusi [Object Detection @handong](https://handong1587.github.io/deep_learning/2015/10/09/object-detection.html#yolov3) Object Detection and Class">
+<meta name="description" content="深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文[1]讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系统得整理其研究成果，这篇文章先只讨论一个较为实用的应用。 1. 不确定性概述 　　在贝叶斯模型中，可以建模两类不确定性[2]：  认知不确定性(Epistemic Uncertainty)，描述模型因为">
+<meta name="keywords" content="Deep Learning,paper reading,Uncertainty">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Study Topic List">
-<meta property="og:url" content="https://leijiezhang001.github.io/study-topic-list/index.html">
+<meta property="og:title" content="[paper_reading]-&quot;Multi-Task Learning Using Uncertainty to Weigh Losses&quot;">
+<meta property="og:url" content="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/index.html">
 <meta property="og:site_name" content="LeijieZhang">
-<meta property="og:description" content="本文罗列了相关领域知识的学习资料。 1. Detection 1.1. 2D Detection  入门 amusi [Object Detection @handong](https://handong1587.github.io/deep_learning/2015/10/09/object-detection.html#yolov3) Object Detection and Class">
+<meta property="og:description" content="深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文[1]讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系统得整理其研究成果，这篇文章先只讨论一个较为实用的应用。 1. 不确定性概述 　　在贝叶斯模型中，可以建模两类不确定性[2]：  认知不确定性(Epistemic Uncertainty)，描述模型因为">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2019-10-07T14:29:47.148Z">
+<meta property="og:image" content="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt_weight.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/ablation.png">
+<meta property="og:updated_time" content="2019-10-16T02:17:01.351Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Study Topic List">
-<meta name="twitter:description" content="本文罗列了相关领域知识的学习资料。 1. Detection 1.1. 2D Detection  入门 amusi [Object Detection @handong](https://handong1587.github.io/deep_learning/2015/10/09/object-detection.html#yolov3) Object Detection and Class">
+<meta name="twitter:title" content="[paper_reading]-&quot;Multi-Task Learning Using Uncertainty to Weigh Losses&quot;">
+<meta name="twitter:description" content="深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文[1]讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系统得整理其研究成果，这篇文章先只讨论一个较为实用的应用。 1. 不确定性概述 　　在贝叶斯模型中，可以建模两类不确定性[2]：  认知不确定性(Epistemic Uncertainty)，描述模型因为">
+<meta name="twitter:image" content="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt_weight.png">
 
 
 
@@ -128,13 +133,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/study-topic-list/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/">
 
 
 
 
 
-  <title>Study Topic List | LeijieZhang</title>
+  <title>[paper_reading]-"Multi-Task Learning Using Uncertainty to Weigh Losses" | LeijieZhang</title>
   
 
 
@@ -350,7 +355,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/study-topic-list/">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Leijie">
@@ -367,7 +372,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Study Topic List</h1>
+          <h1 class="post-title" itemprop="name headline">[paper_reading]-"Multi-Task Learning Using Uncertainty to Weigh Losses"</h1>
         
 
         <div class="post-meta">
@@ -379,8 +384,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-20T13:30:54+08:00">
-                2019-05-20
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-10-15T15:19:09+08:00">
+                2019-10-15
               </time>
             
 
@@ -389,6 +394,28 @@
             
           </span>
 
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/paper-reading/" itemprop="url" rel="index">
+                    <span itemprop="name">paper reading</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
           
 
           
@@ -416,7 +443,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  257 字
+                  1.2k 字
                 </span>
               
 
@@ -432,7 +459,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  1 分钟
+                  5 分钟
                 </span>
               
             </div>
@@ -453,78 +480,36 @@
       
 
       
-        <p>　　本文罗列了相关领域知识的学习资料。</p>
-<h2 id="detection">1. Detection</h2>
-<h3 id="d-detection">1.1. 2D Detection</h3>
+        <p>　　深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文<a href="#1" id="1ref"><sup>[1]</sup></a>讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系统得整理其研究成果，这篇文章先只讨论一个较为实用的应用。</p>
+<h2 id="不确定性概述">1. 不确定性概述</h2>
+<p>　　在贝叶斯模型中，可以建模两类不确定性<a href="#2" id="2ref"><sup>[2]</sup></a>：</p>
 <ul>
-<li><a href="https://zhuanlan.zhihu.com/p/34142321" target="_blank" rel="noopener">入门</a></li>
-<li><a href="https://github.com/amusi/awesome-object-detection" target="_blank" rel="noopener">amusi</a></li>
-<li><span class="citation" data-cites="handong">[Object Detection @handong]</span>(https://handong1587.github.io/deep_learning/2015/10/09/object-detection.html#yolov3)</li>
-<li><a href="http://www.telesens.co/2018/03/11/object-detection-and-classification-using-r-cnns/" target="_blank" rel="noopener">Object Detection and Classification using R-CNNs</a></li>
-<li><a href="https://paperswithcode.com/task/object-detection" target="_blank" rel="noopener">Paper with Code</a></li>
-</ul>
-<h3 id="d-detection-1">1.2. 3D Detection</h3>
+<li><strong>认知不确定性(Epistemic Uncertainty)</strong>，描述模型因为缺少训练数据而存在的未知，可通过增加训练数据解决；</li>
+<li><p><strong>偶然不确定性(Aleatoric Uncertainty)</strong>，描述了数据不能解释的信息，可通过提高数据的精度来消除；</p>
 <ul>
-<li><a href="https://paperswithcode.com/task/3d-object-detection" target="_blank" rel="noopener">Paper with Code</a></li>
-<li><a href="http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d" target="_blank" rel="noopener">KITTI Leaderboard</a></li>
+<li><strong>数据依赖地或异方差不确定性(Data-dependent or Heteroscedastic Uncertainty)</strong>，与模型输入数据有关，可作为模型预测输出；</li>
+<li><strong>任务依赖地或同方差不确定性(Task-dependent or Homoscedastic Uncertainty)</strong>，与模型输入数据无关，且不是模型的预测输出，不同任务有不同的值；</li>
+</ul></li>
 </ul>
-<hr>
-<h2 id="tracking">2. Tracking</h2>
-<h3 id="single-object-tracking">2.1. Single Object Tracking</h3>
-<ul>
-<li><a href="https://paperswithcode.com/task/visual-object-tracking" target="_blank" rel="noopener">Paper with Code</a></li>
-</ul>
-<h3 id="multi-object-tracking">2.2. Multi Object Tracking</h3>
-<ul>
-<li><a href="https://paperswithcode.com/task/multiple-object-tracking" target="_blank" rel="noopener">Paper with Code</a></li>
-<li><a href="https://zhuanlan.zhihu.com/p/65177442" target="_blank" rel="noopener">Paper List</a></li>
-<li><a href="https://motchallenge.net/results/MOT17/" target="_blank" rel="noopener">MOT Challenge</a></li>
-<li><a href="https://arxiv.org/abs/1409.7618" target="_blank" rel="noopener">综述：Multiple Object Tracking: A Literature Review</a></li>
-<li><a href="https://www.cv-foundation.org/openaccess/content_cvpr_2013/html/Wu_Online_Object_Tracking_2013_CVPR_paper.html" target="_blank" rel="noopener">综述：Online object tracking: A benchmark</a></li>
-<li><a href="https://arxiv.org/abs/1504.01942" target="_blank" rel="noopener">综述：MOTChallenge 2015: Towards a benchmark for multi-target tracking</a></li>
-</ul>
-<hr>
-<h2 id="computational-photography">3. Computational Photography</h2>
-<ul>
-<li><a href="http://graphics.cs.cmu.edu/courses/15-463/2017_fall/" target="_blank" rel="noopener">2017年秋季的计算摄影学课程15-463</a></li>
-</ul>
-<hr>
-<h2 id="cnn-acc">4. CNN ACC</h2>
-<hr>
-<h2 id="slam">5. SLAM</h2>
-<h3 id="理论知识">5.1. 理论知识</h3>
-<ul>
-<li><a href="http://cvrs.whu.edu.cn/downloads/ebooks/%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E6%95%B0%E5%AD%A6%E6%96%B9%E6%B3%95.pdf" target="_blank" rel="noopener">计算机视觉中的数学方法</a></li>
-<li><a href="http://cvrs.whu.edu.cn/downloads/ebooks/Multiple%20View%20Geometry%20in%20Computer%20Vision%20%28Second%20Edition%29.pdf" target="_blank" rel="noopener">Multiple View Geometry in Computer Vision</a></li>
-<li><a href="https://docs.ufpr.br/~danielsantos/ProbabilisticRobotics.pdf" target="_blank" rel="noopener">Probabilistic Robotics</a>(有中文版)</li>
-<li><a href="http://asrl.utias.utoronto.ca/~tdb/bib/barfoot_ser17.pdf" target="_blank" rel="noopener">State Estimation for Robotics</a>(有中文版)</li>
-<li><a href="https://github.com/gaoxiang12/slambook" target="_blank" rel="noopener">视觉SLAM十四讲</a></li>
-</ul>
-<h3 id="综述">5.2. 综述</h3>
-<ul>
-<li>[Visual Odometry Part I: Fundamentals]</li>
-<li>[Visual Odometry Part II: Matching, Robustness, Optimization, Applications]</li>
-<li><a href="https://link.springer.com/content/pdf/10.1186%2Fs40064-016-3573-7.pdf" target="_blank" rel="noopener">Review of Visual Odometry: Types, Approaches, Challenges, and Applications</a></li>
-<li><a href="https://ipsjcva.springeropen.com/track/pdf/10.1186/s41074-017-0027-2" target="_blank" rel="noopener">Visual SLAM algorithms: a Survey from 2010 to 2016</a></li>
-<li><a href="http://www.cvc.uab.es/~asappa/publications/C__IEEE_IV_2012_W3.pdf" target="_blank" rel="noopener">Visual SLAM for Driverless Cars: a Brief Survey</a></li>
-<li><a href="https://link.springer.com/article/10.1007/s10462-012-9365-8" target="_blank" rel="noopener">Visual Simultaneous Locations and Mapping: a Survey</a></li>
-</ul>
-<h3 id="工具">5.3. 工具</h3>
-<ul>
-<li><a href="http://www.guyuehome.com/column/ros-explore" target="_blank" rel="noopener">ROS</a></li>
-<li><a href="https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html" target="_blank" rel="noopener">Opencv Camera Calibration</a></li>
-<li><a href="http://www.vision.caltech.edu/bouguetj/calib_doc/" target="_blank" rel="noopener">Matlab Camera Calibration Toolbox</a></li>
-<li><a href="http://wiki.ros.org/camera_calibration" target="_blank" rel="noopener">ROS Wiki Camera Calibration</a></li>
-</ul>
-<h3 id="算法">5.4. 算法</h3>
-<ul>
-<li><a href="https://openslam-org.github.io/" target="_blank" rel="noopener">OpenSLAM</a></li>
-</ul>
-<h3 id="其它资料">5.5. 其它资料</h3>
-<ul>
-<li><a href="https://www.zhihu.com/people/cheng-xu-yuan-10/posts" target="_blank" rel="noopener">计算机视觉life</a></li>
-<li><a href="https://paperswithcode.com/task/visual-odometry" target="_blank" rel="noopener">Paper with Code</a></li>
-</ul>
+<p>本文讨论同方差不确定性，其描述了不同任务间的相关置信度，所以可用同方差不确定性来设计不同任务的 \(Loss\) 权重项。</p>
+<h2 id="为什么需要设计不同任务的-loss-权重项">2. 为什么需要设计不同任务的 \(Loss\) 权重项</h2>
+<p><img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt_weight.png" width="90%" height="90%" title="图 1. Multi-task loss weightings"> 　　如图 1. 所示，多任务学习能提高单任务的性能，但是要充分发挥多任务的性能，那么得精心调节各任务的 \(Loss\) 权重。当任务多的时候，人工搜索最优的权重项则显得费时费力，依靠模型的同方差不确定性，我们可以自动学习权重项。</p>
+<h2 id="多任务似然建模">3. 多任务似然建模</h2>
+<p>　　下面推倒基于同方差不确定性的最大化高斯似然过程。设模型权重 \(\mathbf{W}\)，输入 \(\mathbf{x}\)，输出为 \(\mathbf{f^W(x)}\)。对于回归任务，定义模型输出为高斯似然形式： <span class="math display">\[p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \mathcal{N}\left(\mathbf{f^W(x)}, \sigma ^2\right) \tag{1}\]</span> 其中 \(\sigma\) 为观测噪声方差，描述了模型输出中含有多大的噪声。对于分类任务，玻尔兹曼分布下的模型输出概率分布为： <span class="math display">\[p\left(\mathbf{y}\vert\mathbf{f^W(x)},\sigma\right) = \mathrm{Softmax}\left(\frac{1}{\sigma ^2}\mathbf{f^W(x)}\right) \tag{2}\]</span> 由此对于多任务，模型输出的联合概率分布为： <span class="math display">\[p\left(\mathbf{y}_1,\dots,\mathbf{y}_K\vert\mathbf{f^W(x)}\right) = p\left(\mathbf{y}_1\vert\mathbf{f^W(x)}\right) \dots p\left(\mathbf{y}_K\vert\mathbf{f^W(x)}\right) \tag{3}\]</span></p>
+<p>　　对于回归任务，\(log\)似然函数： <span class="math display">\[\mathrm{log}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) \propto -\frac{1}{2\sigma ^2} \Vert \mathbf{y-f^W(x)} \Vert ^2 - \mathrm{log}\sigma \tag{4}\]</span> 对于分类任务，\(log\)似然函数： <span class="math display">\[\mathrm{log}p\left(\mathbf{y}=c\vert\mathbf{f^W(x)}, \sigma\right) = \frac{1}{2\sigma ^2}f_c^{\mathbf{W}}(\mathbf{x})- \mathrm{log}\sum_{c&#39;} \mathrm{exp}\left(\frac{1}{\sigma^2}f^{\mathbf{W}}_{c&#39;}(\mathbf{x}) \right) \tag{5}\]</span></p>
+<p>　　现同时考虑回归与分类任务，则多任务的联合 \(Loss\)： <span class="math display">\[\begin{align}
+\mathcal{L}(\mathbf{W}, \sigma _1, \sigma _2) &amp;= -\mathrm{log}p\left(\mathrm{y_1,y_2}=c\vert\mathbf{f^W(x)} \right) \\
+&amp;= -\mathrm{log}\mathcal{N}\left(\mathbf{y_1};\mathbf{f^W(x)}, \sigma_1^2\right) \cdot \mathrm{Softmax}\left(\mathbf{y_2}=c;\mathbf{f^W(x)},\sigma_2\right) \\
+&amp;= \frac{1}{2\sigma_1^2}\Vert \mathbf{y}_1-\mathbf{f^W(x)}\Vert ^2 + \mathrm{log}\sigma_1 - \mathrm{log}p\left(\mathbf{y}_2=c\vert\mathbf{f^W(x)},\sigma_2\right) \\
+&amp;= \frac{1}{2\sigma_1^2}\mathcal{L}_1(\mathbf{W}) +\frac{1}{\sigma_2^2}\mathcal{L}_2(\mathbf{W}) + \mathrm{log}\sigma_1 + \mathrm{log}\frac{\sum_{c&#39;}\mathrm{exp}\left(\frac{1}{\sigma_2^2}f_{c&#39;}^{\mathbf{W}}(x)\right)}{\left(\sum_{c&#39;}\mathrm{exp}\left(f_{c&#39;}^{\mathbf{W}}(x) \right) \right)^{\frac{1}{\sigma_2^2}}} \\
+&amp;\approx \frac{1}{2\sigma_1^2}\mathcal{L}_1(\mathbf{W}) +\frac{1}{\sigma_2^2}\mathcal{L}_2(\mathbf{W}) + \mathrm{log}\sigma_1 + \mathrm{log}\sigma_2 \tag{6}
+\end{align}\]</span></p>
+<p>由此得到两个权重项，任务噪声 \(\sigma\) 越大，则该任务的误差权重越小。实际应用中，为了数值稳定，令 \(s:=\mathrm{log}\sigma^2\): <span class="math display">\[\mathcal{L}(\mathbf{W}, s_1, s_2) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \mathrm{exp}(-s_2)\mathcal{L}_2(\mathbf{W}) + \mathrm{exp}(\frac{1}{2}s_1) + \mathrm{exp}(\frac{1}{2}s_2) \tag{7}\]</span> 对于更多任务的模型，根据任务类型也很容易扩展，网络自动学习权重项 \((s_1,s_2,...,s_n)\)。</p>
+<h2 id="实验结果">4. 实验结果</h2>
+<p><img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt.png" width="90%" height="90%" title="图 2. Multi-task"> <img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/ablation.png" width="90%" height="90%" title="图 3. 实验结果"> 　　如图 2. 所示，作者设计了同时作语义分割、实例分割、深度估计的网络，由图 3. 可知，用任务的不确定性来加权任务的 \(Loss\)，效果显著。</p>
+<h2 id="参考文献">5. 参考文献</h2>
+<p><a id="1" href="#1ref">[1]</a> Kendall, Alex, Yarin Gal, and Roberto Cipolla. &quot;Multi-task learning using uncertainty to weigh losses for scene geometry and semantics.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.<br>
+<a id="2" href="#2ref">[2]</a> Kendall, Alex, and Yarin Gal. &quot;What uncertainties do we need in bayesian deep learning for computer vision?.&quot; Advances in neural information processing systems. 2017.</p>
 
       
     </div>
@@ -579,7 +564,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://leijiezhang001.github.io/study-topic-list/" title="Study Topic List">https://leijiezhang001.github.io/study-topic-list/</a>
+    <a href="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="[paper_reading]-" multi-task learning using uncertainty to weigh losses"">https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -593,6 +578,16 @@
 	
     <footer class="post-footer">
       
+        <div class="post-tags">
+          
+            <a href="/tags/Deep-Learning/" rel="tag"><i class="fa fa-tag"></i> Deep Learning</a>
+          
+            <a href="/tags/paper-reading/" rel="tag"><i class="fa fa-tag"></i> paper reading</a>
+          
+            <a href="/tags/Uncertainty/" rel="tag"><i class="fa fa-tag"></i> Uncertainty</a>
+          
+        </div>
+      
 
       
       
@@ -602,15 +597,15 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/paperreading-MT-MS-Fusion-for-3D-Object-Detection/" rel="next" title="[paper_reading]-" multi-task multi-sensor fusion for 3d object detection""">
+                <i class="fa fa-chevron-left"></i> [paper_reading]-"Multi-Task Multi-Sensor Fusion for 3D Object Detection""
+              </a>
+            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/3D-Detection-paper-list/" rel="prev" title="3D Detection Paper List">
-                3D Detection Paper List <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -780,7 +775,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#detection"><span class="nav-text">1. Detection</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#d-detection"><span class="nav-text">1.1. 2D Detection</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#d-detection-1"><span class="nav-text">1.2. 3D Detection</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tracking"><span class="nav-text">2. Tracking</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#single-object-tracking"><span class="nav-text">2.1. Single Object Tracking</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-object-tracking"><span class="nav-text">2.2. Multi Object Tracking</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#computational-photography"><span class="nav-text">3. Computational Photography</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cnn-acc"><span class="nav-text">4. CNN ACC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#slam"><span class="nav-text">5. SLAM</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#理论知识"><span class="nav-text">5.1. 理论知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#综述"><span class="nav-text">5.2. 综述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#工具"><span class="nav-text">5.3. 工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#算法"><span class="nav-text">5.4. 算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其它资料"><span class="nav-text">5.5. 其它资料</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#不确定性概述"><span class="nav-text">1. 不确定性概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么需要设计不同任务的-loss-权重项"><span class="nav-text">2. 为什么需要设计不同任务的 \(Loss\) 权重项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多任务似然建模"><span class="nav-text">3. 多任务似然建模</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实验结果"><span class="nav-text">4. 实验结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">5. 参考文献</span></a></li></ol></div>
             
 
           </div>
@@ -1416,6 +1411,26 @@
   
 
   
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
   
 
 
