@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://leijiezhang001.github.io/lane-det-from-BEV/</loc>
+    
+    <lastmod>2019-10-18T10:10:55.388Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/</loc>
     
     <lastmod>2019-10-16T02:17:01.351Z</lastmod>
@@ -30,13 +37,6 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/study-topic-list/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://leijiezhang001.github.io/tags/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
@@ -51,21 +51,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Visual_Odometry_Part_I_II/</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -86,6 +72,27 @@
   </url>
   
   <url>
+    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Visual_Odometry_Part_I_II/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/study-topic-list/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/</loc>
     
     <lastmod>2019-10-07T14:29:47.144Z</lastmod>
@@ -93,7 +100,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-RCNN-based-3D-Object-Detection-for-Autonomous-Driving/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
@@ -107,14 +114,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/MOT-Metrics-in-Academia-and-Industry/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
+    <loc>https://leijiezhang001.github.io/3D-Detection-paper-list/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
@@ -128,7 +128,14 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/3D-Detection-paper-list/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-Metrics-in-Academia-and-Industry/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-RCNN-based-3D-Object-Detection-for-Autonomous-Driving/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
