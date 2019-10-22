@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2019-10-18T10:10:55.388Z</updated>
+  <updated>2019-10-21T09:02:40.556Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;End-to-End Multi-View Fusion for 3D Object Detection in LiDAR Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/"/>
+    <id>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</id>
+    <published>2019-10-21T03:30:27.000Z</published>
+    <updated>2019-10-21T09:02:40.556Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　在多视角融合 3D 检测上，研究比较多的是俯视图下的激光点云以及前视图下的图像做多传感器融合，而融合点云俯视图(Bird's Eye View)与前视图(Perspective View)的特征则比较少，新鲜出炉的本文<a href="#1" id="1ref"><sup>[1]</sup></a>提供了一种较好的点云前视图与俯视图特征前融合(early fusion)方法。</p><h2 id="为什么要融合点云前视图特征">1. 为什么要融合点云前视图特征</h2><p>　　目前主流的点云检测算法，都是将点云在俯视图下以一定分辨率体素化(Voxelization)，然后用网络提取特征做 3D 检测。单纯在俯视图下提取特征虽然比单纯在前视图下做有优势，但还是存在几个问题：</p><ol type="1"><li>激光点云在远处，会变得很稀疏，从而空像素会比较多；</li><li>行人等狭长型小目标特征所占像素会很小；</li></ol><p>将点云投影到前视图，这两个问题则能有效减弱，所以本文提出融合点云前视图特征。</p><h2 id="贡献点">2. 贡献点</h2><p>　　本文是在 <a href="/paperreading-PointPillars/" title="PointPillars">PointPillars</a> 基础上做的工作，PointPillars 主要由三个模块构成：</p><ul><li>Voxelization；</li><li>Point Feature Encoding；</li><li>CNN Backbone；</li></ul><p>本文改进了前两个模块，但是本质思想还是 PointNet 形式。其余包括 Loss 形式等与 PointPillars 一致。<br>　　针对这两个模块，本文有两个贡献点，Dynamic Voxelization 以及 Point-level Feature Fusion，接下来作详细介绍。</p><h3 id="动态体素化dynamic-voxelization">2.1. 动态体素化(Dynamic Voxelization)</h3><p><img src="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/voxelization.png" width="90%" height="90%" title="图 1. 体素化过程对比"> 　　如图 1. 所示，PointPillars (包括之前的 VoxelNet 等工作)体素化的过程都是 Hard Voxelization，即 Voxel 数目要采样，每个 Voxel 里面的点数也会采样，比如 PointPillars 将每个 Voxel 的点数定义为 100 个，少于 100 个点，则作补零处理。这样会存在问题：</p><ul><li>内存消耗大，很多稀疏的区域导致体素中要补零的内存很多；</li><li>采样导致信息丢失；</li><li>采样导致检测输出有一定的不一致性；</li><li>不能作点级别的特征融合；</li></ul><p>　　由此提出动态体素化(Dynamic Voxelization)，取消所有的采样过程，为什么可以这么做呢？其实这么做也比较自然，PointPillars 中 PointNet 网络将 \((P, N, D)\) 特征映射为 \((P, N, C)\)，这里就是多层感知机将输入的 channel 维度从 \(D\) 变换到 \(C\)，与其它两个维度没有关系，而接下来做的 max-pooling 操作则将 \(N\) 维(N 个点)压缩到 1，PointPillars 中每个柱子的 N 是采样成一样的。但是可以不一样！这就是本文的动态体素化思想了。</p><h3 id="点级别特征融合point-level-feature-fusion">2.2. 点级别特征融合(Point-level Feature Fusion)</h3><p>　　<a href="/paperreading-MT-MS-Fusion-for-3D-Object-Detection/" title="MMF">MMF</a> 以 Voxel-level 将前视图的图像特征融合到俯视图的点云特征中，并以 ROI-level 融合图像前视图特征及点云俯视图特征做检测分类，本文则提出了更加前序的特征融合-Point-level 融合。 <img src="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/MVF.png" width="90%" height="90%" title="图 2. 点级别特征融合框架"> 　　如图 2. 所示，首先将每个点的特征(x,y,z,intensity...)映射到高维度，然后经过 FC+Maxpool(PointNet 形式) 得到标准卷积网络需要的输入数据形式，再经过 Convolution Tower 模块进行环境上下文特征提取，最终每个体素的特征作为体素内每个点的特征，由此拼接成总的点特征。<br><img src="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/encoding.png" width="40%" height="40%" title="图 3. Convolution Tower"> 　　其中 Convolution Tower 网络结构如图 3. 所示，输入输出的尺寸保持不变，类似于 FPN 结构。<br>　　最终每个点的特征由三部分构成：</p><ul><li>自身特征维度映射；</li><li>俯视图下抽取的 Voxel 级别特征，有一定的感受野；</li><li>前视图下抽取的 Voxel 级别特征，有一定的感受野；</li></ul><p>　　俯视图下点云特征提取过程我们比较熟悉了，这里再详细介绍下点云在前视图下提取特征的过程(还没看懂，论文中好像没有详细信息，看懂了再补充)。</p><h2 id="实验结果">3. 实验结果</h2><p><img src="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/eval.png" width="90%" height="90%" title="图 4. 实验结果"> 　　网络参数配置可详见论文，图 4. 是在 Waymo 公开数据集上的实验结果。可知：</p><ol type="1"><li>动态体素化在全距离范围内对检测都有一定的提升；</li><li>融合前视图特征能有效提升提升检测性能，尤其是远距离情况，距离越远，提升越明显；</li><li>融合前视图特征对小目标提升更加明显，如行人；</li></ol><h2 id="参考文献">4. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Yin, et al. &quot;End-to-End Multi-View Fusion for 3D Object Detection in LiDAR Point Clouds.&quot; arXiv preprint arXiv:1910.06528 (2019).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　在多视角融合 3D 检测上，研究比较多的是俯视图下的激光点云以及前视图下的图像做多传感器融合，而融合点云俯视图(Bird&#39;s Eye View)与前视图(Perspective View)的特征则比较少，新鲜出炉的本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;su
+      
+    
+    </summary>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/categories/paper-reading/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+  </entry>
   
   <entry>
     <title>Lane Detection from BEV</title>
