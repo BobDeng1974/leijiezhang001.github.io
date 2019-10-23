@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://leijiezhang001.github.io/paperreading-FlowNet3D/</loc>
+    
+    <lastmod>2019-10-23T13:21:31.136Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</loc>
     
     <lastmod>2019-10-21T09:02:40.556Z</lastmod>
@@ -51,7 +58,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/tags/index.html</loc>
+    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -65,21 +72,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E5%99%A8%E5%9C%A8%E4%B8%89%E7%BB%B4%E7%9B%AE%E6%A0%87%E7%8A%B6%E6%80%81%E4%BC%B0%E8%AE%A1%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E8%AF%A6%E8%A7%A3/</loc>
+    <loc>https://leijiezhang001.github.io/tags/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -93,7 +86,21 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
+    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E8%AF%A6%E8%A7%A3/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E5%99%A8%E5%9C%A8%E4%B8%89%E7%BB%B4%E7%9B%AE%E6%A0%87%E7%8A%B6%E6%80%81%E4%BC%B0%E8%AE%A1%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.148Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -107,20 +114,6 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/3D-Detection-paper-list/</loc>
-    
-    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
@@ -128,7 +121,14 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/MOT-Metrics-in-Academia-and-Industry/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-RCNN-based-3D-Object-Detection-for-Autonomous-Driving/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
@@ -142,7 +142,14 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-RCNN-based-3D-Object-Detection-for-Autonomous-Driving/</loc>
+    <loc>https://leijiezhang001.github.io/MOT-Metrics-in-Academia-and-Industry/</loc>
+    
+    <lastmod>2019-10-07T14:29:47.140Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/3D-Detection-paper-list/</loc>
     
     <lastmod>2019-10-07T14:29:47.140Z</lastmod>
     
