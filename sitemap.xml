@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/</loc>
+    
+    <lastmod>2019-11-09T08:41:48.981Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://leijiezhang001.github.io/lane-det-from-BEV/</loc>
+    
+    <lastmod>2019-11-09T08:00:09.105Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E8%AF%A6%E8%A7%A3/</loc>
     
     <lastmod>2019-11-07T14:11:03.178Z</lastmod>
@@ -103,13 +117,6 @@
     <loc>https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</loc>
     
     <lastmod>2019-11-07T14:05:29.555Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://leijiezhang001.github.io/lane-det-from-BEV/</loc>
-    
-    <lastmod>2019-11-07T14:05:10.076Z</lastmod>
     
   </url>
   
