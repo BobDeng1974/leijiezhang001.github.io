@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2019-11-12T04:08:42.469Z</updated>
+  <updated>2019-11-18T11:25:07.739Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -17,11 +17,38 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Model Compression - &#39;Pruning&#39;</title>
+    <link href="https://leijiezhang001.github.io/pruning/"/>
+    <id>https://leijiezhang001.github.io/pruning/</id>
+    <published>2019-11-15T03:56:23.000Z</published>
+    <updated>2019-11-18T11:25:07.739Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　模型压缩技术主要有：Pruning，Regularization，Quantization，KnowLedge Distillation，Comditional Computation等。本文主要讨论剪枝技术(Pruning)。复杂模型存在存储空间大，计算量大等问题，对其进行剪枝使网络中的权重及特征层稀疏化(Regularization 也是稀疏化的过程)，能获得以下效益：</p><ul><li><strong>模型更小</strong><br>稀疏化的模型含有大量的零值，称为稀疏表达(Sparse Representation)，通过稀疏矩阵压缩技术进行编码压缩后得到压缩表达(Compressed Representation)。片内内存(On-chip Mem)与片外内存(Off-chip Mem)数据的传输可用压缩表达，使实际传输中的模型内存更小，而计算时，可通过反编码算法得到稀疏表达，从而进行正常的矩阵运算；也可以直接用压缩表达进行矩阵运算，这需要特殊的硬件支持，并且稀疏化的过程一般是结构化剪枝(Structured Pruning)或是正则。</li><li><strong>速度更快</strong><br>目前大部分矩阵运算芯片，性能瓶颈都在片内片外内存的带宽，稀疏化后能有效压缩矩阵单元，降低模型传输内存；另一方面，通过结构化的剪枝，在特定硬件下，能直接减少零值运算量。</li><li><strong>能效更高</strong><br>片外内存访问所花费的能量大概比片内内存多两个数量级，所以降低模型的传输内存，甚至将模型及中间计算量(如特征层)直接塞到片内内存，减少与片外内存的交互，能有效提高能效。</li></ul><p>　　剪枝的过程主要是：根据剪枝类型选用对应的稀疏性定义方式；剪枝前模型的敏感度分析；应用剪枝算法及策略。以下根据 Distiller<a href="#1" id="1ref"><sup>[1]</sup></a> 库分别对这三部分进行详细阐述。</p><h2 id="稀疏性定义">1. 稀疏性定义</h2><p>　　剪枝大致可分为 element-wise 剪枝以及 Structured 剪枝，element-wise 剪枝只需要定义每个张量的稀疏性，即 Element-wise Sparsity，而 Structured 剪枝需要定义不同结构的稀疏性，有 Filter-wise Sparsity，Channel-wise Sparsity，Kernel-wise Sparsity，Block-wise Sparsity，Column-wise Sparsity，Row-wise Sparsity。<br>　　设输入特征层 IFM(Input Feature Map)\(\in\mathbb{R}^{N\times C_1\times H_1\times W_1}\)，卷积核 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\)，则输出特征层 OFM(Output Feature Map)\(\in\mathbb{R}^{N\times C_2\times H_2\times W_2}\)。</p><h3 id="element-wise-sparsity">1.1. Element-wise Sparsity</h3><p>　　张量元素的稀疏性，设 \(X\in\mathbb{R}^{N\times C\times H\times W}\)： <span class="math display">\[\Vert X\Vert_{element-wise} = \frac{l_0(X)}{N\times C\times H\times W} = \frac{\sum_{n=1}^{N}\sum_{c=1}^{C}\sum_{h=1}^{H}\sum_{w=1}^{W}\left\vert X_{n,c,h,w} \right\vert ^0}{N\times C\times H\times W} \tag{1}\]</span> 其中 \(l_0\) 正则根据元素是否为 0，确定输出 0/1。</p><h3 id="filter-wise-sparsity">1.2. Filter-wise Sparsity</h3><p>　　对于有 \(C_2\) 个卷积核的 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\)，其 Filter-wise 的稀疏性可表示为： <span class="math display">\[\Vert X\Vert_{filter-wise} = \frac{\sum_{c_2=1}^{C_2}\left\vert\sum_{c_1=1}^{C_1}\sum_{k_1=1}^{K}\sum_{k_2=1}^{K}\vert X_{c_2,c_1,k_1,k_2}\vert \right\vert ^0}{C_2} \tag{2}\]</span></p><h3 id="kernel-wise-sparsity">1.3. Kernel-wise Sparsity</h3><p>　　卷积核 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\) 拥有 \(C_2\times C_1\) 个 \(K\times K\) 大小的 Kernel，其 Kernel-wise 的稀疏性可表示为： <span class="math display">\[\Vert X\Vert_{kernel-wise} = \frac{\sum_{c_2=1}^{C_2}\sum_{c_1=1}^{C_1}\left\vert\sum_{k_1=1}^{K}\sum_{k_2=1}^{K}\vert X_{c_2,c_1,k_1,k_2}\vert \right\vert ^0}{C_2\times C_1} \tag{3}\]</span></p><h3 id="channel-wise-sparsity">1.4. Channel-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{N\times C\times H\times W}\)： <span class="math display">\[\Vert X\Vert_{channel-wise} = \frac{\sum_{c=1}^{C}\left\vert\sum_{n=1}^{N}\sum_{h=1}^{H}\sum_{w=1}^{W}\vert X_{n,c,h,w}\vert \right\vert ^0}{C} \tag{4}\]</span></p><h3 id="column-wise-sparsity">1.5. Column-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{H\times W}\)： <span class="math display">\[\Vert X\Vert_{column-wise} = \frac{\sum_{h=1}^{H}\left\vert\sum_{w=1}^{W}\vert X_{h,w}\vert \right\vert ^0}{H} \tag{5}\]</span></p><h3 id="row-wise-sparsity">1.6. Row-wise Sparsity。</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{H\times W}\)： <span class="math display">\[\Vert X\Vert_{row-wise} = \frac{\sum_{w=1}^{W}\left\vert\sum_{h=1}^{H}\vert X_{h,w}\vert \right\vert ^0}{W} \tag{6}\]</span></p><h3 id="block-wise-sparsity">1.7. Block-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{N\times C\times H\times W}\)，设定 block\(\in\mathbb{R}^{repetitions\times depth\times 1\times1}\)，由此将 \(X\) 划分为 \(\frac{N\times C}{repetitions\times depth}\times (repetitions\times depth)\times (H\times W)=N'\times B\times K\)。block-sparsity 定义为： <span class="math display">\[\Vert X\Vert_{block-wise} = \frac{\sum_{n=1}^{N&#39;}\sum_{k=1}^K\left\vert\sum_{b=1}^{B}\vert X_{n,b,k}\vert \right\vert ^0}{N&#39;\times K} \tag{7}\]</span></p><h2 id="模型敏感度分析sensitivity-analysis">2. 模型敏感度分析(Sensitivity Analysis)</h2><p>　　在剪枝前，我们首先要确定减哪几层，每层减多少(即剪枝阈值或剪枝程度)。这就涉及到模型中每层网络对模型输出的敏感度分析(Sensitivity Analysis)。<a href="#2" id="2ref">[2]</a> 提出了一种有效的方法来确定每层的敏感度。在一个已训练模型下，分别对每一层进行不同程度的剪枝，得到对应的网络输出精度，绘制敏感度曲线。<br><img src="/pruning/sensitivity.png" width="70%" height="70%" title="图 1. 敏感度分析"> 　　如图 1. 所示，AlexNet 网络各层对 element-wise 剪枝的敏感度曲线显示，越深的网络层对输出越不敏感，尤其是全连接层，所以剪枝程度可以更高。而对于非常敏感的浅层网络，则需要降低剪枝程度，甚至不剪枝。</p><h2 id="剪枝算法">3. 剪枝算法</h2><h3 id="magnitude-pruner">3.1. Magnitude Pruner</h3><p>　　这是最基本的剪枝方法，对于要剪枝的对象，判断其绝对值是否大于阈值 \(\lambda\)，如果小于阈值，则将该对象置为零。该对象可以是 element-wise，也可以是其它结构化的对象，如 filter，Kernel 等。<br>　　该方法需要直接设定阈值，而阈值的设定是比较困难的。</p><h3 id="sensitivity-pruner">3.2. Sensitivity Pruner</h3><p>　　卷积网络每层的权重值为高斯分布，由高斯分布的性质可知，在标准差 \(\sigma\) 内，有 68% 的元素，所以阈值可设定为 \(\lambda=s\times \sigma\)，其表示了 \(s\times 68\%\) 的元素被剪枝掉。</p><h3 id="level-pruner">3.3. Level Pruner</h3><p>　　Level Pruner 直接设定需要剪枝的比例，即直接设定剪枝后的稀疏性，这比前两种方法更加稳定。具体做法就是对每个对象进行排序，然后以此裁剪，直到裁剪到设定的比例。</p><h3 id="automated-gradual-pruneragp">3.4. Automated Gradual Pruner(AGP)</h3><p>　　<a href="#3" id="3ref">[3]</a>提出了一种训练剪枝的方法，在 Level Pruner 基础上，随着训练的过程，设计剪枝的稀疏性从初始的 \(s_i\) 增加到目标 \(s_f\)，其数学表示为： <span class="math display">\[ s_t = s_f+(s_i-s_f)\left(1-\frac{t-t_0}{n\Delta t}\right)^3 \; \mathrm{for} \, t\in \{t_0, t_0+\Delta t,...,t_0+n\Delta t\} \tag{8}\]</span> 实现的效果是，初始阶段，剪枝比较厉害，越到最后，剪枝的量越少，直到达到目标剪枝值。</p><h3 id="structure-pruners">3.5. Structure Pruners</h3><p>　　这里讨论结构化剪枝中 Filter 以及 Channel 的剪枝<a href="#4" id="4ref"><sup>[4]</sup></a>，对应的需要用到前面提到的 Filter-wise 以及 Channel-wise 的稀疏性。不同于 element-wise 剪枝，结构化剪枝由于网络的连接性会更复杂，这里考虑三种链接情况。</p><h4 id="连接结构1">3.5.1. 连接结构1</h4><p><img src="/pruning/filter1.png" width="70%" height="70%" title="图 2. 连接结构1"> 　　如图 2. 所示，设第\(i\)层特征 \(X_i\in\mathbb{R}^{C_i\times H_i\times W_i}\)，经过卷积核 \(\mathcal{F}\in\mathbb{R}^{C_{i+1}\,\times\, C_i\,\times\,K\,\times\,K}\)后得到第 \(i+1\)层特征层 \(X_{i+1}\in\mathbb{R}^{C_{i+1}\,\times\, H_{i+1}\,\times\, W_{i+1}}\)。图中绿色及黄色代表剪枝掉的 Filter，对应的输出少了这两个卷积计算得到的 channel 维度的两个特征图，再往后就是去除 BN 里面对应 channel 层的 scale 以及 shift 信息(Distiller 中自动删除)，最后再次应用的卷积核需要去除对应的 channel，即类似做 channel-wise 剪枝。由此可见，结构化剪枝会影响后面的网络结构，需要根据网络信息流作网络调整。<br>　　第 \(i\) 卷积层运算量 MAC 为 \(C_{i+1}C_iK^2H_{i+1}W_{i+1}\)，如果剪枝掉 \(m\) 个卷积核，那么第 i 层卷积减少的运算量为 \(mC_iK^2H_{i+1}W_{i+1}\)，下一层 \(i+1\) 卷积层减少的运算量为 \(C_{i+2}mK^2H_{i+2}W_{i+2}\)。所以在第 \(i\) 层剪枝掉 \(m\) 个卷积核，会使第 \(i,i+1\) 层的运算量各减少 \(m/C_{i+1}\)。</p><h4 id="连接结构2">3.5.2. 连接结构2</h4><p><img src="/pruning/filter2.png" width="60%" height="60%" title="图 3. 连接结构2"> 　　如图 3. 所示，与被剪枝的特征图直连的卷积核均需要作 channel 维度的裁剪，这一步在 Distiller 中自动进行。</p><h4 id="连接结构3">3.5.3. 连接结构3</h4><p><img src="/pruning/filter3.png" width="60%" height="60%" title="图 4. 连接结构3"> 　　如图 4. 所示，如果两个卷积层的输出要做 element-wise 相加操作，那么就要求两个卷积层的输出大小要一样。这就要求对这两个卷积层的卷积核裁剪过程要一样，包括裁剪的卷积数量以及卷积位置。这需要在 Distiller 中显示的指定。</p><h2 id="参考文献">4. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> https://nervanasystems.github.io/distiller/index.html<br><a id="2" href="#2ref">[2]</a> Han, Song, et al. &quot;Learning both weights and connections for efficient neural network.&quot; Advances in neural information processing systems. 2015.<br><a id="3" href="#3ref">[3]</a> Zhu, Michael, and Suyog Gupta. &quot;To prune, or not to prune: exploring the efficacy of pruning for model compression.&quot; arXiv preprint arXiv:1710.01878 (2017).<br><a id="4" href="#4ref">[4]</a> Li, Hao, et al. &quot;Pruning filters for efficient convnets.&quot; arXiv preprint arXiv:1608.08710 (2016).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　模型压缩技术主要有：Pruning，Regularization，Quantization，KnowLedge Distillation，Comditional Computation等。本文主要讨论剪枝技术(Pruning)。复杂模型存在存储空间大，计算量大等问题，对
+      
+    
+    </summary>
+    
+      <category term="Model Compression" scheme="https://leijiezhang001.github.io/categories/Model-Compression/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Model Compression" scheme="https://leijiezhang001.github.io/tags/Model-Compression/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;3D-LaneNet End-to-End 3D Multiple Lane Detection&quot;</title>
     <link href="https://leijiezhang001.github.io/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/"/>
     <id>https://leijiezhang001.github.io/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/</id>
     <published>2019-11-09T09:48:38.000Z</published>
-    <updated>2019-11-12T04:08:42.469Z</updated>
+    <updated>2019-11-12T04:22:48.736Z</updated>
     
     <content type="html"><![CDATA[<p>　　在上一篇 paper reading <a href="/paper-reading-Deep-Multi-Sensor-Lane-Detection/" title="Deep Multi-Sensor Lane Detection">Deep Multi-Sensor Lane Detection</a> 中，最后我提到一个思考点：借鉴 STN 的思路，用前视图直接去回归 IPM 变换需要的矩阵参数。本文<a href="#1" id="1ref"><sup>[1]</sup></a>就是采用了这种思路！ <img src="/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/res.png" width="60%" height="60%" title="图 1. 方法概图"> 如图 1. 所示，车道线检测还是在俯视图下来做的，车道线输出是三维曲线，一定程度上估计出了地面高度。</p><h2 id="网络结构">1. 网络结构</h2><p><img src="/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/arch.png" width="90%" height="90%" title="图 2. 网络结构"> 　　如图 2. 所示，网络有两部分组成：</p><ul><li>Image-view 通路<br>输入为前视图图像，输出相机 pitch 角度 \(\theta\) 以及相机高度 \(H\)，这里假设相机坐标系相对地面坐标系没有 roll，yaw 偏转，由此可得到相机外参矩阵，用于 IPM 变换；</li><li>Top-view 通路<br>输入为前视图某个特征层经过 Projective Transformation Layer 变换后的特征，之后的特征层叠加来自经过变换的前视图特征层，最后输出车道线检测；</li></ul><h3 id="projective-transformation-layer">1.1. Projective Transformation Layer</h3><p>　　<a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a> 中较详细得阐述了 IPM 原理，<a href="/paper-reading-Deep-Multi-Sensor-Lane-Detection/" title="Deep Multi-Sensor Lane Detection">Deep Multi-Sensor Lane Detection</a> 则阐述了 STN 的原理。Projective Transformation Layer 类似 STN 的结构，输入相机内外参后，沿用 STN 中的 Grid Generator 以及 Sampler 模块，Grid Generator 就是 IPM 的过程。此外，Projective Transformation Layer 还增加一个卷积层，将前视图的 C 维特征卷积为 C/2 维特征与俯视图的特征层进行叠加。<br>　　该层不仅从前视图特征层上产生了俯视图特征，还融合了前视图与俯视图特征层，融合前视图特征有两大好处：</p><ul><li>瘦高型物体，如栅栏，行人，在俯视图下信息量很小，而前视图能有效提取丰富特征；</li><li>远距离时，俯视图下的信息会比较稀疏(类似点云)，而前视图信息会比较密集，能有效提取远距离下的信息特征；</li></ul><h3 id="anchor-based-lane-prediction">1.2. Anchor-Based Lane Prediction</h3><p><img src="/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/anchor.png" width="60%" height="60%" title="图 3. Anchor-Based Lane Prediction"> 　　如图 3. 所示，作者提出了一种 Anchor-Based 车道线检测方法，其实这和目标检测中的 Anchor-Based 还是不太一样，这里的 Anchor 指的是几条线。设定 \(y\) 方向的 anchor 线段：\(\{X_A^i\} _ {i=1}^N\)，\(y\) 坐标上的预定义位置：\(\{y_j\} _ {j=1}^K\)。对于每个 anchor 线段，分类上以 \(Y_{ref}\) 为基准，输出三种类别(距离 \(Y_{ref}\) 最近的线的类型)，两种车道中心线，一种车道线，即 \(\{c_1,c_2,d\}\)；回归上每种类别都输出 2K 个 Offsets：\(\{(x_j ^ i,z_j ^ i)\} _ {j=1}^K\)，对应的第 \(i\) 个 anchor，在第 \(j\) 位置上的 3D 点表示为 \((x_j ^ i+X_A ^ i,y_j,z_j ^ i)\in\mathbb{R}^3\)。综上网络输出 \(N\times(3(2K+1))\) 维的向量，最后经过 1D NMS 处理后，每个 anchor 上的 3D 点通过样条插值出 3D 线条。</p><h2 id="loss">2. Loss</h2><p>　　训练阶段，真值如何匹配 anchor 很重要，过程如下：</p><ol type="1"><li>将所有车道线以及车道中心线通过 IPM 投影到俯视图下；</li><li>在 \(Y_{ref}\) 位置上将每条线匹配给 \(x\) 方向距离最近的 anchor 线段；</li><li>对于每个 anchor 上匹配到的线，将最左边的车道线与中心线赋为 \(d,c_1\)，如果还有其它中心线，则赋为 \(c_2\)；</li></ol><p>对于没有穿过 \(Y_{ref}\) 的车道线，则予以忽略，中心线理论上都会穿过 \(Y_{ref}\)。所以理论上，本文预测的中心线是全的，而车道线会不全，前方的岔路口，一部分车道线不会被预测出来。<br>　　Loss 项有四部分组成，分别为车道线分类，车道线锚点 Offsets 回归，相机外参 pitch 角 \(\theta\) 以及高度 \(h_{cam}\) 的回归，如下： <span class="math display">\[\begin{align}\mathcal{L} =&amp; - \sum_{t\in\{c_1,c_2,d\}} \sum_{i=1}^N\left(\hat{p}_t^i\mathrm{log}p_t^i + \left(1-\hat{p}_t^i\right)\mathrm{log}\left(1-p_t^i\right)\right) \\&amp;+ \sum _ {t\in\{c_1,c_2,d\}}\sum_{i=1}^N \hat{p}_t^i\left(\left\Vert x_t^i-\hat{x}_t^i\right\Vert+\left\Vert z_t^i-\hat{z}_t^i\right\Vert\right) \\&amp;+ \left|\theta-\hat{\theta}\right| + \left|h_{cam}-\hat{h}_{cam}\right| \tag{1}\end{align}\]</span></p><h2 id="参考文献">3. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> Garnett, Noa, et al. &quot;3D-LaneNet: end-to-end 3D multiple lane detection.&quot; Proceedings of the IEEE International Conference on Computer Vision. 2019.<br><a id="2" href="#2ref">[2]</a> <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a><br><a id="3" href="#3ref">[3]</a> <a href="/paper-reading-Deep-Multi-Sensor-Lane-Detection/" title="Deep Multi-Sensor Lane Detection">Deep Multi-Sensor Lane Detection</a></p>]]></content>
     
@@ -124,9 +151,9 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Scene Flow" scheme="https://leijiezhang001.github.io/tags/Scene-Flow/"/>
     
@@ -159,9 +186,9 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -246,9 +273,9 @@
     
       <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -304,9 +331,9 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -338,9 +365,9 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -486,42 +513,11 @@
     
       <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
     
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
       <category term="VO" scheme="https://leijiezhang001.github.io/tags/VO/"/>
     
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Stereo Vision-based Semantic 3D Object and Ego-motion Tracking for Autonomous Driving&quot;</title>
-    <link href="https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/"/>
-    <id>https://leijiezhang001.github.io/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/</id>
-    <published>2019-06-08T06:21:14.000Z</published>
-    <updated>2019-11-07T14:09:17.633Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>结合 Semantic SLAM 与 Learning-based 3D Det 技术，提出了一种用于自动驾驶的动态目标定位与本车状态估计的方法。本文系统性较强，集成了较多成熟的模块，对工程应用也有较强的指导意义。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/arch.png" width="100%" height="100%" title="图 1. 语义跟踪系统框架"> 　　如图 1. 所示，整个系统框架由三部分组成：</p><ul><li>2D object detection and viewpoint classification，目标位姿通过 2D-3D 约束求解出来；</li><li>feature extraction and matching，双目及前后帧的特征提取与匹配；</li><li>ego-motion and object tracking，将语义信息及特征量加入到优化中，并且加入车辆动力学约束以获得平滑的运动估计。</li></ul><h2 id="viewpoint-classification-and-3d-box-inference">1. Viewpoint Classification and 3D Box Inference</h2><h3 id="viewpoint-classification">1.1. Viewpoint Classification</h3><p>　　选用 Faster R-CNN 作为 2D 检测框架，在此基础上，加入车辆视野（viewpoint）分类分支。由图 2. 所示，水平视野分为八类，垂直视野分为两类，总共 16 类。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/view.png" width="90%" height="90%" title="图 2. 车辆视野分类"></p><h3 id="d-box-inference-based-on-viewpoint">1.2. 3D Box Inference Based on Viewpoint</h3><p>　　网络输出图像 2D 框以及目标车辆的视野类别（viewpoint），此时我们假设：</p><ul><li>2D 框准确；</li><li>每种车辆的尺寸相同；</li><li>2D 框能紧密包围 3D 框；</li></ul><p>在以上假设条件下，我们可以求得 3D 框，该 3D 框作为后续优化的初始值。约束方程的表示在论文中比较晦涩，在这里我做细致的推倒。 3D 框可表示为 \(\{x,y,z,\theta,w,h,l\}\)，其中 \(\{w,h,l\}\) 分别对应 \({x,y,z}\) 维度。如图 2.(b) 所示，这个视角下，四个 3D 框的顶点，可得四个约束方程。推倒过程为： <span class="math display">\[\require{cancel}\begin{bmatrix}u_{min}\\v_1\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{1}^{cam}\\y_{1}^{cam}\\z_{1}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{1}^{obj}\\y_{1}^{obj}\\z_{1}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\]</span> 其中 \(K\) 为相机内参，做归一化处理消去；\(T_{cam}^{obj}\) 为目标中心坐标系在相机坐标系下的表示，\((\cdot)^{cam/obj}\) 分别为点在相机坐标系，目标中心坐标系下的表示。同样的，这个视野下，②，③，④ 点都可以由此获得： <span class="math display">\[\left\{\begin{array}{l}\require{cancel}\begin{bmatrix}u_{min}\\v_1\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{1}^{cam}\\y_{1}^{cam}\\z_{1}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{1}^{obj}\\y_{1}^{obj}\\z_{1}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_{max}\\v_2\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{2}^{cam}\\y_{2}^{cam}\\z_{2}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{2}^{obj}\\y_{2}^{obj}\\z_{2}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}-\frac{w}{2}\\\frac{h}{2}\\-\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_3\\v_{min}\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{3}^{cam}\\y_{3}^{cam}\\z_{3}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{3}^{obj}\\y_{3}^{obj}\\z_{3}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\-\frac{h}{2}\\-\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_4\\v_{max}\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{4}^{cam}\\y_{4}^{cam}\\z_{4}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{4}^{obj}\\y_{4}^{obj}\\z_{4}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}-\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\end{array}\right.\]</span></p><p>将 \(z\) 方向归一化后，进一步得到最终的四个约束式子： <span class="math display">\[\left\{\begin{array}{l}u_{min}=(x+ \frac{w}{2} cos\theta+ \frac{l}{2} sin\theta) / (z- \frac{w}{2} sin\theta + \frac{l}{2} cos\theta)\\u_{max}=(x- \frac{w}{2} cos\theta- \frac{l}{2} sin\theta) / (z+ \frac{w}{2} sin\theta - \frac{l}{2} cos\theta)\\v_{min}=(y- \frac{h}{2}) / (z- \frac{w}{2} sin\theta - \frac{l}{2} cos\theta)\\v_{max}=(y+ \frac{h}{2}) / (z+ \frac{w}{2} sin\theta + \frac{l}{2} cos\theta)\end{array}\right.\]</span> 以上四个方程可以闭式求解 3D 框 \({x,y,z,}\)。该方法将 3D 框的回归求解分解成了 2D 框回归，视野角分类以及解方程组的过程，强依赖于前面的三点假设，实际情况 3D 框与 2D 框不会贴的很紧。这个 3D 框结果只用来作后续的特征提取区域及最大后验概率估计的初始化。</p><h2 id="feature-extraction-and-matching">2. Feature Extraction and Matching</h2><p>　　这一部分做的是左右目及前后帧特征提取及匹配。选用 ORB 特征，目标区域由投影到图像的 3D 框确定。</p><ul><li><strong>目标区域内左右目的立体匹配</strong> 由于已知目标的距离及尺寸，所以只需要在一定小范围内进行特征点的行搜索匹配。</li><li><strong>目标及背景区域下前后帧的时序匹配</strong> 首先进行 2D 框的关联，2D 框经过相机旋转补偿后，最小化关联框的中心点距离及框形状相似度值。然后在关联上的目标框区域以及背景区域里，分别作 ORB 特征的匹配，异常值在 RANSAC 下通过基础矩阵测试去除。</li></ul><h2 id="ego-motion-and-object-tracking">3. Ego-motion and Object Tracking</h2><p>　　首先进行本车运动状态估计，可在传统 SLAM 框架下做，不同的是将动态障碍物中的特征点去除。有了本车的位姿后，再估计动态障碍物的运动状态。文中符号定义较为复杂，这里不做赘述。</p><h3 id="ego-motion-tracking">3.1. Ego-motion Tracking</h3><p>　　给定左目前后帧背景区域特征点的观测，本车状态估计可以通过极大似然估计（Maximum Likelihood Estimation）得到。MLE 可以转化为非线性最小二乘问题，也就是 Bundle Adjustment 过程，这是典型的 SLAM 问题。文中给出的误差方程： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/3.png" width="50%" height="50%"> 需要求解的是本车位姿以及背景特征点坐标，这是后验概率，可转为似然函数求解，然后转化为非线性优化问题。可参考《视觉 SLAM 十四讲》(107-108)来理解。</p><h3 id="semantic-object-tracking">3.2. Semantic Object Tracking</h3><p>　　得到本车相机的位姿后，运动目标的状态估计可以通过最大后验概率估计（Maximum-a-posterior, MAP）得到。类似的，可转为非线性优化问题进行求解，联合优化每个车辆的<strong>位姿</strong>，<strong>尺寸</strong>，<strong>速度</strong>，<strong>方向盘转角</strong>，<strong>所有特征点 3D 位置</strong>。有四个 loss 项： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/6.png" width="80%" height="80%"> <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/10.png" width="80%" height="80%"> \(r_Z,r_P,r_M,r_S\) 分别代表：</p><ul><li><strong>Sparse Feature Observation</strong><br>目标上的特征点重投影到左右目图像的误差，注意有左右目两个误差项；</li><li><strong>Semantic 3D Object Measurement</strong><br>3D 框投影到图像上与 2D 框的尺寸约束投影误差，即 1.2 节中的形式，区别在车辆尺寸与位姿作为了优化项；</li><li><strong>Vehicle Motion Model</strong><br>对于车辆，前后时刻的状态要有连续性，即误差最小；</li><li><strong>Point Cloud Alignment</strong><br>为了减少 3D 框的整体偏移，引入特征点到 3D 观察面的最小距离误差；</li></ul><p>这里只对车辆运动模型进行分析，其它几项基本在前文已经有描述或者比较常识化，就不展开，具体公式可参见论文。<br>　　由实验可知 Sparse Feature Observation 与 Point Cloud Alignment 对性能提升较明显，Motion Model 对困难情景性能才有提升。</p><h4 id="vehicle-motion-model">3.2.1. Vehicle Motion Model</h4><p>　　<a href="#2" id="2ref">[2]</a> 中介绍了前转向车的两种模型：运动学模型(Kinematic Bicycle Model)，以及更复杂的动力学模型(Dynamic Bicycle Model)。运动学模型假设车辆不存在滑动，这在大多数情况下都是满足的，所以我们只介绍运动学模型。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/kinematic.png" width="30%" height="30%" title="图 3. 车辆运动学模型"> 　　如图 3. 所示，前后轮无滑动的约束下，可得方程组： <span class="math display">\[\left\{\begin{array}{rl}\dot{x}_fsin(\theta+\delta)-\dot{y}_fcos(\theta+\delta)=&amp;0\\\dot{x}sin(\theta)-\dot{y}cos(\theta)=&amp;0\\x+Lcos(\theta)=&amp;x_f  \quad\Rightarrow \quad \dot{x}-\dot{\theta}Lsin(\theta)=\dot{x}_f\\y+Lsin(\theta)=&amp;y_f \quad\Rightarrow \quad \dot{y}+\dot{\theta}Lcos(\theta)=\dot{y}_f\end{array}\right.\]</span> 由此可得到: <span class="math display">\[\dot{x}sin(\theta+\delta)-\dot{y}cos(\theta+\delta)-\dot{\theta}Lcos(\delta)=0\]</span> 用 \(\left(v \cdot cos(\theta),v\cdot sin(\theta)\right)\) 代替 \((\dot{x},\dot{y})\) 可得： <span class="math display">\[\dot{\theta}=\frac{tan(\delta)}{L}\cdot v\]</span> 最终可整理成矩阵形式： <span class="math display">\[\begin{bmatrix}\dot{x}\\\dot{y}\\\dot{\theta}\\\dot{\delta}\\\dot{v}\\\end{bmatrix}=\begin{bmatrix}0 &amp;0 &amp;0 &amp;0 &amp;cos(\theta)\\0 &amp;0 &amp;0 &amp;0 &amp;sin(\theta)\\0 &amp;0 &amp;0 &amp;0 &amp;\frac{tan(\delta)}{L}\\0 &amp;0 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0\\\end{bmatrix}\begin{bmatrix}x\\y\\\theta\\\delta\\v\\\end{bmatrix}+\begin{bmatrix}0 &amp;0\\0 &amp;0\\0 &amp;0\\1 &amp;0\\0 &amp;1\\\end{bmatrix}\begin{bmatrix}\gamma\\\alpha\\\end{bmatrix}\]</span> 其中 \(L\) 为车辆参数。观测量有：</p><ul><li>\((x,y,\theta)\) 为车辆的位置及朝向角；</li><li>\(\delta\) 为方向盘/车轮转角；</li><li>\(v\) 为车辆速度；</li></ul><p>控制量有：</p><ul><li>\(\gamma\) 为方向盘角度比率；</li><li>\(\alpha\) 为加速度；</li></ul><p>本文的目的是要约束车辆时序上运动(速度及朝向)的平滑一致性，令控制量 \(\gamma,\alpha\) 为 0，然后可得状态量在相邻时刻的关系应满足： <span class="math display">\[\left\{\begin{array}{l}\hat{x}^t=x^{t-1}+cos(\theta^{t-1})v^{t-1}\Delta t\\\hat{y}^t=y^{t-1}+sin(\theta^{t-1})v^{t-1}\Delta t\\\hat{\theta}^t=\theta^{t-1}+\frac{tan(\delta^{t-1})}{L}v^{t-1}\Delta t\\\hat{\delta}^t=\delta^{t-1}\\\hat{v}^t=v^{t-1}\end{array}\right.\]</span> 由此可整理成论文中矩阵的形式及误差项： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/15.png" width="80%" height="80%"></p><p><a id="1" href="#1ref">[1]</a> Li, Peiliang, and Tong Qin. &quot;Stereo Vision-based Semantic 3D Object and Ego-motion Tracking for Autonomous Driving.&quot; Proceedings of the European Conference on Computer Vision (ECCV). 2018.<br><a id="2" href="#2ref">[2]</a> Gu, Tianyu. Improved trajectory planning for on-road self-driving vehicles via combined graph search, optimization &amp; topology analysis. Diss. Carnegie Mellon University, 2017.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;结合 Semantic SLAM 与 Learning-based 3D Det 技术，提出了一种用于自动驾驶的动态目标定位与本车状态估计的方法。本文系统性较强，集成了较多成熟的模块，
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
   </entry>
   
@@ -550,9 +546,40 @@
     
       <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
     
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
+  </entry>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Stereo Vision-based Semantic 3D Object and Ego-motion Tracking for Autonomous Driving&quot;</title>
+    <link href="https://leijiezhang001.github.io/%5Bpaper_reading%5D-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/"/>
+    <id>https://leijiezhang001.github.io/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/</id>
+    <published>2019-06-08T06:21:14.000Z</published>
+    <updated>2019-11-07T14:09:17.633Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>结合 Semantic SLAM 与 Learning-based 3D Det 技术，提出了一种用于自动驾驶的动态目标定位与本车状态估计的方法。本文系统性较强，集成了较多成熟的模块，对工程应用也有较强的指导意义。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/arch.png" width="100%" height="100%" title="图 1. 语义跟踪系统框架"> 　　如图 1. 所示，整个系统框架由三部分组成：</p><ul><li>2D object detection and viewpoint classification，目标位姿通过 2D-3D 约束求解出来；</li><li>feature extraction and matching，双目及前后帧的特征提取与匹配；</li><li>ego-motion and object tracking，将语义信息及特征量加入到优化中，并且加入车辆动力学约束以获得平滑的运动估计。</li></ul><h2 id="viewpoint-classification-and-3d-box-inference">1. Viewpoint Classification and 3D Box Inference</h2><h3 id="viewpoint-classification">1.1. Viewpoint Classification</h3><p>　　选用 Faster R-CNN 作为 2D 检测框架，在此基础上，加入车辆视野（viewpoint）分类分支。由图 2. 所示，水平视野分为八类，垂直视野分为两类，总共 16 类。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/view.png" width="90%" height="90%" title="图 2. 车辆视野分类"></p><h3 id="d-box-inference-based-on-viewpoint">1.2. 3D Box Inference Based on Viewpoint</h3><p>　　网络输出图像 2D 框以及目标车辆的视野类别（viewpoint），此时我们假设：</p><ul><li>2D 框准确；</li><li>每种车辆的尺寸相同；</li><li>2D 框能紧密包围 3D 框；</li></ul><p>在以上假设条件下，我们可以求得 3D 框，该 3D 框作为后续优化的初始值。约束方程的表示在论文中比较晦涩，在这里我做细致的推倒。 3D 框可表示为 \(\{x,y,z,\theta,w,h,l\}\)，其中 \(\{w,h,l\}\) 分别对应 \({x,y,z}\) 维度。如图 2.(b) 所示，这个视角下，四个 3D 框的顶点，可得四个约束方程。推倒过程为： <span class="math display">\[\require{cancel}\begin{bmatrix}u_{min}\\v_1\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{1}^{cam}\\y_{1}^{cam}\\z_{1}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{1}^{obj}\\y_{1}^{obj}\\z_{1}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\]</span> 其中 \(K\) 为相机内参，做归一化处理消去；\(T_{cam}^{obj}\) 为目标中心坐标系在相机坐标系下的表示，\((\cdot)^{cam/obj}\) 分别为点在相机坐标系，目标中心坐标系下的表示。同样的，这个视野下，②，③，④ 点都可以由此获得： <span class="math display">\[\left\{\begin{array}{l}\require{cancel}\begin{bmatrix}u_{min}\\v_1\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{1}^{cam}\\y_{1}^{cam}\\z_{1}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{1}^{obj}\\y_{1}^{obj}\\z_{1}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_{max}\\v_2\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{2}^{cam}\\y_{2}^{cam}\\z_{2}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{2}^{obj}\\y_{2}^{obj}\\z_{2}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}-\frac{w}{2}\\\frac{h}{2}\\-\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_3\\v_{min}\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{3}^{cam}\\y_{3}^{cam}\\z_{3}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{3}^{obj}\\y_{3}^{obj}\\z_{3}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}\frac{w}{2}\\-\frac{h}{2}\\-\frac{l}{2}\\\end{bmatrix}\\\begin{bmatrix}u_4\\v_{max}\\1\\\end{bmatrix}=K\cdot\begin{bmatrix}x_{4}^{cam}\\y_{4}^{cam}\\z_{4}^{cam}\\\end{bmatrix}\doteq \xcancel{K} \cdot T_{cam}^{obj} \cdot \begin{bmatrix}x_{4}^{obj}\\y_{4}^{obj}\\z_{4}^{obj}\\\end{bmatrix}=\begin{bmatrix}x\\y\\z\\\end{bmatrix}+\begin{bmatrix}cos\theta &amp; 0 &amp;sin\theta\\0 &amp; 1 &amp; 0\\-sin\theta &amp; 0 &amp; cos\theta\\\end{bmatrix} \cdot\begin{bmatrix}-\frac{w}{2}\\\frac{h}{2}\\\frac{l}{2}\\\end{bmatrix}\end{array}\right.\]</span></p><p>将 \(z\) 方向归一化后，进一步得到最终的四个约束式子： <span class="math display">\[\left\{\begin{array}{l}u_{min}=(x+ \frac{w}{2} cos\theta+ \frac{l}{2} sin\theta) / (z- \frac{w}{2} sin\theta + \frac{l}{2} cos\theta)\\u_{max}=(x- \frac{w}{2} cos\theta- \frac{l}{2} sin\theta) / (z+ \frac{w}{2} sin\theta - \frac{l}{2} cos\theta)\\v_{min}=(y- \frac{h}{2}) / (z- \frac{w}{2} sin\theta - \frac{l}{2} cos\theta)\\v_{max}=(y+ \frac{h}{2}) / (z+ \frac{w}{2} sin\theta + \frac{l}{2} cos\theta)\end{array}\right.\]</span> 以上四个方程可以闭式求解 3D 框 \({x,y,z,}\)。该方法将 3D 框的回归求解分解成了 2D 框回归，视野角分类以及解方程组的过程，强依赖于前面的三点假设，实际情况 3D 框与 2D 框不会贴的很紧。这个 3D 框结果只用来作后续的特征提取区域及最大后验概率估计的初始化。</p><h2 id="feature-extraction-and-matching">2. Feature Extraction and Matching</h2><p>　　这一部分做的是左右目及前后帧特征提取及匹配。选用 ORB 特征，目标区域由投影到图像的 3D 框确定。</p><ul><li><strong>目标区域内左右目的立体匹配</strong> 由于已知目标的距离及尺寸，所以只需要在一定小范围内进行特征点的行搜索匹配。</li><li><strong>目标及背景区域下前后帧的时序匹配</strong> 首先进行 2D 框的关联，2D 框经过相机旋转补偿后，最小化关联框的中心点距离及框形状相似度值。然后在关联上的目标框区域以及背景区域里，分别作 ORB 特征的匹配，异常值在 RANSAC 下通过基础矩阵测试去除。</li></ul><h2 id="ego-motion-and-object-tracking">3. Ego-motion and Object Tracking</h2><p>　　首先进行本车运动状态估计，可在传统 SLAM 框架下做，不同的是将动态障碍物中的特征点去除。有了本车的位姿后，再估计动态障碍物的运动状态。文中符号定义较为复杂，这里不做赘述。</p><h3 id="ego-motion-tracking">3.1. Ego-motion Tracking</h3><p>　　给定左目前后帧背景区域特征点的观测，本车状态估计可以通过极大似然估计（Maximum Likelihood Estimation）得到。MLE 可以转化为非线性最小二乘问题，也就是 Bundle Adjustment 过程，这是典型的 SLAM 问题。文中给出的误差方程： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/3.png" width="50%" height="50%"> 需要求解的是本车位姿以及背景特征点坐标，这是后验概率，可转为似然函数求解，然后转化为非线性优化问题。可参考《视觉 SLAM 十四讲》(107-108)来理解。</p><h3 id="semantic-object-tracking">3.2. Semantic Object Tracking</h3><p>　　得到本车相机的位姿后，运动目标的状态估计可以通过最大后验概率估计（Maximum-a-posterior, MAP）得到。类似的，可转为非线性优化问题进行求解，联合优化每个车辆的<strong>位姿</strong>，<strong>尺寸</strong>，<strong>速度</strong>，<strong>方向盘转角</strong>，<strong>所有特征点 3D 位置</strong>。有四个 loss 项： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/6.png" width="80%" height="80%"> <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/10.png" width="80%" height="80%"> \(r_Z,r_P,r_M,r_S\) 分别代表：</p><ul><li><strong>Sparse Feature Observation</strong><br>目标上的特征点重投影到左右目图像的误差，注意有左右目两个误差项；</li><li><strong>Semantic 3D Object Measurement</strong><br>3D 框投影到图像上与 2D 框的尺寸约束投影误差，即 1.2 节中的形式，区别在车辆尺寸与位姿作为了优化项；</li><li><strong>Vehicle Motion Model</strong><br>对于车辆，前后时刻的状态要有连续性，即误差最小；</li><li><strong>Point Cloud Alignment</strong><br>为了减少 3D 框的整体偏移，引入特征点到 3D 观察面的最小距离误差；</li></ul><p>这里只对车辆运动模型进行分析，其它几项基本在前文已经有描述或者比较常识化，就不展开，具体公式可参见论文。<br>　　由实验可知 Sparse Feature Observation 与 Point Cloud Alignment 对性能提升较明显，Motion Model 对困难情景性能才有提升。</p><h4 id="vehicle-motion-model">3.2.1. Vehicle Motion Model</h4><p>　　<a href="#2" id="2ref">[2]</a> 中介绍了前转向车的两种模型：运动学模型(Kinematic Bicycle Model)，以及更复杂的动力学模型(Dynamic Bicycle Model)。运动学模型假设车辆不存在滑动，这在大多数情况下都是满足的，所以我们只介绍运动学模型。 <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/kinematic.png" width="30%" height="30%" title="图 3. 车辆运动学模型"> 　　如图 3. 所示，前后轮无滑动的约束下，可得方程组： <span class="math display">\[\left\{\begin{array}{rl}\dot{x}_fsin(\theta+\delta)-\dot{y}_fcos(\theta+\delta)=&amp;0\\\dot{x}sin(\theta)-\dot{y}cos(\theta)=&amp;0\\x+Lcos(\theta)=&amp;x_f  \quad\Rightarrow \quad \dot{x}-\dot{\theta}Lsin(\theta)=\dot{x}_f\\y+Lsin(\theta)=&amp;y_f \quad\Rightarrow \quad \dot{y}+\dot{\theta}Lcos(\theta)=\dot{y}_f\end{array}\right.\]</span> 由此可得到: <span class="math display">\[\dot{x}sin(\theta+\delta)-\dot{y}cos(\theta+\delta)-\dot{\theta}Lcos(\delta)=0\]</span> 用 \(\left(v \cdot cos(\theta),v\cdot sin(\theta)\right)\) 代替 \((\dot{x},\dot{y})\) 可得： <span class="math display">\[\dot{\theta}=\frac{tan(\delta)}{L}\cdot v\]</span> 最终可整理成矩阵形式： <span class="math display">\[\begin{bmatrix}\dot{x}\\\dot{y}\\\dot{\theta}\\\dot{\delta}\\\dot{v}\\\end{bmatrix}=\begin{bmatrix}0 &amp;0 &amp;0 &amp;0 &amp;cos(\theta)\\0 &amp;0 &amp;0 &amp;0 &amp;sin(\theta)\\0 &amp;0 &amp;0 &amp;0 &amp;\frac{tan(\delta)}{L}\\0 &amp;0 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0\\\end{bmatrix}\begin{bmatrix}x\\y\\\theta\\\delta\\v\\\end{bmatrix}+\begin{bmatrix}0 &amp;0\\0 &amp;0\\0 &amp;0\\1 &amp;0\\0 &amp;1\\\end{bmatrix}\begin{bmatrix}\gamma\\\alpha\\\end{bmatrix}\]</span> 其中 \(L\) 为车辆参数。观测量有：</p><ul><li>\((x,y,\theta)\) 为车辆的位置及朝向角；</li><li>\(\delta\) 为方向盘/车轮转角；</li><li>\(v\) 为车辆速度；</li></ul><p>控制量有：</p><ul><li>\(\gamma\) 为方向盘角度比率；</li><li>\(\alpha\) 为加速度；</li></ul><p>本文的目的是要约束车辆时序上运动(速度及朝向)的平滑一致性，令控制量 \(\gamma,\alpha\) 为 0，然后可得状态量在相邻时刻的关系应满足： <span class="math display">\[\left\{\begin{array}{l}\hat{x}^t=x^{t-1}+cos(\theta^{t-1})v^{t-1}\Delta t\\\hat{y}^t=y^{t-1}+sin(\theta^{t-1})v^{t-1}\Delta t\\\hat{\theta}^t=\theta^{t-1}+\frac{tan(\delta^{t-1})}{L}v^{t-1}\Delta t\\\hat{\delta}^t=\delta^{t-1}\\\hat{v}^t=v^{t-1}\end{array}\right.\]</span> 由此可整理成论文中矩阵的形式及误差项： <img src="/[paper_reading]-Stereo-Vision-based-Semantic-3D-Object-and-Ego-motion-Tracking-for-Autonomous-Driving/15.png" width="80%" height="80%"></p><p><a id="1" href="#1ref">[1]</a> Li, Peiliang, and Tong Qin. &quot;Stereo Vision-based Semantic 3D Object and Ego-motion Tracking for Autonomous Driving.&quot; Proceedings of the European Conference on Computer Vision (ECCV). 2018.<br><a id="2" href="#2ref">[2]</a> Gu, Tianyu. Improved trajectory planning for on-road self-driving vehicles via combined graph search, optimization &amp; topology analysis. Diss. Carnegie Mellon University, 2017.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;结合 Semantic SLAM 与 Learning-based 3D Det 技术，提出了一种用于自动驾驶的动态目标定位与本车状态估计的方法。本文系统性较强，集成了较多成熟的模块，
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -578,38 +605,6 @@
     
     
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
-    
-      <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MOT 评价指标-&quot;Evaluating Multiple Object Tracking Performance, the CLEAR MOT Metrics&quot;</title>
-    <link href="https://leijiezhang001.github.io/MOT-%E8%AF%84%E4%BB%B7%E6%8C%87%E6%A0%87-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/"/>
-    <id>https://leijiezhang001.github.io/MOT-评价指标-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/</id>
-    <published>2019-06-02T06:23:46.000Z</published>
-    <updated>2019-11-07T14:05:29.555Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　这篇文章介绍了两个综合性指标 MOTA 以及 MOTP 的计算过程，这两个指标有优劣势，但是作为综合性指标至今在学术界仍广泛应用。本文主要介绍其设计思想及计算过程。<br>　　一个理想的 MOT 算法，我们期望每一帧：</p><ul><li>准确检测目标的数量；</li><li>准确估计每个目标的状态，如位置，朝向，速度等；</li><li>准确估计每个目标的轨迹，即目标的 ID 不变性；</li></ul><p>这就要求评价准则：</p><ul><li>能评估目标定位的精度；</li><li>能反映目标轨迹的追踪能力，即同一个目标产生唯一的 ID；</li></ul><p>此外，为了提高评价准则的实用性：</p><ul><li>参数尽可能少，阈值可调；</li><li>易于理解，表现方式符合人们的直觉；</li><li>有较强的通用性，能评估各种跟踪算法；</li><li>指标个数少，但是能足够反映算法不同维度的性能；</li></ul><p>假设第 \(t\) 帧，有目标集 \(\{o_1,...,o_n\}\)，跟踪算法的输出(hypotheses)：\(\{h_1,...h_m\}\)。根据上述设计准则，设计评价计算过程：</p><ol type="1"><li> 构建 \(h_j\) 与 \(o_i\) 的最优匹配；</li><li> 对于每个匹配对，计算位置估计误差；</li><li> 累加所有匹配对的误差，包括：<ol type="a"><li> 计算漏检数(FN)；</li><li> 计算误检数(FP)；</li><li> 计算 ID swith 次数，包括两个邻近目标的 ID 交换，以及遮挡后，同一目标的 ID 跳变；</li></ol></li></ol><p>由此可得到两大指标：</p><ul><li>tracking precision，目标位置的估计精度；</li><li>tracking accuracy，包括 misses(FN), FP, mismatches(IDs), failures to recover；</li></ul><p>下面分两块做细节分析，匹配构建 (Establishing Correspondences) 与评价指标 (Metrics)。</p><h2 id="匹配构建">1. 匹配构建</h2><p>　　算法估计与目标真值的匹配，大致还是基于匹配最近 object-hypothesis 的思想，没匹配上的估计就是 FP，没匹配上的真值就是 FN。但是这中间需要进一步考虑一些问题。</p><h3 id="有效匹配">1.1. 有效匹配</h3><p>　　如果算法估计 \(h_j\) 与目标 \(o_i\) 的最近距离 \(dist_{i,j}\) 超过了一定的阈值 \(T\)，那么这个匹配也是不合理的，因为这个距离误差加入到定位误差中是不合理的，所以只能说这个跟踪的结果不是这个目标。关于距离的度量：</p><ul><li>区域（框）跟踪器，距离可用两者的重叠区域来度量，\(T\) 可以设为 0；</li><li>点跟踪器，距离可用两者中心点的欧氏距离来度量，\(T\) 可以根据目标的尺寸来设定；</li></ul><h3 id="跟踪一致性">1.2. 跟踪一致性</h3><p>　　统计目标与算法输出的匹配跳变的次数，也就是目标 ID 的跳变数。文章还提到，当目标有两个有效地匹配时，选择之前的匹配，即使那个匹配的距离大于另一个匹配，这点当存在两个很近的目标时，可能会有问题，需要全局来看。</p><h3 id="匹配过程">1.3. 匹配过程</h3><ol type="1"><li> 对 \(t\) 帧，考虑 \(M_{t-1}\) 中所有匹配是否还依然有效，包括目标真值及算法输出是否还存在，如果都存在，那么距离是否超出阈值 \(T\)；</li><li> 对于剩下的没找到匹配的真值目标，在唯一匹配以及阈值约束下，可采用匹配算法或者贪心算法来求解，使得距离误差的总和最小（文章的意思是排除了从上一帧继承的已有匹配，当目标密集时，这部分也应该加入进来优化）。统计当前帧目标真值匹配的跳变数 \(mme_t\)，作为 mismatch errors；</li><li> 经过之前两步后，找到了所有的匹配，统计匹配个数为 \(c_t\)，计算匹配上的目标真值与算法输出的定位误差 \(d_t^i\)；</li><li> 统计没有匹配上的算法输出 (hypotheses) 为 \(fp_t\)，没有匹配上的目标真值为 \(m_t\)，目标真值个数为 \(g_t\)；</li><li> 每一帧重复步骤１，第一帧没有 mismatch；</li></ol><h2 id="评价指标">2. 评价指标</h2><p>　　基于以上的匹配策略，得出两个合理的指标：</p><ul><li><strong>MOTP</strong>(multiple object tracking precision)，跟踪定位精度指标：<span class="math display">\[MOTP=\frac{\sum_{i,t}d_t^i}{\sum_tc_t}\]</span></li><li><strong>MOTA</strong>(multiple object tracking accuracy)，综合了漏检率，误检率，以及 ID 跳变率：<span class="math display">\[MOTA=1-\frac{\sum_t(m_t+fp_t+mme_t)}{\sum_tg_t}\]</span></li></ul>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　这篇文章介绍了两个综合性指标 MOTA 以及 MOTP 的计算过程，这两个指标有优劣势，但是作为综合性指标至今在学术界仍广泛应用。本文主要介绍其设计思想及计算过程。&lt;br&gt;
-　　一个理想的 MOT 算法，我们期望每一帧：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;准确检测目标的数量；&lt;
-      
-    
-    </summary>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
-    
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
     
