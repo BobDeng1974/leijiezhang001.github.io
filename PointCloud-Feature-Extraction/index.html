@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="Deep Learning,Point Cloud,">
 
 
 
@@ -88,13 +88,21 @@
 
 
 
-<meta property="og:type" content="website">
-<meta property="og:title" content="LeijieZhang">
-<meta property="og:url" content="https://leijiezhang001.github.io/tags/Model-Compression/index.html">
+<meta name="description" content="机器学习中，特征提取是非常重要的一个环节（认为是最重要的一环也不为过）。对图像数据的特征提取操作已经较为成熟，如卷积；而点云数据由于无序性，所以对其进行高效的特征提取则比较困难。 一个好的点云特征提取操作需要具备以下特征：  能提取点云的局部以及全局特征； 计算高效；  　　目前已知的点云特征提取方法可分为两大类：Voxel-level，以及 Point-level。Voxel-Level 的">
+<meta name="keywords" content="Deep Learning,Point Cloud">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PointCloud Feature Extraction">
+<meta property="og:url" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/index.html">
 <meta property="og:site_name" content="LeijieZhang">
+<meta property="og:description" content="机器学习中，特征提取是非常重要的一个环节（认为是最重要的一环也不为过）。对图像数据的特征提取操作已经较为成熟，如卷积；而点云数据由于无序性，所以对其进行高效的特征提取则比较困难。 一个好的点云特征提取操作需要具备以下特征：  能提取点云的局部以及全局特征； 计算高效；  　　目前已知的点云特征提取方法可分为两大类：Voxel-level，以及 Point-level。Voxel-Level 的">
 <meta property="og:locale" content="default">
+<meta property="og:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/DGCNN.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/BCL.png">
+<meta property="og:updated_time" content="2019-12-09T14:36:11.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="LeijieZhang">
+<meta name="twitter:title" content="PointCloud Feature Extraction">
+<meta name="twitter:description" content="机器学习中，特征提取是非常重要的一个环节（认为是最重要的一环也不为过）。对图像数据的特征提取操作已经较为成熟，如卷积；而点云数据由于无序性，所以对其进行高效的特征提取则比较困难。 一个好的点云特征提取操作需要具备以下特征：  能提取点云的局部以及全局特征； 计算高效；  　　目前已知的点云特征提取方法可分为两大类：Voxel-level，以及 Point-level。Voxel-Level 的">
+<meta name="twitter:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/DGCNN.png">
 
 
 
@@ -124,13 +132,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/tags/Model-Compression/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/">
 
 
 
 
 
-  <title>Tag: Model Compression | LeijieZhang</title>
+  <title>PointCloud Feature Extraction | LeijieZhang</title>
   
 
 
@@ -194,7 +202,7 @@
     
   
 
-  <div class="container sidebar-position-left ">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 <a href="https://github.com/LeijieZhang001" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewbox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -332,52 +340,324 @@
           <div id="content" class="content">
             
 
-  
-  
-  
-  <div class="post-block tag">
+  <div id="posts" class="posts-expand">
+    
 
-    <div id="posts" class="posts-collapse">
-      <div class="collection-title">
-        <h1>Model Compression<small>Tag</small>
-        </h1>
-      </div>
+  
 
-      
-        
+  
+  
+  
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Leijie">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LeijieZhang">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/pruning/" itemprop="url">
-              
-                <span itemprop="name">Model Compression - 'Pruning'</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">PointCloud Feature Extraction</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated" datetime="2019-11-15T11:56:23+08:00" content="2019-11-15">
-          11-15
-        </time>
-      </div>
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-12-07T14:52:30+08:00">
+                2019-12-07
+              </time>
+            
+            
+              <span class="post-updated">
+                &nbsp; | &nbsp; Updated on
+                <time itemprop="dateUpdated" datetime="2019-12-09T22:36:11+08:00" content="2019-12-09">
+                  2019-12-09
+                </time>
+              </span>
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Deep-Learning/" itemprop="url" rel="index">
+                    <span itemprop="name">Deep Learning</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>次
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Words count in article&#58;</span>
+                
+                <span title="Words count in article">
+                  2.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Reading time &asymp;</span>
+                
+                <span title="Reading time">
+                  9 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　机器学习中，特征提取是非常重要的一个环节（认为是最重要的一环也不为过）。对图像数据的特征提取操作已经较为成熟，如卷积；而点云数据由于无序性，所以对其进行高效的特征提取则比较困难。 一个好的点云特征提取操作需要具备以下特征：</p>
+<ul>
+<li>能提取点云的<strong>局部以及全局特征</strong>；</li>
+<li>计算高效；</li>
+</ul>
+<p>　　目前已知的点云特征提取方法可分为两大类：Voxel-level，以及 Point-level。Voxel-Level 的特征提取也已经相当成熟，基本思路是将点云空间网格化，每个网格进行手工特征填充或者 Point-level 的特征提取，然后就可以应用标准的 2D/3D 卷积操作进行局部及全局特征提取。这种方法提取的特征细粒度取决于空间栅格化的分辨率，针对点级别的任务（如 semantic segmentation，Scene flow等），其特征的细粒度还是不够的。<br>
+　　本文主要介绍 Point-level 的方法，这种方法能提取点级别的局部、全局特征信息，是处理点云的有效手段。这种方法首先要将无序的点云进行一定的结构化组织，由此可分为若干方法，如下阐述。</p>
+<h2 id="基于原始三维空间操作">1. 基于原始三维空间操作</h2>
+<p>　　在三维空间下进行点的局部特征提取，需要快速找到每个点周围的点，所以需要对点云构建 Kd-tree(或 Ball-tree)，来加速邻近点的快速查询。Kd-tree 的算法复杂度为：</p>
+<ul>
+<li>构建：\(\mathcal{O}(\mathrm{log}^2n)\)</li>
+<li>插入：\(\mathcal{O}(\mathrm{log}n)\)</li>
+<li>删除：\(\mathcal{O}(\mathrm{log}n)\)</li>
+<li>查询：\(\mathcal{O}(n^{1-\frac{1}{k}}+m)\)，其中 \(m\) 为要查询的最近点个数</li>
+</ul>
+<h3 id="问题描述">1.1. 问题描述</h3>
+<p>　　设点云集合：\(P=\{p_1,...,p_n\}\in R^{F}\)，每个点有 \(F\) 维的特征，以及每个点的三维坐标为：\(p_i=(x_i,y_i,z_i)\)（注意，坐标也可作为特征包含于 \(F\) 维中）。因为点云的无序性，定义点云集合的最近邻图(k-nearest neighbor graph) \(\mathcal{G=(V,E)}\)，其中 \(\mathcal{V}\) 表示点云中的点，\(\mathcal{E}\) 表示点 \(p_i\) 与最近的 \(k\) 个点 \(\{p_j ^ {i1},...,p_j ^ {ik}\}\) 所构成的有向边集合 \(\{(i,j_{i1}),...,(i,j_{ik})\}\)。由此定义<strong>点级别特征提取操作</strong>： <span class="math display">\[ p_i&#39; = \displaystyle\Box_{j:(i,j)\in\mathcal{E}} h_\Theta(p_i,p_j) \tag{1}\]</span> 其中 \(h _ {\Theta}\) 表示非线性映射函数，将特征空间：\(\mathbb{R} ^ F \times \mathbb{R} ^ F \to \mathbb{R} ^ {F'}\)；\(\Box\) 为用于特征聚合的对称函数。该操作类似图像二维卷积操作，将输入的点云集合：\(P=\{p_1,...,p_n\}\in R^{F}\) 映射到相同点数的：\(P'=\{p_1',...,p_n'\}\in R^{F'}\)。</p>
+<h3 id="hbox-的选择">1.2. \(h,\Box\) 的选择</h3>
+<h4 id="euclidean-conv">1.2.1. Euclidean Conv</h4>
+<p>　　设计 \(h_{\Theta}(p_i,p_j)=\theta_jp_j\)，\(\Box=\sum\)，得到传统的 Euclidean convolution： <span class="math display">\[ p_i&#39; = \displaystyle\sum_{j:(i,j)\in\mathcal{E}}(\theta_jp_j) \tag{2}\]</span> 其中 \(\Theta=(\theta_i,...,\theta_k)\) 为滤波器的权重。</p>
+<h4 id="pointnet1">1.2.2. PointNet<a href="#1" id="1ref"><sup>[1]</sup></a></h4>
+<p>　　设计 \(h_{\Theta}(p_i,p_j)=h_{\Theta}(p_i) = \mathrm{MLP}(p_i)\)，\(\Box=\mathrm{MAX} 或 \sum\)，得到 PointNet 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\left\{ \sum|\mathrm{MAX}\right\}(\theta_ip_i) = \displaystyle\left\{\sum|\mathrm{MAX}\right\}\, \mathrm{MLP}(p_i) \tag{3}\]</span> 感知机的权重可以共享。</p>
+<h4 id="deep-parametric-continuous-convoluion2">1.2.3. Deep Parametric Continuous Convoluion<a href="#2" id="2ref"><sup>[2]</sup></a></h4>
+<p>　　设计 \(h_{\Theta}(p_i,p_j)=\mathrm{MLP}(p_j^{xyz}-p _ i^{xyz})\cdot p _ j^{\mathrm{exclude}\,xyz}\)，\(\Box=\mathrm{\sum}\)，得到 Deep Parametric Continuous Convolution 操作： <span class="math display">\[ p_i&#39; = \displaystyle\sum_{j:(i,j)\in\mathcal{E}}\left(\mathrm{MLP}(p_j^{xyz}-p _ i^{xyz})\cdot p _ j^{\mathrm{exclude}\,xyz}\right) \tag{4}\]</span> 根据邻近点的距离，显示的来学习其对中心点的特征贡献。Continuous Fusion Layer 中证明没必要显示的学习，直接将相对距离 Concate 到特征上，隐式的学习同样有效。</p>
+<h4 id="pointnet3flownet3d4continuous-fusion-layer5">1.2.4. PointNet++<a href="#3" id="3ref"><sup>[3]</sup></a>/FlowNet3D<a href="#4" id="4ref"><sup>[4]</sup></a>/Continuous Fusion Layer<a href="#5" id="5ref"><sup>[5]</sup></a></h4>
+<p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\right)\)，\(\Box=\left\{\mathrm{MAX}|\sum\right\}\)，得到 PointNet++/FlowNet3D/Continuous Fusion Layer(前两者是 \(\mathrm{MAX}\)，后者是 \(\sum\) 操作) 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\left\{\mathrm{MAX}|\sum\right\}_{j:(i,j)\in\mathcal{E}}\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\right) \tag{5}\]</span> 将点 \(p_j\) 中的坐标都转换到以中心点 \(p_i\) 为参考的局部坐标。这样能更好的提取局部信息，但是丢失了点的绝对坐标信息。</p>
+<h4 id="edgeconvdgcnn6">1.2.5. EdgeConv(DGCNN)<a href="#6" id="6ref"><sup>[6]</sup></a></h4>
+<p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right)\)(这里只是猜测是这么做的，EdgeConv paper 中没有具体说怎么做的)，\(\Box=\mathrm{MAX}\)，得到 EdgeConv 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\mathrm{MAX}_{j:(i,j)\in\mathcal{E}}\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus( p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right) \tag{6}\]</span> 额外加上点　\(p_i\) 的世界坐标，保留点的全局信息。 <img src="/PointCloud-Feature-Extraction/DGCNN.png" width="80%" height="80%" title="图 1. DGCNN"> 　　如图 1. 所示，DGCNN 网络结构与 PointNet 网络差不多，区别就在核心的点特征提取操作。</p>
+<h4 id="randla-net7">1.2.6. RandLA-Net<a href="#7" id="7ref"><sup>[7]</sup></a></h4>
+<p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\)，\(\Box=\sum \mathrm{softmax\,MLP}(h_{\Theta}(p_i,p_j))\)，得到 RandLA-Net 中的操作(详见 <a href="/paper-reading-RandLA-Net/" title="RandLA-Net">RandLA-Net</a>)： <span class="math display">\[ p_i&#39; = \displaystyle\sum_{j:(i,j)\in\mathcal{E}}\left(\mathrm{softmax\,MLP&#39;}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\right)\cdot \left(\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\right) \tag{7}\]</span> 这里的 \(\Box\) 函数称为 Attention Pooling，即将特征维度进行加权求和。</p>
+<h2 id="基于映射空间操作">2. 基于映射空间操作</h2>
+<p>　　基于原始三维空间的点特征提取操作，<strong>其算法复杂度直接依赖点数</strong>；而如果将其映射到高维空间，则点数只会影响映射与反映射的过程，核心特征提取操作将不受点的个数影响。<br>
+　　三维空间下点云无法有序组织，将点云映射到更高维空间，在高维空间下进行结构化组织后，即可应用传统的卷积操作进行特征提取。</p>
+<h3 id="bilateral-convolutional-layerbcl8splatnet9hplflownet10">2.1. Bilateral Convolutional Layer(BCL<a href="#8" id="8ref"><sup>[8]</sup></a>)(SPLATNet<a href="#9" id="9ref"><sup>[9]</sup></a>/HPLFlowNet<a href="#10" id="10ref"><sup>[10]</sup></a>)</h3>
+<p><img src="/PointCloud-Feature-Extraction/BCL.png" width="60%" height="60%" title="图 2. BCL"> 　　如图 2. 所示，BCL 操作有三部分组成：</p>
+<ul>
+<li><strong>Splat</strong><br>
+将三维空间的点 \(p_i^{xyz}\) 投影到高维空间，实际操作中直接乘以一个预定义的 \(4\times 3\) 矩阵。4 维空间的晶格顶点聚合晶格内映射点的信息，聚合过程中以映射点与格点的距离作为权重；</li>
+<li><strong>Convolve</strong><br>
+因为晶格空间内空间是栅格化的，所以直接进行传统的 2D 卷积操作；</li>
+<li><strong>Slice</strong><br>
+卷积得到的是晶格空间的特征图，反映射到三维空间，即得到点级别的包含周围信息的特征向量；</li>
+</ul>
+<p>　　映射与反映射的操作实现上需要建立哈希表作点的快速查询，需要记录的辅助信息也比较多。后期有时间再对着代码分析。</p>
+<h2 id="参考文献">3. 参考文献</h2>
+<p><a id="1" href="#1ref">[1]</a> Qi, Charles R., et al. &quot;Pointnet: Deep learning on point sets for 3d classification and segmentation.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2017.<br>
+<a id="2" href="#2ref">[2]</a> Wang, S., Suo, S., Ma, W.C., Urtasun, R.: Deep parameteric convolutional neural networks. In: CVPR (2018)<br>
+<a id="3" href="#3ref">[3]</a> Qi, Charles Ruizhongtai, et al. &quot;Pointnet++: Deep hierarchical feature learning on point sets in a metric space.&quot; Advances in neural information processing systems. 2017.<br>
+<a id="4" href="#4ref">[4]</a> Liu, Xingyu, Charles R. Qi, and Leonidas J. Guibas. &quot;Flownet3d: Learning scene flow in 3d point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br>
+<a id="5" href="#5ref">[5]</a> Liang, Ming, et al. &quot;Deep continuous fusion for multi-sensor 3d object detection.&quot; Proceedings of the European Conference on Computer Vision (ECCV). 2018.<br>
+<a id="6" href="#6ref">[6]</a> Wang, Yue, et al. &quot;Dynamic graph cnn for learning on point clouds.&quot; ACM Transactions on Graphics (TOG) 38.5 (2019): 146.<br>
+<a id="7" href="#7ref">[7]</a> Hu, Qingyong, et al. &quot;RandLA-Net: Efficient Semantic Segmentation of Large-Scale Point Clouds.&quot; arXiv preprint arXiv:1911.11236 (2019).<br>
+<a id="8" href="#8ref">[8]</a> Kiefel, Martin, Varun Jampani, and Peter V. Gehler. &quot;Permutohedral lattice cnns.&quot; arXiv preprint arXiv:1412.6618 (2014).<br>
+<a id="9" href="#9ref">[9]</a> Su, Hang, et al. &quot;Splatnet: Sparse lattice networks for point cloud processing.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.<br>
+<a id="10" href="#10ref">[10]</a> Gu, Xiuye, et al. &quot;Hplflownet: Hierarchical permutohedral lattice flownet for scene flow estimation on large-scale point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.</p>
 
       
     </div>
+    
+    
+    
+
+    
+      <div>
+	    
+<div style="text-align:center;color: #ccc;font-size:14px;">
+----------------- END -----------------</div>
+      </div>
+    
+		
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>赞赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="Leijie WeChat Pay">
+        <p>WeChat Pay</p>
+      </div>
+    
+
+    
+
+    
 
   </div>
-  
-  
-  
+</div>
+
+      </div>
+    
+	
+	
+    
+      <div>
+        <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:</strong>
+    Leijie
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link:</strong>
+    <a href="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/" title="PointCloud Feature Extraction">https://leijiezhang001.github.io/PointCloud-Feature-Extraction/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice: </strong>
+    All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> unless stating additionally.
+  </li>
+</ul>
+
+      </div>
+    
+
+	
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Deep-Learning/" rel="tag"><i class="fa fa-tag"></i> Deep Learning</a>
+          
+            <a href="/tags/Point-Cloud/" rel="tag"><i class="fa fa-tag"></i> Point Cloud</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/paper-reading-RandLA-Net/" rel="next" title="[paper_reading]-" randla-net"">
+                <i class="fa fa-chevron-left"></i> [paper_reading]-"RandLA-Net"
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+
 
   
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -385,6 +665,15 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDQyOS8yMDk2MQ=="></div>
+    </div>
+
+  
+
+
 
         </div>
         
@@ -405,8 +694,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -497,6 +795,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基于原始三维空间操作"><span class="nav-text">1. 基于原始三维空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#问题描述"><span class="nav-text">1.1. 问题描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hbox-的选择"><span class="nav-text">1.2. \(h,\Box\) 的选择</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#euclidean-conv"><span class="nav-text">1.2.1. Euclidean Conv</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet1"><span class="nav-text">1.2.2. PointNet[1]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#deep-parametric-continuous-convoluion2"><span class="nav-text">1.2.3. Deep Parametric Continuous Convoluion[2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet3flownet3d4continuous-fusion-layer5"><span class="nav-text">1.2.4. PointNet++[3]/FlowNet3D[4]/Continuous Fusion Layer[5]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#edgeconvdgcnn6"><span class="nav-text">1.2.5. EdgeConv(DGCNN)[6]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#randla-net7"><span class="nav-text">1.2.6. RandLA-Net[7]</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于映射空间操作"><span class="nav-text">2. 基于映射空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#bilateral-convolutional-layerbcl8splatnet9hplflownet10"><span class="nav-text">2.1. Bilateral Convolutional Layer(BCL[8])(SPLATNet[9]/HPLFlowNet[10])</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">3. 参考文献</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -698,6 +1012,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
@@ -726,6 +1044,17 @@
 
 
 
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
   
 
 
