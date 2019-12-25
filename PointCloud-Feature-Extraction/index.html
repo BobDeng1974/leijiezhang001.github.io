@@ -101,7 +101,7 @@
 <meta property="og:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/PointConv.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/PointConv2.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/PointCloud-Feature-Extraction/BCL.png">
-<meta property="og:updated_time" content="2019-12-17T09:58:43.697Z">
+<meta property="og:updated_time" content="2019-12-25T02:16:42.155Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="PointCloud Feature Extraction">
 <meta name="twitter:description" content="机器学习中，特征提取是非常重要的一个环节（认为是最重要的一环也不为过）。对图像数据的特征提取操作已经较为成熟，如卷积；而点云数据由于无序性，所以对其进行高效的特征提取则比较困难。 一个好的点云特征提取操作需要具备以下特征：  能提取点云的局部以及全局特征； 计算高效；  　　目前已知的点云特征提取方法可分为两大类：Voxel-level，以及 Point-level。Voxel-Level 的">
@@ -393,8 +393,8 @@
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-12-17T17:58:43+08:00" content="2019-12-17">
-                  2019-12-17
+                <time itemprop="dateUpdated" datetime="2019-12-25T10:16:42+08:00" content="2019-12-25">
+                  2019-12-25
                 </time>
               </span>
             
@@ -453,7 +453,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  2.5k 字
+                  2.7k 字
                 </span>
               
 
@@ -469,7 +469,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  11 分钟
+                  12 分钟
                 </span>
               
             </div>
@@ -517,7 +517,16 @@
 <h4 id="pointnet3flownet3d4continuous-fusion-layer5">1.2.4. PointNet++<a href="#3" id="3ref"><sup>[3]</sup></a>/FlowNet3D<a href="#4" id="4ref"><sup>[4]</sup></a>/Continuous Fusion Layer<a href="#5" id="5ref"><sup>[5]</sup></a></h4>
 <p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\right)\)，\(\Box=\left\{\mathrm{MAX}|\sum\right\}\)，得到 PointNet++/FlowNet3D/Continuous Fusion Layer(前两者是 \(\mathrm{MAX}\)，后者是 \(\sum\) 操作) 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\left\{\mathrm{MAX}|\sum\right\}_{j:(i,j)\in\mathcal{E}}\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\right) \tag{5}\]</span> 将点 \(p_j\) 中的坐标都转换到以中心点 \(p_i\) 为参考的局部坐标。这样能更好的提取局部信息，但是丢失了点的绝对坐标信息。</p>
 <h4 id="edgeconvdgcnn6">1.2.5. EdgeConv(DGCNN)<a href="#6" id="6ref"><sup>[6]</sup></a></h4>
-<p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right)\)(这里只是猜测是这么做的，EdgeConv paper 中没有具体说怎么做的)，\(\Box=\mathrm{MAX}\)，得到 EdgeConv 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\mathrm{MAX}_{j:(i,j)\in\mathcal{E}}\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus( p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right) \tag{6}\]</span> 额外加上点　\(p_i\) 的世界坐标，保留点的全局信息。 <img src="/PointCloud-Feature-Extraction/DGCNN.png" width="80%" height="80%" title="图 1. DGCNN"> 　　如图 1. 所示，DGCNN 网络结构与 PointNet 网络差不多，区别就在核心的点特征提取操作。</p>
+<p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right)\)(这里只是猜测是这么做的，EdgeConv paper 中没有具体说怎么做的)，\(\Box=\mathrm{MAX}\)，得到 EdgeConv 中的操作： <span class="math display">\[ p_i&#39; = \displaystyle\mathrm{MAX}_{j:(i,j)\in\mathcal{E}}\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus( p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ i^{xyz}\right) \tag{6}\]</span> 额外加上点　\(p_i\) 的世界坐标，保留点的全局信息。 <img src="/PointCloud-Feature-Extraction/DGCNN.png" width="80%" height="80%" title="图 1. DGCNN"> 　　如图 1. 所示，DGCNN 网络结构与 PointNet 网络差不多，区别就在核心的点特征提取操作。<br>
+　　代码实现可参考<a href="#14" id="14ref">[14]</a>, <a href="#15" id="15ref">[15]</a>，其中 <a href="#14" id="14ref">[14]</a> 是简化版，分析代码可知其步骤：</p>
+<ol type="1">
+<li>针对每个点 \(p_i\)，首先找到该点最近的 \(k\) 个点及对应的特征，得到 tensor 维度：\(B\times N\times k\times F\);</li>
+<li>然后将本点 \(p_i\) 的特征 concate 到对应的 \(k\) 个点特征，得到 tensor 维度： \(B\times N\times k\times 2F\)；</li>
+<li>不同层 conv，bn，relu 的作用，得到多个 tensor，其维度：\(B\times N\times k\times \{F'|F'_1,...,F'_s\}\)；</li>
+<li>对 \(k\) 个点作最大化聚合，得到各 tensor 维度：\(B\times N\times \{F'|F_1',...,F_s'\}\)</li>
+<li>每个点的特征进行 concate，然后作 conv，bn，relu 操作，最终得到点的特征 tensor，维度为 \(B\times N\times F^{final}\)；</li>
+</ol>
+<p>该实现与式 (6) 有点出入，该实现没有显示计算本点坐标与对应的 \(k\) 个点坐标的差值。但是总体思想一致。</p>
 <h4 id="randla-net7">1.2.6. RandLA-Net<a href="#7" id="7ref"><sup>[7]</sup></a></h4>
 <p>　　设计 \(h _ {\Theta}(p_i,p_j)=\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\)，\(\Box=\sum \mathrm{softmax\,MLP}(h_{\Theta}(p_i,p_j))\)，得到 RandLA-Net 中的操作(详见 <a href="/paper-reading-RandLA-Net/" title="RandLA-Net">RandLA-Net</a>)： <span class="math display">\[ p_i&#39; = \displaystyle\sum_{j:(i,j)\in\mathcal{E}}\left(\mathrm{softmax\,MLP&#39;}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\right)\cdot \left(\mathrm{MLP}\,\left(p _ j^{\mathrm{exclude}\,xyz}\oplus\left\Vert p _ j^{xyz}-p _ i^{xyz}\right\Vert\oplus (p _ j ^ {xyz}-p _ i^{xyz})\oplus p _ j^{xyz}\oplus p _ i^{xyz}\right)\right) \tag{7}\]</span> 这里的 \(\Box\) 函数称为 Attention Pooling，即将特征维度进行加权求和。</p>
 <h4 id="tanet12">1.2.7. TANet<a href="#12" id="12ref"><sup>[12]</sup></a></h4>
@@ -551,7 +560,9 @@
 <a id="10" href="#10ref">[10]</a> Gu, Xiuye, et al. &quot;Hplflownet: Hierarchical permutohedral lattice flownet for scene flow estimation on large-scale point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br>
 <a id="11" href="#11ref">[11]</a> Xie, Liang, et al. &quot;PI-RCNN: An Efficient Multi-sensor 3D Object Detector with Point-based Attentive Cont-conv Fusion Module.&quot; arXiv preprint arXiv:1911.06084 (2019).<br>
 <a id="12" href="#12ref">[12]</a> Liu, Zhe, et al. &quot;TANet: Robust 3D Object Detection from Point Clouds with Triple Attention.&quot; arXiv preprint arXiv:1912.05163 (2019).<br>
-<a id="13" href="#13ref">[13]</a> Wu, Wenxuan, Zhongang Qi, and Li Fuxin. &quot;Pointconv: Deep convolutional networks on 3d point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.</p>
+<a id="13" href="#13ref">[13]</a> Wu, Wenxuan, Zhongang Qi, and Li Fuxin. &quot;Pointconv: Deep convolutional networks on 3d point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br>
+<a id="14" href="#14ref">[14]</a> https://github.com/WangYueFt/dcp/blob/master/model.py<br>
+<a id="15" href="#15ref">[15]</a> https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py</p>
 
       
     </div>
@@ -850,7 +861,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">46.2k</span>
+    <span title="Site words total count">46.5k</span>
   
 </div>
 <!--
