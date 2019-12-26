@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E8%AF%A6%E8%A7%A3/</loc>
+    <lastmod>2019-12-26</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/Object-Registration-with-Point-Cloud/</loc>
+    <lastmod>2019-12-26</lastmod>
+  </url>  <url>
     <loc>https://leijiezhang001.github.io/PointCloud-Feature-Extraction/</loc>
     <lastmod>2019-12-25</lastmod>
   </url>  <url>
@@ -21,9 +27,6 @@
   </url>  <url>
     <loc>https://leijiezhang001.github.io/lane-det-from-BEV/</loc>
     <lastmod>2019-11-09</lastmod>
-  </url>  <url>
-    <loc>https://leijiezhang001.github.io/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E8%AF%A6%E8%A7%A3/</loc>
-    <lastmod>2019-11-07</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/study-topic-list/</loc>
     <lastmod>2019-11-07</lastmod>
