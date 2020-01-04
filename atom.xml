@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2019-12-26T09:37:09.878Z</updated>
+  <updated>2020-01-04T09:27:30.214Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Heteroscedastic Aleatoric Uncertainty</title>
+    <link href="https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/"/>
+    <id>https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/</id>
+    <published>2020-01-03T01:13:17.000Z</published>
+    <updated>2020-01-04T09:27:30.214Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 已经详细描述了贝叶斯模型中几种可建模的不确定性(uncertainty)，并应用了<strong>任务依赖/同方差不确定性(Task-dependent or Homoscedastic Aleatoric Uncertainty)</strong>来自动学习多任务中的 Loss 权重。本文讨论同为偶然不确定性(Aleatoric Uncertainty)的<strong>数据依赖/异方差不确定性(Data-dependent or Heteroscedastic Aleatoric Uncertainty)</strong>。需要注意的是，偶然不确定性(Aleatoric Uncertainty)描述的是数据不能解释的信息，只能通过提高数据的精度来消除；而认知不确定性(Epistemic Uncertainty)描述的是模型因为缺少训练数据而存在的未知，可通过增加训练数据解决。<br>　　为什么要建模 Heteroscedastic Aleatoric Uncertainty？Learning 算法一个比较致命的问题是，网络能输出预测量，但是网络不知道其预测的不确定性，如目标状态估计中，状态量的协方差矩阵。尤其在自动驾驶领域，<strong>我们不仅关注模型知道什么，更要关注模型不知道什么</strong>。<br>　　本文通过贝叶斯神经网络来建模 Aleatoric Uncertainty，并分析其应用效果。</p><h2 id="aleatoric-uncertainty-建模">1. Aleatoric Uncertainty 建模</h2><p>　　针对一批训练数据集\(\{\mathbf{X,Y}\}\)，训练模型 \(\mathbf{y=f^W(x)}\)，在贝叶斯框架下，预测量的后验分布为： <span class="math display">\[p\left(\mathbf{y\vert x,X,Y}\right) = \int p\left(\mathbf{y\,|\,f^W(x)}\right) p\left(\mathbf{W\,|\,X,Y}\right)d\mathbf{W} \tag{0}\]</span> 其中 \(p(\mathbf{W\,|\,X,Y})\) 为模型参数的后验分布，描述了模型的不确定性，即 Epistemic Uncertainty；\(p\left(\mathbf{y\,|\,f^W(x)}\right)\) 为观测似然，描述了观测不确定性，即Aleatoric Uncertainty。Epistemic Uncertainty 只能通过近似推断获得，本文不作讨论。<br>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 已经详细推导了 Aleatoric Uncertainty 的建模过程，这里摘抄如下：</p><p><span class="math display">\[\mathcal{L}(\mathbf{W}, s_1, s_2) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \mathrm{exp}(-s_2)\mathcal{L}_2(\mathbf{W}) + \mathrm{exp}(\frac{1}{2}s_1) + \mathrm{exp}(\frac{1}{2}s_2) \tag{1}\]</span> 其中 \(\mathcal{L}(\mathbf{W},s_1)\) 为回归项，\(\mathcal{L}(\mathbf{W},s_2)\) 为分类项。<br>　　<a href="#1" id="1ref">[1]</a><a href="#2" id="2ref">[2]</a><a href="#3" id="3ref">[3]</a> 中建模的回归项 loss uncertainty 与式(1)有细微出入(可以认为是 Uncertainty 的正则项不同，但是效果类似)，其负log似然为： <span class="math display">\[-\mathrm{log}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) \propto \frac{1}{2\sigma ^2} \Vert \mathbf{y-f^W(x)} \Vert ^2 + \frac{1}{2}\mathrm{log}\sigma^2 \tag{2}\]</span> 所以其回归项 loss 为： <span class="math display">\[\mathcal{L}(\mathbf{W}, s_1) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \frac{1}{2}s_1 \tag{3}\]</span></p><h3 id="d-object-detection-by-regressing-corners2">1.1. 3D Object Detection by regressing corners<a href="#2" id="2ref"><sup>[2]</sup></a></h3><p>　　该方案是在俯视图下回归 3D 框的 8 个角点，总共 24 个参数。假设观测为多变量的高斯分布，即： <span class="math display">\[\left\{\begin{array}{l}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \mathcal{N}\left(\mathbf{f^W(x)}, \Sigma(\mathbf{x}) \right) \\\Sigma(\mathbf{x}) = diag(\sigma _ {\mathbf{x}}^2)\end{array}\tag{4}\right.\]</span> 其中 \(\mathbf{y}\) 是预测的目标框参数，\(\sigma _ {\mathbf{x}}^2\) 是 24 维的向量，表示了观测数据的噪声水平，由式(3)可知，噪声越大，其对 Loss 的作用越小。</p><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric.png" width="60%" height="60%" title="图 1. Aleatoric Uncertainty 与 3D corner 关系"> 　　如图 1. 所示，同一目标，靠近本车的 corner 点，其 Aleatoric Uncertainty 越小；距离越远，目标被遮挡的越严重，其 Aleatoric Uncertainty 越高。</p><h3 id="d-object-detection-by-regressing-location-and-orientation-3">1.2. 3D Object Detection by regressing location and orientation <a href="#3" id="3ref"><sup>[3]</sup></a></h3><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/regression_uncert.png" width="80%" height="80%" title="图 2. network arch"> 　　如图 2. 所示，网络结构比较简单，这里建模了三种 uncertainty: RPN bbox regression \(\sigma^2_{\mathbf{t_r}}\)；Head 中的 location \(\sigma^2_{\mathbf{t_v}}\)；Head 中的 orientation \(\sigma^2_{\mathbf{r_v}}\)。最终的 Loss 由三项式(3) 以及两项分类 loss 构成。<br><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Uncert.png" width="80%" height="80%" title="图 3. Aleatoric Uncertainty 与目标状态关系"> 　　如图 3. 所示，TV(Total Variance) 与目标状态的关系。对于距离越远，遮挡越严重的目标，其 Aleatoric Uncertainty 会越高，因为其观测到的点云会比较少。</p><h3 id="semantic-segmentation-1">1.3. Semantic Segmentation <a href="#1" id="1ref"><sup>[1]</sup></a></h3><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Epistemic.png" width="60%" height="60%" title="图 4. Aleatoric Uncertainty 在语义分割中的关系"> 　　如图 4. 所示，Aleatoric Uncertainty 在远处，边缘处较大；而 Epistemic Uncertainty 对没见过的数据/区域较大。</p><h2 id="aleatoric-uncertainty-预测">2. Aleatoric Uncertainty 预测</h2><p>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 中 Uncertainty 不需要作为预测输出，可将其设计为网络的 weights，且每个任务都设计为单变量高斯分布的形式。<a href="#2" id="2ref">[2]</a><a href="#3" id="3ref">[3]</a> 中则将 Uncertainty 设计为网络的输出，且是多变量高斯分布。更一般的，假设模型输出为混合高斯分布： <span class="math display">\[\left\{\begin{array}{l}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(\mathbf{f^W(x)}_{(k)}, \Sigma(\mathbf{x})_{(k)} \right)\\\sum_k \alpha_k = 1\end{array}\tag{5}\right.\]</span> 　　对于 3D Detection 问题，网络输出的 3D 框参数为 \(\mathbf{y}=(x,y,z,l,h,w,\theta)\)，当输出满足 \(K\) 个混合高斯分布时，网络的输出量有：</p><ul><li>\(K\) 组目标框参数预测量 \(\{\mathbf{y}_k\}\)；</li><li>\(K\) 个对数方差 \(\{s_k\}\)；</li><li>\(K\) 个混合高斯模型权重参数 \(\{\alpha_k\}\)；</li></ul><p>　　训练时，找出与真值分布最近的一组预测量，混合高斯模型权重用 softmax 回归并用 cross-entropy loss，找到最相似的分布后，将该分布的方差用式(3)作用于回归的 Loss 项；测试时，找到混合高斯模型最大的权重项，对应的高斯分布，即作为最终的输出分布。这里只考虑了输出 3D 框的一个整体的方差，也可以输出定位方差+尺寸方差+角度方差，只要将该方差作用于对应的 Loss 项即可。当 \(K=1\) 时，就是多变量单高斯模型，一般也够用。</p><h2 id="metrics">3. Metrics</h2><h2 id="reference">4. reference</h2><p><a id="1" href="#1ref">[1]</a> Kendall, Alex, and Yarin Gal. &quot;What uncertainties do we need in bayesian deep learning for computer vision?.&quot; Advances in neural information processing systems. 2017.<br><a id="2" href="#2ref">[2]</a> Feng, Di, Lars Rosenbaum, and Klaus Dietmayer. &quot;Towards safe autonomous driving: Capture uncertainty in the deep neural network for lidar 3d vehicle detection.&quot; 2018 21st International Conference on Intelligent Transportation Systems (ITSC). IEEE, 2018.<br><a id="3" href="#3ref">[3]</a> Feng, Di, et al. &quot;Leveraging heteroscedastic aleatoric uncertainties for robust real-time lidar 3d object detection.&quot; 2019 IEEE Intelligent Vehicles Symposium (IV). IEEE, 2019.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　&lt;a href=&quot;/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/&quot; title=&quot;Multi-task Learning Using Uncertainty to Weigh Losses&quot;&gt;M
+      
+    
+    </summary>
+    
+      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/categories/Uncertainty/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
+    
+  </entry>
   
   <entry>
     <title>Object Registration with Point Cloud</title>
@@ -39,11 +66,11 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
+      <category term="ICP" scheme="https://leijiezhang001.github.io/tags/ICP/"/>
+    
       <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
     
       <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
-    
-      <category term="ICP" scheme="https://leijiezhang001.github.io/tags/ICP/"/>
     
   </entry>
   
@@ -546,11 +573,11 @@
     
       <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
     
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
       <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
     
       <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
   </entry>
   
@@ -575,39 +602,9 @@
       <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
     
     
-      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
-    
       <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
     
-  </entry>
-  
-  <entry>
-    <title>KLT 光流算法详解</title>
-    <link href="https://leijiezhang001.github.io/KLT/"/>
-    <id>https://leijiezhang001.github.io/KLT/</id>
-    <published>2019-06-19T10:58:47.000Z</published>
-    <updated>2019-11-07T14:07:42.287Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　光流（Optical Flow）是物体在三维空间中的运动（运动场）在二维图像平面上的投影，由物体与相机的相对速度产生，反映了微小时间内物体对应的图像像素的运动方向和速度。<br>　　KLT 是基于光流原理的一种特征点跟踪算法，本文首先介绍光流原理，然后介绍 KLT 及相关 KLT 变种算法。</p><h2 id="optical-flow">1. Optical Flow</h2><p>　　光流法假设：</p><ul><li>亮度恒定，图像中物体的像素亮度在连续帧之间不会发生变化；</li><li>短距离(短时)运动，相邻帧之间的时间足够短，物体运动较小；</li><li>空间一致性，相邻像素具有相似的运动；</li></ul><p>　　记 \(I(x,y,t)\) 为 \(t\) 时刻像素点 \((x,y)\) 的像素值，那么根据前两个假设，可得到： <span class="math display">\[I(x,y,t)=I(x+dx,y+dy,t+dt)\]</span> 一阶泰勒展开： <span class="math display">\[I(x+dx,y+dy,t+dt)=I(x,y,t)+\frac{\partial I}{\partial x}dx+\frac{\partial I}{\partial y}dy+\frac{\partial I}{\partial t}dt\]</span> 由此可得： <span class="math display">\[\frac{\partial I}{\partial x}dx+\frac{\partial I}{\partial y}dy+\frac{\partial I}{\partial t}dt=0 \iff \frac{\partial I}{\partial x}\frac{dx}{dt}+\frac{\partial I}{\partial y}\frac{dy}{dt}=-\frac{\partial I}{\partial t}\]</span> 记 \(\left(\frac{dx}{dt},\frac{dy}{dt}\right)=(u,v)\)，即为所要求解的像素光流；\(\left(\frac{\partial I}{\partial x},\frac{\partial I}{\partial y}\right)=(I_x,I_y)\) 为像素灰度空间微分；\(\frac{\partial I}{\partial t}=I_x\) 为像素坐标点的时间灰度微分。整理成矩阵形式： <span class="math display">\[\begin{bmatrix}I_x &amp;I_y\\\end{bmatrix}\begin{bmatrix}u\\v\\\end{bmatrix}=-I_t\]</span> 该式表示相同坐标位置的时间灰度微分是空间灰度微分与这个位置上相对于观察者的速度的乘积。由空间一致性假设，对于周围多个点，有： <span class="math display">\[\begin{bmatrix}I_{x1} &amp;I_{y1}\\I_{x2} &amp;I_{y2}\\I_{x3} &amp;I_{y3}\\\vdots &amp;\vdots \\\end{bmatrix}\begin{bmatrix}u\\v\\\end{bmatrix}=-\begin{bmatrix}I_{t1}\\I_{t2}\\\vdots\\\end{bmatrix} \iff A\vec{u}=b\]</span> 这是标准的线性方程组，可用最小二乘法求解 \(\vec{u}=\left(A^ TA\right)^ {-1}A^ Tb\)，也可以迭代求解。这种方式得到的光流，称为 Lucas-Kanade 算法。</p><h2 id="klt">2. KLT</h2><p>　　KLT 算法本质上也基于光流的三个假设，不同于前述直接比较像素点灰度值的作法，KLT 比较像素点周围的窗口像素，来寻找最相似的像素点。由光流假设，在很短时间 \(\tau\) 内，前后两帧图像满足： <span class="math display">\[J(A\mathrm{x}+d)=I(\mathrm{x}), 其中 A=1+D=1+\begin{bmatrix}d_{xx} &amp; d_{xy}\\d_{yx} &amp; d_{yy}\\\end{bmatrix}\]</span> 像素位移(displacement)向量满足仿射运动模型(Affine Motion) \(=Dx+d\)，其中 \(D\) 称为变形矩阵(Deformation Matrix)，\(d\) 称为位移向量(Displacement Vector)。\(D\) 表示两个像素窗口块运动后的变形量，所以当窗口较小时，会比较难估计。通常 \(D\) 可以用来衡量两个像素窗口的相似度，即衡量特征点有没有漂移。而对于光流跟踪量，一般只考虑平移模型(Translation Model)： <span class="math display">\[J(\mathrm{x}+d)=I(\mathrm{x})\]</span> 　　为了普遍性，我们用仿射运动模型来推到 KLT 算法原理。在像素窗口下，构造误差函数： <span class="math display">\[\epsilon=\iint_W [J(A\mathrm{x}+d)-I(x)]^2 w(\mathrm{x})d\mathrm{x}\]</span> 其中 \(w(\mathrm{x})\) 是权重函数，可定义为高斯形式。上式分别对变量 \(D\) 和 \(d\) 求导： <span class="math display">\[\left\{\begin{array}{l}\frac{\partial \epsilon}{\partial D}=2\iint_W[J(A\mathrm{x}+d)-I(\mathrm{x})]g\,\mathrm{x}^T\,w\,d\mathrm{x}&amp;=0\\\frac{\partial \epsilon}{\partial d}=2\iint_W[J(A\mathrm{x}+d)-I(\mathrm{x})]g\,w\,d\mathrm{x}&amp;=0\\\end{array}\right.\]</span> 其中 \(g=\left(\frac{\partial J}{\partial x},\frac{\partial J}{\partial y}\right)^ T\)。记光流 \(u=D\mathrm{x}+d\)，则对运动后的像素点进行泰勒展开： <span class="math display">\[J(A\mathrm{x}+d)=J(x)+g^T(u)\]</span> 仿射运动模型结果可见<a href="#1" id="1ref">[1]</a><a href="#5" id="5ref">[5]</a>，这里给出平移运动模型结果。令 \(D=0\)： <span class="math display">\[\begin{align}&amp;\iint_W[J(A\mathrm{x}+d)-I(\mathrm{x})]g\,w\,d\mathrm{x}=0\\\iff &amp;\iint_W[J(\mathrm{x})-I(\mathrm{x})]g\,w\,d\mathrm{x}=-\iint_Wg^T\,\mathrm{d}\,g\,w\,d\mathrm{x}=-\left[\iint_Wg\,g^T\,w\,d\mathrm{x}\right]\mathrm{d}\\\iff &amp;Z\mathrm{d}=e\end{align}\]</span> 其中 \(Z\) 是 \(2\times 2\) 矩阵，\(e\) 是 \(2\times 1\) 向量。这是线性方程组优化问题，当 \(Z\) 可逆时，这个方程可容易求解。因为推导过程用到了泰勒展开，所以只有当像素位移较小时，才成立。实际操作中，一般迭代式的来求解，每次用上次结果做初始化，进一步求解(In a Newton-Raphson Fasion)。</p><h2 id="pyramidal-iterative-klt">3. Pyramidal Iterative KLT</h2><p>　　以上标准的迭代式 KLT 计算过程只在位移较小时成立（泰勒展开），所以需要更优的金字塔式迭代求解。图像金字塔有多重定义方式，这里定义： <span class="math display">\[\begin{align}I^L(x,y)&amp;=\frac{1}{4}I^{L-1}(2x,2y)\\&amp;+\frac{1}{8}\left(I^{L-1}(2x-1,2y)+I^{L-1}(2x+1,2y)+I^{L-1}(2x,2y-1)+I^{L-1}(2x,2y+1)\right)\\&amp;+\frac{1}{16}\left(I^{L-1}(2x-1,2y-1)+I^{L-1}(2x+1,2y+1)+I^{L-1}(2x-1,2y+1)+I^{L-1}(2x+1,2y-1)\right)\end{align}\]</span> 　　特征点跟踪有两个关键指标：<strong>准确性(accuracy)</strong>，以及<strong>鲁棒性(robustness)</strong>。大的窗口，对大的运动量比较鲁棒，但是为了提高准确性，又不得不减小窗口。所以窗口的选择需要权衡跟踪准确性与鲁棒性。金字塔迭代 KLT 则能有效弱化窗口的局限性。这里介绍平移模型下金字塔迭代 KLT 算法，仿射模型算法过程可见<a href="#1" id="1ref">[1]</a><a href="#5" id="5ref">[5]</a>。<br>　　定义金字塔迭代 KLT 算法的目标：图像 \(I\) 中某坐标点 \(\mathrm{x}\)，在图像 \(J\) 中找到其对应点 \(\mathrm{}\)。算法流程为：</p><blockquote><p>建立图像金字塔：\(\{I^ L\}_ {L=0,...,L_m}\)，\(\{J^ L\}_ {L=0,...,L_m}\)<br>初始化光流在金字塔之间的传递值：\(g^ {L_m}=[g_x^ {L_m},g_y^ {L_m}]^ T=[0,0]^ T\)<br><strong>for \(L=L_m\) down to 0 with step of -1</strong></p><blockquote><p>计算图像 \(I^ L\) 中的 \(\mathrm{x}\) 坐标: \(\mathrm{x}^ L=[x,y]^ T=\mathrm{x}/2^ L\)<br>计算空间梯度矩阵 \(Z\)<br>初始化 KLT 迭代值：\(v^ 0=[0,0]^ T\)<br><strong>for \(k=1\) to \(K\) with step of 1</strong> or until \(\Vert\eta^ k\Vert\) &lt; accuracy threshold</p><blockquote><p>计算图像差矩阵 \(I^ L(\mathrm{x}^ L)-J^ L(\mathrm{x}^ L)=I^ L(x,y)-J^ L(x+g_x^ L+v_x^ {k-1},y+g_y^ L+v_y^ {k-1})\)<br>计算图像差矩阵 \(e_k\)<br>计算光流 \(\eta^ k=Z^ {-1}e_k\)<br>更新下次迭代的初值 \(v^ k=v^ {k-1}+\eta^ k\)</p></blockquote><p><strong>end of for-loop on k</strong><br>第 \(L\) 层金字塔下光流为：\(\mathrm{d}^ L=v^ K\)<br>初始化第 \(L-1\) 层金字塔的光流： \(g^ {L-1}=[g_x^ {L-1}, g_y^ {L-1}]^ T=2(g^ L+\mathrm{d}^ L)\)</p></blockquote><p><strong>end of for-loop on L</strong> 最终的光流结果：\(\mathrm{d}=g^ 0+\mathrm{d}^ 0\)<br>对应的 \(J\) 上的坐标点为：\(\hat{\mathrm{x}}=\mathrm{x}+\mathrm{d}\)</p></blockquote><h2 id="feature-selection">4. Feature Selection</h2><p>　　在特征点跟踪之前，特征点的选择也很重要，以上计算过程中，我们期望 \(Z\) 可逆，也就是其最小特征值要足够大。如果已经提取了角点，则可进一步做选择。因此特征点选择准则为：</p><ol type="1"><li>计算图像每个像素(或已提取的角点)的 \(Z\) 矩阵，及其最小的特征值 \(\lambda_m\)</li><li>从所有 \(\lambda_m\) 中取最大值为 \(\lambda_{max}\)</li><li>保留 \(\lambda_m\) 大于一定百分比(10%) \(\lambda_{max}\) 的像素(角点)</li><li>在这些像素(角点)中，保留局部最大值</li><li>视计算能力，保留其中的子集</li></ol><p>以上特征点提取的过程类似于 <a href="https://blog.csdn.net/u010103202/article/details/73331440" target="_blank" rel="noopener">Harris 角点</a>。要注意的是选择特征计算 \(Z\) 时，\(3\times3\) 窗口足够，但是跟踪时，一般大于 \(3\times3\)。</p><h2 id="dissimilarity">5. Dissimilarity</h2><p>　　相似性度量决定该特征点是否已经漂移而不能使用了，即外点检测(Outlier Detection)，所以非常重要。相比于平移模型，仿射模型对特征点的相似性度量更有效果。在长距离跟踪下，相似性度量可能解决不了是否漂移的问题，但是好的相似性度量能从一开始就剔除漂移的特征点。此外，也可用其它更高层面的外点检测技术替代。</p><p><a id="1" href="#1ref">[1]</a> Shi, Jianbo, and Carlo Tomasi. Good features to track. Cornell University, 1993.<br><a id="2" href="#2ref">[2]</a> Birchfield, Stan. &quot;Derivation of kanade-lucas-tomasi tracking equation.&quot; unpublished notes (1997).<br><a id="3" href="#3ref">[3]</a> Bouguet, J.-Y.. “Pyramidal implementation of the lucas kanade feature tracker.” (2000).<br><a id="4" href="#4ref">[4]</a> Suhr, Jae Kyu. &quot;Kanade-lucas-tomasi (klt) feature tracker.&quot; Computer Vision (EEE6503) (2009): 9-18.<br><a id="5" href="#5ref">[5]</a> Bouguet, Jean-Yves. &quot;Pyramidal implementation of the affine lucas kanade feature tracker description of the algorithm.&quot; Intel Corporation 5.1-10 (2001): 4.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　光流（Optical Flow）是物体在三维空间中的运动（运动场）在二维图像平面上的投影，由物体与相机的相对速度产生，反映了微小时间内物体对应的图像像素的运动方向和速度。&lt;br&gt;
-　　KLT 是基于光流原理的一种特征点跟踪算法，本文首先介绍光流原理，然后介绍 KLT 及
-      
-    
-    </summary>
-    
-      <category term="Scene Flow" scheme="https://leijiezhang001.github.io/categories/Scene-Flow/"/>
-    
-    
-      <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="ADAS" scheme="https://leijiezhang001.github.io/tags/ADAS/"/>
+      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
     
   </entry>
   
