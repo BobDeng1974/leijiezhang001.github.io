@@ -100,7 +100,7 @@
 <meta property="og:image" content="https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/regression_uncert.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Uncert.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Epistemic.png">
-<meta property="og:updated_time" content="2020-01-04T09:27:30.214Z">
+<meta property="og:updated_time" content="2020-01-05T09:36:33.666Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Heteroscedastic Aleatoric Uncertainty">
 <meta name="twitter:description" content="Multi-task Learning Using Uncertainty to Weigh Losses 已经详细描述了贝叶斯模型中几种可建模的不确定性(uncertainty)，并应用了任务依赖/同方差不确定性(Task-dependent or Homoscedastic Aleatoric Uncertainty)来自动学习多任务中的 Loss 权重。本文讨论同为偶然不确定性(Alea">
@@ -392,8 +392,8 @@
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2020-01-04T17:27:30+08:00" content="2020-01-04">
-                  2020-01-04
+                <time itemprop="dateUpdated" datetime="2020-01-05T17:36:33+08:00" content="2020-01-05">
+                  2020-01-05
                 </time>
               </span>
             
@@ -520,7 +520,8 @@ p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(
 </ul>
 <p>　　训练时，找出与真值分布最近的一组预测量，混合高斯模型权重用 softmax 回归并用 cross-entropy loss，找到最相似的分布后，将该分布的方差用式(3)作用于回归的 Loss 项；测试时，找到混合高斯模型最大的权重项，对应的高斯分布，即作为最终的输出分布。这里只考虑了输出 3D 框的一个整体的方差，也可以输出定位方差+尺寸方差+角度方差，只要将该方差作用于对应的 Loss 项即可。当 \(K=1\) 时，就是多变量单高斯模型，一般也够用。</p>
 <h2 id="metrics">3. Metrics</h2>
-<h2 id="reference">4. reference</h2>
+<p>TODO</p>
+<h2 id="reference">4. Reference</h2>
 <p><a id="1" href="#1ref">[1]</a> Kendall, Alex, and Yarin Gal. &quot;What uncertainties do we need in bayesian deep learning for computer vision?.&quot; Advances in neural information processing systems. 2017.<br>
 <a id="2" href="#2ref">[2]</a> Feng, Di, Lars Rosenbaum, and Klaus Dietmayer. &quot;Towards safe autonomous driving: Capture uncertainty in the deep neural network for lidar 3d vehicle detection.&quot; 2018 21st International Conference on Intelligent Transportation Systems (ITSC). IEEE, 2018.<br>
 <a id="3" href="#3ref">[3]</a> Feng, Di, et al. &quot;Leveraging heteroscedastic aleatoric uncertainties for robust real-time lidar 3d object detection.&quot; 2019 IEEE Intelligent Vehicles Symposium (IV). IEEE, 2019.</p>
@@ -619,6 +620,10 @@ p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(
 
           <div class="post-nav-prev post-nav-item">
             
+              <a href="/Epistemic-Uncertainty-for-Active-Learning/" rel="prev" title="Epistemic Uncertainty for Active Learning">
+                Epistemic Uncertainty for Active Learning <i class="fa fa-chevron-right"></i>
+              </a>
+            
           </div>
         </div>
       
@@ -703,7 +708,7 @@ p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-count">30</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -787,7 +792,7 @@ p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertainty-建模"><span class="nav-text">1. Aleatoric Uncertainty 建模</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#d-object-detection-by-regressing-corners2"><span class="nav-text">1.1. 3D Object Detection by regressing corners[2]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#d-object-detection-by-regressing-location-and-orientation-3"><span class="nav-text">1.2. 3D Object Detection by regressing location and orientation [3]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#semantic-segmentation-1"><span class="nav-text">1.3. Semantic Segmentation [1]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertainty-预测"><span class="nav-text">2. Aleatoric Uncertainty 预测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#metrics"><span class="nav-text">3. Metrics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. reference</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertainty-建模"><span class="nav-text">1. Aleatoric Uncertainty 建模</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#d-object-detection-by-regressing-corners2"><span class="nav-text">1.1. 3D Object Detection by regressing corners[2]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#d-object-detection-by-regressing-location-and-orientation-3"><span class="nav-text">1.2. 3D Object Detection by regressing location and orientation [3]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#semantic-segmentation-1"><span class="nav-text">1.3. Semantic Segmentation [1]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertainty-预测"><span class="nav-text">2. Aleatoric Uncertainty 预测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#metrics"><span class="nav-text">3. Metrics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
             
 
           </div>
@@ -822,7 +827,7 @@ p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">51.7k</span>
+    <span title="Site words total count">53k</span>
   
 </div>
 <!--

@@ -2,7 +2,10 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/</loc>
-    <lastmod>2020-01-04</lastmod>
+    <lastmod>2020-01-05</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/</loc>
+    <lastmod>2020-01-05</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/ADH-Tracker/</loc>
     <lastmod>2019-12-28</lastmod>

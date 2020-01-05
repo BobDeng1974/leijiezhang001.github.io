@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="Deep Learning,Lane Detection,">
+  <meta name="keywords" content="Deep Learning,Uncertainty,">
 
 
 
@@ -88,21 +88,21 @@
 
 
 
-<meta name="description" content="前文 Apply IPM in Lane Detection from BEV 已经较详细得阐述了俯视图下作车道线检测的逆透视原理，提到传统 IPM 有个较强的假设：地面是平坦的。对于 L4 自动驾驶，在这个假设下车道线检测不管是精度还是可靠性，都远远不够。如果有高精度地图，那么这些问题都有方法来消除。当然，如果有高精度地图，且自定位准确，也就不需要车道线检测了，所以这里讨论，在无高精度地图下">
-<meta name="keywords" content="Deep Learning,Lane Detection">
+<meta name="description" content="Heteroscedastic Aleatoric Uncertainty 中详细讨论了 Aleatoric Uncertainty 的建模以及应用。本文讨论 Epistemic Uncertainty 的建模，以及在 Active Learning 中的应用。Epistemic Uncertainty 描述了模型因为缺少训练数据而存在的不确定性，所以其可应用于 Active Learning">
+<meta name="keywords" content="Deep Learning,Uncertainty">
 <meta property="og:type" content="article">
-<meta property="og:title" content="[paper_reading]-&quot;Deep Multi-Sensor Lane Detection&quot;">
-<meta property="og:url" content="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/index.html">
+<meta property="og:title" content="Epistemic Uncertainty for Active Learning">
+<meta property="og:url" content="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/index.html">
 <meta property="og:site_name" content="LeijieZhang">
-<meta property="og:description" content="前文 Apply IPM in Lane Detection from BEV 已经较详细得阐述了俯视图下作车道线检测的逆透视原理，提到传统 IPM 有个较强的假设：地面是平坦的。对于 L4 自动驾驶，在这个假设下车道线检测不管是精度还是可靠性，都远远不够。如果有高精度地图，那么这些问题都有方法来消除。当然，如果有高精度地图，且自定位准确，也就不需要车道线检测了，所以这里讨论，在无高精度地图下">
+<meta property="og:description" content="Heteroscedastic Aleatoric Uncertainty 中详细讨论了 Aleatoric Uncertainty 的建模以及应用。本文讨论 Epistemic Uncertainty 的建模，以及在 Active Learning 中的应用。Epistemic Uncertainty 描述了模型因为缺少训练数据而存在的不确定性，所以其可应用于 Active Learning">
 <meta property="og:locale" content="default">
-<meta property="og:image" content="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/lane_det.png">
-<meta property="og:image" content="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/STN.png">
-<meta property="og:updated_time" content="2019-11-09T13:54:34.000Z">
+<meta property="og:image" content="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/active_learning.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/softmax.png">
+<meta property="og:updated_time" content="2020-01-05T09:33:26.709Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="[paper_reading]-&quot;Deep Multi-Sensor Lane Detection&quot;">
-<meta name="twitter:description" content="前文 Apply IPM in Lane Detection from BEV 已经较详细得阐述了俯视图下作车道线检测的逆透视原理，提到传统 IPM 有个较强的假设：地面是平坦的。对于 L4 自动驾驶，在这个假设下车道线检测不管是精度还是可靠性，都远远不够。如果有高精度地图，那么这些问题都有方法来消除。当然，如果有高精度地图，且自定位准确，也就不需要车道线检测了，所以这里讨论，在无高精度地图下">
-<meta name="twitter:image" content="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/lane_det.png">
+<meta name="twitter:title" content="Epistemic Uncertainty for Active Learning">
+<meta name="twitter:description" content="Heteroscedastic Aleatoric Uncertainty 中详细讨论了 Aleatoric Uncertainty 的建模以及应用。本文讨论 Epistemic Uncertainty 的建模，以及在 Active Learning 中的应用。Epistemic Uncertainty 描述了模型因为缺少训练数据而存在的不确定性，所以其可应用于 Active Learning">
+<meta name="twitter:image" content="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/active_learning.png">
 
 
 
@@ -132,13 +132,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/">
 
 
 
 
 
-  <title>[paper_reading]-"Deep Multi-Sensor Lane Detection" | LeijieZhang</title>
+  <title>Epistemic Uncertainty for Active Learning | LeijieZhang</title>
   
 
 
@@ -354,7 +354,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Leijie">
@@ -371,7 +371,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">[paper_reading]-"Deep Multi-Sensor Lane Detection"</h1>
+          <h1 class="post-title" itemprop="name headline">Epistemic Uncertainty for Active Learning</h1>
         
 
         <div class="post-meta">
@@ -383,15 +383,15 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-11-09T11:54:34+08:00">
-                2019-11-09
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-01-04T09:44:00+08:00">
+                2020-01-04
               </time>
             
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-11-09T21:54:34+08:00" content="2019-11-09">
-                  2019-11-09
+                <time itemprop="dateUpdated" datetime="2020-01-05T17:33:26+08:00" content="2020-01-05">
+                  2020-01-05
                 </time>
               </span>
             
@@ -414,8 +414,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Lane-Detection/" itemprop="url" rel="index">
-                    <span itemprop="name">Lane Detection</span>
+                  <a href="/categories/Uncertainty/" itemprop="url" rel="index">
+                    <span itemprop="name">Uncertainty</span>
                   </a>
                 </span>
 
@@ -450,7 +450,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  1.1k 字
+                  1.3k 字
                 </span>
               
 
@@ -466,7 +466,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  4 分钟
+                  5 分钟
                 </span>
               
             </div>
@@ -487,37 +487,42 @@
       
 
       
-        <p>　　前文 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a> 已经较详细得阐述了俯视图下作车道线检测的逆透视原理，提到传统 IPM 有个较强的假设：地面是平坦的。对于 L4 自动驾驶，在这个假设下车道线检测不管是精度还是可靠性，都远远不够。如果有高精度地图，那么这些问题都有方法来消除。当然，如果有高精度地图，且自定位准确，也就不需要车道线检测了，所以这里讨论，在无高精度地图下，本文<a href="#1" id="1ref"><sup>[1]</sup></a>如何通过激光点云数据学习的方法解决上述问题。</p>
-<h2 id="网络结构">1. 网络结构</h2>
-<p><img src="/paper-reading-Deep-Multi-Sensor-Lane-Detection/lane_det.png" width="90%" height="90%" title="图 1. Multi-Sensor Lane Detection"> 　　如图 1. 所示，整个算法有两个网络组成：</p>
+        <p>　　<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中详细讨论了 Aleatoric Uncertainty 的建模以及应用。本文讨论 Epistemic Uncertainty 的建模，以及在 Active Learning 中的应用。Epistemic Uncertainty 描述了模型因为缺少训练数据而存在的不确定性，所以其可应用于 Active Learning。应用场景有：</p>
 <ul>
-<li><strong>地面估计(Ground Height Estimation)网络</strong><br>
-输入是俯视图下历史 N 帧的栅格点云，输出的是俯视图下地面高度；</li>
-<li><strong>车道线检测(Lane Prediction)网络</strong><br>
-输入是俯视图下历史 N 帧的栅格点云，并且叠加前视图图像逆透视变换到俯视图后的图像，输出为像素级别的车道线检测结果；</li>
+<li><strong>减少训练时间</strong>：在大数据集下，训练时挑选当前模型认知困难的样本，减少训练数据从而减少训练时间；</li>
+<li><strong>减少无效标注</strong>：只挑选当前模型认知困难的样本进行标注、迭代模型；</li>
 </ul>
-<p>历史 N 帧点云需要经过 ego-motion 补偿到当前本车位置，补偿后的点云只对运动物体会存在变形，而网络正好需要忽视运动物体。通过地面估计得到了俯视图下稠密的地面估计后，就可以将前视图的图像投影到俯视图下了。具体的过程为：取地面估计的三维点(高度+像素坐标经过分辨率变换后的物理坐标)，投影到图像上，然后双线性插值取得图像像素值，填充至俯视图上。这种透视变换是借助 3D 点信息完成的，原理可详见 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a>。</p>
-<h2 id="differentiable-warping-function">2. Differentiable Warping Function</h2>
-<p>　　其实这里估计出来的地面高度就是个简陋的高精度地图，所以这种方案理论上就能消除上述问题。并且，投影的过程采用了可求导的映射方程(differentiable warping function)，所以整个算法可以端到端的训练。 <img src="/paper-reading-Deep-Multi-Sensor-Lane-Detection/STN.png" width="90%" height="90%" title="图 2. Spatial Transformer Networks"> 　　关于可求导的映射方程，这里借鉴了 DeepMind 的 Spatial Transformer Networks<a href="#2" id="2ref"><sup>[2]</sup></a> 的思想。传统卷积网络只对较小的位移有位移不变性，而 STN 引入 2D/3D 仿射/透视变换，显示得将特征层变换到有利于分类的形态，这样整个网络就具有了仿射甚至透视(位移，旋转，裁剪，尺度，歪斜)不变性。如图 2. 所示，STN 有三部分构成：</p>
-<ol type="1">
-<li><strong>Localisation Net</strong>，对于 2D 仿射，回归预测出仿射变换矩阵 \(\theta \in \mathbb{R}_{2\times 3}\);</li>
-<li><strong>Grid Generator</strong>，根据仿射变换矩阵及仿射变换前后特征图的大小，建立仿射前后坐标映射关系；</li>
-<li><strong>Sampler</strong>，根据坐标映射关系设计可求导的插值采样方法(如双线性)，从输入特征中采样出特征值填入仿射后的特征图中；</li>
-</ol>
-<p>　　本文则是一个透视变换矩阵 \(P\)，但是 \(P\) 不需要网络预测，其完全由激光雷达与相机的内外参决定，这个需要提前标定好。预测的地面高度通过 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a> 中的式 (3) 即可与图像坐标系建立联系，作为 Grid Generator。最后采用可求导的 Sampler，这个模块就可以嵌入到网络中，进行端到端的训练。</p>
-<h2 id="loss">3. Loss</h2>
-<p>　　Loss 采用 SmoothL1 Loss，其有两种构成：</p>
+<p><img src="/Epistemic-Uncertainty-for-Active-Learning/active_learning.png" width="50%" height="50%" title="图 1. active learning 工作流"> 　　<a href="#1" id="1ref">[1]</a>中提到的一种 Active Learning 工作流如图 1. 所示，重要环节有 Estimating Uncertainty 以及 Querying Data。该工作流假设了<strong>一个完美的图像检测器(至少有个完美的召回率)</strong>，图像检测器提供目标 proposal，3D 检测对 proposal 作 uncertainty 估计，从而确定是否标注。 Estimating Uncertainty 指的是 Epistemic Uncertainty 的建模；Querying Data 则设计一种策略，其能通过估计的 Uncertainty 来选择模型认知困难的样本。<br>
+　　由于 Epistemic Uncertainty 只能通过 Monte-Carlo 等方法近似得到，这些方法都是基于模型预测的目标进行 Uncertainty 估计的，所以对于漏检的目标，其 Uncertainty 是无法有效获取的。换句话说，本文讨论的 Epistemic Uncertainty 只能抓取预测的正样本(TP)置信度不高，以及误检(FP)的 Uncertainty 信息，无法获得TP置信度非常低的样本 Uncertainty，即完全没见过的目标。<strong>所以基于 Epistemic Uncertainty 的 Active Learning，理论上只能使正样本置信度提高，以及消除误检；对于漏检，需要加入一定的随机性，让模型先“见到”这种类型的目标。</strong></p>
+<h2 id="estimating-epistemic-uncertainty">1. Estimating Epistemic Uncertainty</h2>
+<p>　　针对一批训练数据集\(\{\mathbf{X,Y}\}\)，训练模型 \(\mathbf{y=f^W(x)}\)，在贝叶斯框架下，预测量的后验分布为<a href="#3" id="3ref"><sup>[3]</sup></a>： <span class="math display">\[p\left(\mathbf{y\vert x,X,Y}\right) = \int p\left(\mathbf{y\,|\,f^W(x)}\right) p\left(\mathbf{W\,|\,X,Y}\right)d\mathbf{W} \tag{1}\]</span> 其中 \(p(\mathbf{W\,|\,X,Y})\) 为模型参数的后验分布，描述了模型的不确定性，即 Epistemic Uncertainty；\(p\left(\mathbf{y\,|\,f^W(x)}\right)\) 为观测似然，描述了观测不确定性，即Aleatoric Uncertainty。接下来讨论如何计算 Epistemic Uncertainty。</p>
+<h3 id="分类问题">1.1. 分类问题</h3>
+<p><img src="/Epistemic-Uncertainty-for-Active-Learning/softmax.png" width="60%" height="60%" title="图 2. softmax for unseen data"> 　　如图 2. 所示<a href="#2" id="2ref"><sup>[2]</sup></a>，softmax 可能会对没见过的目标产生较高的概率输出(如误检)。所以不能直接使用分类的概率输出作为 Uncertainty 估计。</p>
 <ul>
-<li>地面估计项<br>
-<span class="math display">\[ L_{gnd} = \sum_{p\in Output Image} \Vert z_{p,gt}-z_{p,pred}\Vert \tag{1}\]</span></li>
-<li>车道线检测项<br>
-<span class="math display">\[ L_{lane} = \sum_{p\in Output Image} \left\Vert \left(\tau-\mathrm{min}\{d_{p,gt}, \tau\}\right)-d_{p,pred}\right\Vert \tag{2}\]</span> 其中 \(\tau\) 是车道线真值标签的衰减像素区域，高速场景设为 30，城市道路设为 20。</li>
+<li><strong>Monte-Carlo Dropout</strong><br>
+<a href="#2" id="2ref">[2]</a>中提出了 Monte-Carlo 近似求解 Epistemic Uncertainty 的方法，其指出：在训练阶段，Dropout 等价于优化网络权重 \(W\) 的 Bernoulli 分布；在测试阶段，使用 Dropout 对样本进行多次测试，能得到模型权重的后验分布，即 Epistemic Uncertainty。由此得到： <span class="math display">\[p(\mathbf{y|x}) \approx \frac{1}{T}\sum^T_{t=1} p(\mathbf{y|x,W}_t) = \frac{1}{T}\sum^T_{t=1}softmax_{(\mathbf{W}_t)}(\mathbf{x}) \tag{2}\]</span> 其中 \(\mathbf{W}_t\) 为第 \(t\) 次 Inference 网络权重。</li>
+<li><strong>Deep Ensembles</strong><br>
+Deep Ensemble 则是一种非贝叶斯的方法，该方法用不同的初始化方法训练一系列网络 \(\{\mathbf{M} _ e\} _ {e=1}^E\)。那么： <span class="math display">\[p(\mathbf{y|x}) \approx \frac{1}{E}\sum^E_{e=1} p(\mathbf{y|x,M}_e) = \frac{1}{E}\sum^E_{e=1}softmax_{(\mathbf{M}_e)}(\mathbf{x}) \tag{3}\]</span></li>
 </ul>
-<h2 id="其它思考">4. 其它思考</h2>
-<p>　　既然 STN 专门是用来作仿射/透视变换的，那么是否可以在不借助激光点云的情况下，用前视图图像直接回归出透视变换到俯视图的透视矩阵 \(P\) ？理论上是可行的，但是训练过程不一定能收敛，需要精心设计训练过程，以及针对斜坡还会有一定的距离误差。</p>
-<h2 id="参考文献">5. 参考文献</h2>
-<p><a id="1" href="#1ref">[1]</a> Bai, Min, et al. &quot;Deep Multi-Sensor Lane Detection.&quot; 2018 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). IEEE, 2018.<br>
-<a id="2" href="#2ref">[2]</a> Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. &quot;Spatial transformer networks.&quot; Advances in neural information processing systems. 2015.</p>
+<p>　　有了预测的概率后，可用 Shannon Entropy 或者 Mutual Information 来计算目标的信息量，即 Uncertainty。</p>
+<ul>
+<li><strong>Shannon Entropy(SE)</strong><br>
+SE 计算公式为: <span class="math display">\[\mathcal{H}[\mathbf{y|x}] = -\sum^C_{c=1}p(y=c|\mathbf{x})\,\mathrm{log}\,p(y=c|\mathbf{x}) \tag{4}\]</span></li>
+<li><strong>Mutual Information(MI)</strong><br>
+由于 Monte-Carlo 以及 Deep Ensembles 获取的是概率分布，以 Monte-Carlo 为例，由此可计算 MI： <span class="math display">\[\mathcal{I}[\mathbf{y;W}] = \mathcal{H}[\mathbf{y|x}] - \mathbb{E}\mathcal{H}[\mathbf{y|x,W}] \approx \mathcal{H}[\mathbf{y|x}] + \frac{1}{T}\sum_{t=1}^T\sum_{c=1}^Cp(y=c|\mathbf{x,W}_t)\,\mathrm{log}\,p(y=c|\mathbf{x,W}_t) \tag{5}\]</span></li>
+</ul>
+<p>　　SE 测量的是预测 Uncertainty，MI 测量的是模型对该数据的 Uncertainty。根据该 Uncertainty，即可挑选样本进行标注。Uncertainty 越高，代表该样本对模型的信息量更大，所以需要进一步标注来训练模型。</p>
+<h3 id="回归问题">1.2. 回归问题</h3>
+<p>　　Monte-Carlo 采样下，假设获得的回归量为 \(\{\mathbf{v}\}_{t=1}^T\)。那么其均值和方差为： <span class="math display">\[\left\{\begin{array}{l}
+\mathcal{M}_{\mathbf{v}} \approx \frac{1}{T}\sum_{t=1}^T\mathbf{v}_t \\
+\mathcal{C}_{\mathbf{v}} = \frac{1}{T}\sum_{t=1}^T\mathbf{v}_t\mathbf{v}_t^T-\mathcal{M}_{\mathbf{v}}\mathcal{M}_{\mathbf{v}}^T
+\end{array}\tag{6}\right.\]</span> 由此得到回归量的 Uncertainty： <span class="math display">\[TV_{\mathbf{v}} = trace\left(\mathcal{C}_{\mathbf{v}} \right) \tag{7}\]</span> 该 Uncertainty 越大，说明该数据对模型的信息也越多，所以可进一步标注训练。</p>
+<h2 id="metrics">2. Metrics</h2>
+<p>TODO</p>
+<h2 id="reference">3. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Feng, Di, et al. &quot;Deep active learning for efficient training of a lidar 3d object detector.&quot; arXiv preprint arXiv:1901.10609 (2019).<br>
+<a id="2" href="#2ref">[2]</a> Gal, Yarin. Uncertainty in deep learning. Diss. PhD thesis, University of Cambridge, 2016.<br>
+<a id="3" href="#1ref">[3]</a> Feng, Di, Lars Rosenbaum, and Klaus Dietmayer. &quot;Towards safe autonomous driving: Capture uncertainty in the deep neural network for lidar 3d vehicle detection.&quot; 2018 21st International Conference on Intelligent Transportation Systems (ITSC). IEEE, 2018.</p>
 
       
     </div>
@@ -572,7 +577,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/" title="[paper_reading]-" deep multi-sensor lane detection"">https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/</a>
+    <a href="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/" title="Epistemic Uncertainty for Active Learning">https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -590,7 +595,7 @@
           
             <a href="/tags/Deep-Learning/" rel="tag"><i class="fa fa-tag"></i> Deep Learning</a>
           
-            <a href="/tags/Lane-Detection/" rel="tag"><i class="fa fa-tag"></i> Lane Detection</a>
+            <a href="/tags/Uncertainty/" rel="tag"><i class="fa fa-tag"></i> Uncertainty</a>
           
         </div>
       
@@ -603,8 +608,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Anchor-Free-Detection/" rel="next" title="Anchor-Free Detection">
-                <i class="fa fa-chevron-left"></i> Anchor-Free Detection
+              <a href="/Heteroscedastic-Aleatoric-Uncertainty/" rel="next" title="Heteroscedastic Aleatoric Uncertainty">
+                <i class="fa fa-chevron-left"></i> Heteroscedastic Aleatoric Uncertainty
               </a>
             
           </div>
@@ -612,10 +617,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/paper-reading-3D-LaneNet-End-to-End-3D-Multiple-Lane-Detection/" rel="prev" title="[paper_reading]-" 3d-lanenet end-to-end 3d multiple lane detection"">
-                [paper_reading]-"3D-LaneNet End-to-End 3D Multiple Lane Detection" <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -785,7 +786,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#网络结构"><span class="nav-text">1. 网络结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#differentiable-warping-function"><span class="nav-text">2. Differentiable Warping Function</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#loss"><span class="nav-text">3. Loss</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其它思考"><span class="nav-text">4. 其它思考</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">5. 参考文献</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#estimating-epistemic-uncertainty"><span class="nav-text">1. Estimating Epistemic Uncertainty</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#分类问题"><span class="nav-text">1.1. 分类问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#回归问题"><span class="nav-text">1.2. 回归问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#metrics"><span class="nav-text">2. Metrics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">3. Reference</span></a></li></ol></div>
             
 
           </div>
