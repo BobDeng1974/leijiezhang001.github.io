@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-01-11T10:55:40.032Z</updated>
+  <updated>2020-02-01T08:53:34.072Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,66 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Ground Segmentation with Gaussian Process</title>
+    <link href="https://leijiezhang001.github.io/Ground-Segmentation-with-Gaussian-Process/"/>
+    <id>https://leijiezhang001.github.io/Ground-Segmentation-with-Gaussian-Process/</id>
+    <published>2020-01-21T09:00:34.000Z</published>
+    <updated>2020-02-01T08:53:34.072Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　地面分割可作为自动驾驶系统的一个重要模块，本文介绍一种基于高斯过程的地面分割方法。</p><h2 id="算法概要">1. 算法概要</h2><p><img src="/Ground-Segmentation-with-Gaussian-Process/ground_seg.png" width="80%" height="80%" title="图 1. ground segmentation"> 　　为了加速，本方法<a href="#1" id="1ref"><sup>[1]</sup></a>将三维地面分割问题分解为多个一维高斯过程来求解，如图 1. 所示，其步骤为：</p><ol type="1"><li><strong>Polar Grid Map</strong><br>将点云用极坐标栅格地图表示，二维地面估计分解成射线方向的多个一维地面估计；</li><li><strong>Line Fitting</strong><br>在每个一维方向，根据梯度大小，作可变数量的线段拟合；</li><li><strong>Seed Estimation</strong><br>在半径 \(B\) 范围内，如果某个 Grid 绝对高度(Grid 高度定义为该 Grid 内所有点的最小高度，其绝对高度则是与本车传感器所在地面的比较)大于 \(T_s\)，那么就将其作为 Seed；</li><li><strong>Ground Model Estimation with Gaussian Process</strong><br>采用高斯过程生成每个一维方向 Grid 的地面估计量，这里为了进一步加速，可以删除冗余的 Seed；根据地面估计模型，将满足模型的 Grid 加入 Seed，更新模型，迭代直至收敛，满足模型的 Seed 条件为： <span class="math display">\[\begin{align}V[z]&amp;\leq  t_{model}\\\frac{|z_*-\bar{z}|}{\sqrt{\sigma^2_n+V[z]}} &amp;\leq t_{data}\end{align} \tag{0}\]</span></li><li><strong>Point-wise Segmentation</strong><br>得到地面估计模型后，就得到了每个 Grid 是否为地面的标签量，对于属于地面标签量的 Grid 内的点，与 Grid 高度的相对高度小于 \(T_r\)，则认为该点属于地面。</li></ol><h2 id="高斯过程">2. 高斯过程</h2><p>　　步骤四中用高斯过程来估计地面模型，对于每个极射线方向的 Grids，假设有 \(n\) 个已经确定是地面的训练集：\(D=\{(r _ i,z _ i)\} _ {i=1}^n\)。根据高斯过程定义，这些样本的联合概率分布为： <span class="math display">\[p(Z|R)\sim N(f(R)+\mu,K) \tag{1}\]</span> 其中 \(R=[r_1,...,r_n]^T\) 为每个 Grid 的距离量，\(Z=[z_1,...,z_n]^T\) 为该 Grid 地面高度，\(f(\cdot)\)为高斯过程要回归的函数。\(\mu\) 设计为零，协方差矩阵 \(K\) 表示变量之间的关系，由协方差方程与噪音项构成： <span class="math display">\[K(r_i,r_j)=k(r_i,r_j)+\sigma^2_n\delta_{ij}\tag{2}\]</span> 其中当且仅当 \(i==j\) 时 \(\delta _ {ij} =1\)。<br>　　一般的协方差方程是静态，同向的(stationary, isotropic): <span class="math display">\[k(r_i,r_j)=\sigma_f^2\mathrm{exp}\left(-\frac{(r_i-r_j)^2}{2l^2}\right) \tag{3}\]</span> 其中 \(\sigma_f^2\) 是信号协方差，\(l\) 是 length-scale。该方程假设了全空间内 length-scale 的一致性，然而实际上，<strong>越平坦的地面区域，我们需要越大的 length-scale，因为此时该区域对周围区域的概率输出能更大</strong>，所以可进一步设计协方差方程为: <span class="math display">\[k(r_i,r_j)=\sigma_f^2\left(l_i^2\right)^{\frac{1}{4}}\left(l_j^2\right)^{\frac{1}{4}}\left(\frac{l_i^2+l_j^2}{2}\right)^{-\frac{1}{2}}  \mathrm{exp}\left(-\frac{2(r_i-r_j)^2}{l_i^2+l_j^2}\right) \tag{4}\]</span> 其中 \(l_i\) 为位置 \(r_i\) 的 length-scale。\(l_i\) 由该位置距离最近的线段梯度决定(步骤二): <span class="math display">\[l_i=\left\{\begin{array}{l}a\cdot \mathrm{log}\left(\frac{1}{|g(r_i)|}\right) \,\, if\, |g(r_i)|&gt;g_{def}\\a\cdot \mathrm{log}\left(\frac{1}{|g_{def}|}\right) \,\, otherwise\end{array}\tag{5}\right.\]</span> 　　高斯回归预测的过程为，对于测试集 \(T=(r_\ast,z_\ast)\)，其与训练集的联合概率分布为： <span class="math display">\[\begin{bmatrix}Z\\z_\ast\\\end{bmatrix}\simN\left(0,\begin{bmatrix}K(R,R) &amp; K(R,r_\ast)\\K(r_\ast,R) &amp; K(r_\ast,r_\ast)\\\end{bmatrix}\right)\tag{6}\]</span> 那么，高斯过程回归预测为： <span class="math display">\[\begin{align}\bar{z}_\ast &amp;=K(r_\ast,R)K^{-1}Z\\V[z_\ast] &amp;= K(r_\ast,r_\ast)-K(r_\ast,R)K^{-1}K(R,r_\ast)\end{align} \tag{7}\]</span> 由此得到测试集的预测量，由式(0)可决定该测试量是否标记为地面，进一步迭代估计地面模型，直至收敛。<br>　　需要注意的是，以上我们假设高斯过程的超参数 \(\theta=\{\sigma_f,a,\sigma_n\}\) 是已知的，实际应用中，可以将超参数设定为经验量，也可以基于训练集用 SGD 学习出一个最优量，这里不做展开。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Chen, Tongtong, et al. &quot;Gaussian-process-based real-time ground segmentation for autonomous land vehicles.&quot; Journal of Intelligent &amp; Robotic Systems 76.3-4 (2014): 563-582.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　地面分割可作为自动驾驶系统的一个重要模块，本文介绍一种基于高斯过程的地面分割方法。&lt;/p&gt;
+&lt;h2 id=&quot;算法概要&quot;&gt;1. 算法概要&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&quot;/Ground-Segmentation-with-Gaussian-Process/ground
+      
+    
+    </summary>
+    
+      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/categories/Semantic-Segmentation/"/>
+    
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="Segmentation" scheme="https://leijiezhang001.github.io/tags/Segmentation/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Grid Mapping</title>
+    <link href="https://leijiezhang001.github.io/Grid-Mapping/"/>
+    <id>https://leijiezhang001.github.io/Grid-Mapping/</id>
+    <published>2020-01-20T02:19:15.000Z</published>
+    <updated>2020-02-01T09:58:01.032Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　占据栅格地图(Occupied Grid Map)是机器人领域一种地图表示方式。可以作为 SLAM 的一个模块，但是这里讨论：<strong>在本体位姿已知的情况下，如何构建 2D Grid Map</strong>。本文介绍两种方法，贝叶斯概率模型以及高斯过程。</p><h2 id="贝叶斯概率模型1">1. 贝叶斯概率模型<a href="#1" id="1ref"><sup>[1]</sup></a></h2><p>　　设机器人位姿序列为 \(x_{1:t}\)，观测序列为 \(z_{1:t}\)，那么 Grid Map 的构建就是求解地图的后验概率：\(p(m|x_{1:t},z_{1:t})\)，其中地图由栅格构成：\(m=\{m_1,m_2,...,m_n\}\)。<strong>假设每个栅格独立同分布</strong>，那么： <span class="math display">\[p(m|x_{1:t},z_{1:t})=p(m_1,m_2,...,m_n|x_{1:n},z_{1:t}) = \prod_{i=1}^n p(m_i|x_{1:t},z_{1:t}) \tag{1}\]</span> 　　每个栅格有三种状态：被占有，空，未被观测。设被占有的概率为 \(occ(m_i) = p(m_i|x_{1:t},z_{1:t})\)，那么空的概率为 \(free(m_i)=1-occ(m_i)\)，对于未被观测的区域认为 \(occ(m_i) = free(m_i) =0.5\)。下面通过贝叶斯法则及马尔科夫性推理后验概率计算过程： <span class="math display">\[\begin{align}occ_t(m_i) &amp;= p(m_i|x_{1:t},z_{1:t}) \\&amp;= \frac{p(z_t|m_i,x_{1:t},z_{1:t-1})\,p(m_i|x_{1:t},z_{1:t-1})}{p(z_t|x_{1:t},z_{1:t-1})} \\&amp;= \frac{p(z_t|m_i,x_{t})\,p(m_i|x_{1:t-1},z_{1:t-1})}{p(z_t|x_{1:t},z_{1:t-1})} \\&amp;= \frac{p(m_i|z_t,x_{t})\,p(z_t|x_t)\,p(m_i|x_{1:t-1},z_{1:t-1})}{p(m_i|x_t)\,p(z_t|x_{1:t},z_{1:t-1})} \\&amp;= \frac{p(m_i|z_t,x_{t})\,p(z_t|x_t)\,occ_{t-1}(m_{i})}{p(m_i)\,p(z_t|x_{1:t},z_{1:t-1})} \tag{2}\end{align}\]</span> 对应的栅格为空的概率为： <span class="math display">\[\begin{align}free_t(\hat{m}_i) &amp;=\frac{p(\hat{m}_i|z_t,x_{t})\,p(z_t|x_t)\,free_{t-1}(\hat{m}_{i})}{p(\hat{m}_i)\,p(z_t|x_{1:t},z_{1:t-1})} \\&amp;= \frac{(1-p(m_i|z_t,x_{t}))\,p(z_t|x_t)\,(1-occ_{t-1}(m_{i}))}{(1-p(m_i))\,p(z_t|x_{1:t},z_{1:t-1})} \tag{3}\end{align}\]</span> 由(2),(3)可得： <span class="math display">\[\frac{occ_t(m_i)}{1-occ_t(m_i)} = \frac{1-p(m_i)}{p(m_i)}\cdot\frac{occ_{t-1}(m_i)}{1-occ_{t-1}(m_i)}\cdot\frac{p(m_i|z_t,x_t)}{1-p(m_i|z_t,x_t)}   \tag{4}\]</span> 将上式进行对数化： <span class="math display">\[lm_i^{t} = lm_i^{t-1} + \mathrm{log}\left(\frac{p(m_i|z_t,x_t)}{1-p(m_i|z_t,x_t)}\right) - \mathrm{log}\left(\frac{p(m_i)}{1-p(m_i)}\right) \tag{5}\]</span> 其中 \(p(m_i)\) 表示未观测下其被占有的概率，\(p(m_i|z_t,x_t)\) 表示当前观测下其被占有的概率。比如，考虑到激光点云的测量噪声，我们可以假设如果该栅格有点云，那么 \(p(m_i|z_t,x_t) = 0.9\)；对于激光点光路经过的栅格区域 \(p(m_i|z_t,x_t) = 0.02\)，即 \(p(\hat{m}_i|z_t,x_t) = 0.98\)。<br>　　该模型下，每个栅格被占有的概率可以转换为前后相加测量量的过程，实际每个栅格被占有的概率为： <span class="math display">\[occ_t(m_i) = \frac{\mathrm{exp}(lm_i^t)}{1+\mathrm{exp}(lm_i^t)} \tag{6}\]</span></p><h2 id="高斯过程2">2. 高斯过程<a href="#2" id="2ref"><sup>[2]</sup></a></h2><p>　　以上概率模型有个缺陷，其假设栅格独立。实际上栅格并不是独立的，相邻的栅格有很强的相关性。高斯过程则可以处理时域及空域的概率估计与融合问题。<br>　　高斯过程基本理论在 <a href="/Ground-Segmentation-with-Gaussian-Process/" title="Ground Segmentation with Gaussian Process">Ground Segmentation with Gaussian Process</a> 中已经有较详细阐述，这里作简要概述。假设有训练集 \(\{X_n,y_n\}_{n=1}^N\)，那么高斯过程下其符合分布： <span class="math display">\[y_n=f(X_n)+\epsilon, \epsilon\sim \mathcal{N}(0,\sigma^2) \tag{7}\]</span> 对于测试集，则有： <span class="math display">\[f(X^\ast) = \mathcal{N}(\mu,\sigma) \tag{8}\]</span> 高斯过程对测试集的预测结果为： <span class="math display">\[\begin{align}\mu^\ast &amp;=K(X^\ast,X)(K(X,X)+\sigma_n^2I)^{-1}y\\\sigma^\ast &amp;=K(X^\ast,X^\ast) - K(X^\ast,X)(K(X,X)+\sigma_n^2I)^{-1}K(X,X^\ast)\end{align} \tag{9}\]</span> <img src="/Grid-Mapping/GPOM.png" width="60%" height="60%" title="图 1. GPOM"> 　　高斯过程占据栅格地图(Gaussian Process Occupancy Maps, GPOM)算法过程如图 1. 所示。\(\mathrm{p,r}\) 分别为机器人位姿以及观测量。基本思想就是根据当前时刻的观测数据，提取出正负样本训练集，然后构建高斯模型，对于未观测到的区域，用高斯模型进行预测；每个栅格的信息通过 BCM<a href="#3" id="3ref"><sup>[3]</sup></a> 进行时序的融合，最终采用 logistic 回归得到每个栅格被占据的概率(贝叶斯概率模型中，代替 BCM 及 logistic 的是 log 函数累加融合并求取概率，这里应该也可以用这种方式实现)。<br>　　可见，高斯过程来求解占据栅格地图，<strong>能融合时序及空间信息</strong>，但是效率会比较低，不过除了高斯过程中的矩阵求逆操作，其它操作基本可以并行化处理。代码可参考<a href="#4" id="4ref">[4]</a>。</p><h2 id="reference">3. reference</h2><p><a id="1" href="#1ref">[1]</a> Thrun, Sebastian. &quot;Probabilistic robotics.&quot; Communications of the ACM 45.3 (2002): 52-57.<br><a id="2" href="#2ref">[2]</a> Yuan, Yijun, Haofei Kuang, and Sören Schwertfeger. &quot;Fast Gaussian Process Occupancy Maps.&quot; 2018 15th International Conference on Control, Automation, Robotics and Vision (ICARCV). IEEE, 2018.<br><a id="3" href="#3ref">[3]</a> Tresp, Volker. &quot;A Bayesian committee machine.&quot; Neural computation 12.11 (2000): 2719-2741.<br><a id="4" href="#4ref">[4]</a> https://github.com/STAR-Center/fastGPOM</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　占据栅格地图(Occupied Grid Map)是机器人领域一种地图表示方式。可以作为 SLAM 的一个模块，但是这里讨论：&lt;strong&gt;在本体位姿已知的情况下，如何构建 2D Grid Map&lt;/strong&gt;。本文介绍两种方法，贝叶斯概率模型以及高斯过程。&lt;/p
+      
+    
+    </summary>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
+    
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
+    
+      <category term="Mapping" scheme="https://leijiezhang001.github.io/tags/Mapping/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;Grid-GCN for Fast and Scalable Point Cloud Learning&quot;</title>
@@ -539,70 +599,6 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-PointPillars</title>
-    <link href="https://leijiezhang001.github.io/paperreading-PointPillars/"/>
-    <id>https://leijiezhang001.github.io/paperreading-PointPillars/</id>
-    <published>2019-09-03T14:08:12.000Z</published>
-    <updated>2019-11-07T14:08:46.662Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="voxelnet-second-pointpillars">1. VoxelNet-&gt;SECOND-&gt;PointPillars</h2><p>　　相比于图像，激光点云数据是 3D 的，且有稀疏性，所以对点云的前期编码预处理尤其重要，目前大多数算法都是在鸟瞰图下进行点云物体检测，由此对点云的编码预处理主要有两大类方法：</p><ol type="1"><li>以一定的分辨率将点云体素化，每个垂直列中的体素集合被编码成一个固定长度，手工制作的特征，最终形成一个三维的伪图像，以此为代表的方法有 MV3D，AVOD，PIXOR，Complex YOLO；</li><li>PointNet 无序点云处理方式，以此为代表的方法 Frustum PointNet<a href="#1" id="1ref"><sup>[1]</sup></a>, VoxelNet<a href="#2" id="2ref"><sup>[2]</sup></a>，SECOND<a href="#3" id="3ref"><sup>[3]</sup></a>，后两者是在鸟瞰图下进行编码的，需要 3D 卷积运算；</li></ol><p>　　本文提出的 PointPillar<a href="#4" id="4ref"><sup>[4]</sup></a> 是延续 VoxelNet，SECOND 的工作，VoxelNet 将 PointNet(<a href="/PointNet-系列论文详读/" title="PointNet-系列论文详读">PointNet-系列论文详读</a>) 思想引入体素化后的体素特征编码中，然后采用 3D 卷积做特征提取，再用传统的 2D 卷积进行目标检测；SECOND 则考虑到点云特征的稀疏性，用 2D 稀疏卷积代替传统卷积，速度得到了很大的提示。而 PointPillar 则在体素的垂直列上不做分割，从而移除了 3D 卷积的操作，其优点有：</p><ul><li>无手工编码的过程，利用了点云的所有信息，且无需要调节的参数；</li><li>运算均为 2D 卷积，高效；</li><li>可迁移至其它点云数据；</li></ul><p>　　这三篇工作框架结构基本一致，由三部分组成：</p><ol type="1"><li>特征编码网络(Encoder，作特征编码)，在鸟瞰图下，将点云编码为稀疏的伪图像；</li><li>卷积中间网络(Middle，作特征提取)，将伪图像用 backbone 网络进行特征提取；</li><li>区域生成网络(RPN)，也可以是 SSD FPN 等检测头的改进，用于分类和回归 3D 框，与图像检测不一样的地方是，点云鸟瞰图下的最后一层特征层不能很小；</li></ol><p><img src="/paperreading-PointPillars/PointPillar.png" width="100%" height="100%" title="图 3. PointPillar 网络框架"> 　　如图 1. 所示，本文 Pointpillar 主要的工作集中在特征编码网络，所以以下主要介绍其特征编码网络方式，以及实现细节。</p><h2 id="特征编码">2. 特征编码</h2><p>　　Pointpillar 只对 \(x-y\) 平面作 \(H\times W\) 栅格化，栅格化后形成 \(H\times W=P\) 个柱子(Pillar)，每个柱子采样出 \(N\) 个点，每个点编码为 \(D=9\) 维的向量：\(\{x,y,z,r,x_c,y_c,z_c,x_p,y_p \}\)，其中 \(\{x_c,y_c,z_c\}\) 为该点与柱子内所有点的均值点的距离，\(x_p,y_p \) 为该点与柱子中心的距离。综上最后形成\((D,P,N )\) 维的张量，然后用 PointNet 网络输出 \((C,P,N )\) 维的张量，最后用 \(MAX\) 操作输出 \((C,P) = (C,H,W)\) 的伪图像。</p><h2 id="实现细节">3. 实现细节</h2><ol type="1"><li><p>特征编码</p><ul><li>只取有点的柱子，所以 \(P &lt; H\times W\)</li><li>计算量较大，需要并行加速，我复现的时候是将柱子信息离线存下来的</li><li>pointpillar 方式可能只比高度体素采样方式效果高一点</li></ul></li><li><p>训练</p><ul><li>针对不同的类别设定唯一尺寸的 anchor，角度上旋转 90 度，所以每个点上每个类别是有两个 anchor</li><li>正负样本严重不均衡，所以需要 OHEM 或者 focalloss 技术</li></ul></li></ol><p><a id="1" href="#1ref">[1]</a> Qi, Charles R., et al. &quot;Frustum pointnets for 3d object detection from rgb-d data.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.<br><a id="2" href="#2ref">[2]</a> Zhou, Yin, and Oncel Tuzel. &quot;Voxelnet: End-to-end learning for point cloud based 3d object detection.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.<br><a id="3" href="#3ref">[3]</a> Yan, Yan, Yuxing Mao, and Bo Li. &quot;Second: Sparsely embedded convolutional detection.&quot; Sensors 18.10 (2018): 3337.<br><a id="4" href="#4ref">[4]</a> Lang, Alex H., et al. &quot;PointPillars: Fast encoders for object detection from point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;h2 id=&quot;voxelnet-second-pointpillars&quot;&gt;1. VoxelNet-&amp;gt;SECOND-&amp;gt;PointPillars&lt;/h2&gt;
-&lt;p&gt;　　相比于图像，激光点云数据是 3D 的，且有稀疏性，所以对点云的前期编码预处理尤其重要，目前大多数算法都是
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>PointNet 系列论文详读</title>
-    <link href="https://leijiezhang001.github.io/PointNet-%E7%B3%BB%E5%88%97%E8%AE%BA%E6%96%87%E8%AF%A6%E8%AF%BB/"/>
-    <id>https://leijiezhang001.github.io/PointNet-系列论文详读/</id>
-    <published>2019-08-19T01:50:45.000Z</published>
-    <updated>2019-11-07T14:09:43.164Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　写了半天，发现还是网上一篇文章整理的好，直接上传递门吧：<a href="https://zhuanlan.zhihu.com/p/44809266" target="_blank" rel="noopener">PointNet 系列论文解读</a></p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　写了半天，发现还是网上一篇文章整理的好，直接上传递门吧：&lt;a href=&quot;https://zhuanlan.zhihu.com/p/44809266&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;PointNet 系列论文解读&lt;/a&gt;&lt;/p&gt;
-
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
   </entry>
   
