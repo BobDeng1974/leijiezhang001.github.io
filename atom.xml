@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-02-01T08:53:34.072Z</updated>
+  <updated>2020-02-04T08:26:49.740Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Filter Pruning</title>
+    <link href="https://leijiezhang001.github.io/Filter-Pruning/"/>
+    <id>https://leijiezhang001.github.io/Filter-Pruning/</id>
+    <published>2020-02-03T06:56:14.000Z</published>
+    <updated>2020-02-04T08:26:49.740Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　文章 <a href="/pruning/" title="pruning">pruning</a> 中详细阐述了模型压缩中 Pruning 的基本方法与理论。Pruning 可分为 Structured Pruning 与 Unstructured Pruning 两种，由于 Structured Pruning 不需要特定的芯片支持，可直接在现有 CPU/GPU 架构下进行加速，所以值得作研究及应用。而 Structured Pruning 主要指 Filter Pruning，以及伴随的 Channel Pruning。本文对近期 Filter Pruning 的进展作一个阐述及思考。<br>　　<a href="#1" id="1ref">[1]</a> 得出结论：<strong>Pruning 的本质并不应该是选择重要的 filter/channel，而应该是确定 filter/channel 的数量，在此基础上，从零开始训练也能达到原来的性能</strong>。所以 Pruning 其实只是 AutoML/NAS 领域的一个子任务，即用 AutoML/NAS 是能解决 Pruning 问题的，但是 AutoML/NAS 方法又相对复杂且耗时，所以短期内可能传统的预定义剪枝方法更容易得到应用。本文从预定义剪枝方法和自动学习剪枝方法两大块来作归纳思考。</p><h2 id="问题描述">1. 问题描述</h2><p>　　假设预训练好的网络 \(F\)，其有 \(L\) 层卷积，所有卷积层的 Filter 表示为： <span class="math display">\[ W=\{W^i\} _ {i=1}^L= \left\{\{W^i_j\} _ {j=1}^{c_i}\in\mathbb{R}^{d_i\times c_i}\right\} _ {i=1}^L \tag{1} \]</span> 其中 \(d_i=c_{i-1}\times h_i\times w_i\)；\(c_i,h_i,w_i\) 分别是第 \(i\) 层卷积的 filter 数量，高，宽；\(W_j^i\) 是第 \(i\) 层卷积第 \(j\) 个 filter。<br>　　目标是搜索被剪枝的网络 \(\mathcal{F}\)，剪枝后的 Filter 表示为： <span class="math display">\[ \mathcal{W}=\{\mathcal{W}^i\} _ {i=1}^L= \left\{\{\mathcal{W}^i_j\} _ {j=1}^{\tilde{c}_i}\in\mathbb{R}^{d_i\times \tilde{c} _ i}\right\} _ {i=1}^L \tag{2} \]</span> 其中 \(\tilde{c} _ i=\lfloor p_i\cdot c_i\rceil\)，\(p_i\) 为 Pruning Rate。<br>　　Filter Pruning 会导致输出的特征 Channel 数减少，对应的下一层的每个 Filter 参数需要相应的裁剪，如 <a href="/pruning/" title="pruning">pruning</a> 中提到的三种结构下的 Pruning，尤其需要注意后两种有交点的结构，剪枝时需要作一定的约束(为了简单，交点对应的 Filter 可以选择不剪枝)。</p><h2 id="预定义剪枝方法">2. 预定义剪枝方法</h2><p>　　预定义剪枝网络方法通常预定义的是 \(P=\{p_i\} _ {i=1}^L\)，其剪枝步骤为：</p><ol type="1"><li>Training<br>根据任务训练网络；</li><li>Pruning<br>设计 Filter 重要性度量准则，然后根据预定义的剪枝率，进行 Filter 剪枝；</li><li>Fine-tuning<br>对剪枝好的网络，进行再训练；</li></ol><h3 id="soft-filter-pruning212">2.1. Soft Filter Pruning<a href="#2" id="2ref"><sup>[2]</sup></a><a href="#12" id="12ref"><sup>[12]</sup></a></h3><p><img src="/Filter-Pruning/soft_filter_pruning.png" width="50%" height="50%" title="图 1. Soft Filter Pruning"> 　　如图 1. 所示，其核心思想就是剪枝后的 Filter 在 Fine-tuning 阶段还是保持更新，由此 Pruning，Fine-tuning 迭代获得较优剪枝结果。Filter 重要性度量准则为： <span class="math display">\[\left\Vert W_j^i\right\Vert _ p = \sqrt[p]{\sum_{cc=0}^{c_{i-1}-1}\sum_{k_1=0}^{h_i-1}\sum_{k_2=0}^{w_i-1}\left\vert W_j^i(cc,k_1,k_2)\right\vert ^p} \tag{3}\]</span></p><h3 id="filter-sketch313">2.2. Filter Sketch<a href="#3" id="3ref"><sup>[3]</sup></a><a href="#13" id="13ref"><sup>[13]</sup></a></h3><p>　　选择 Filter 进行剪枝，另一种思路是，如何选择一部分 Filter，使得该 Filter 集合的信息量与原 Filter 集合信息量近似: <span class="math display">\[\Sigma_{W^i}\approx \Sigma_{\mathcal{W}^i} \tag{4}\]</span> 这里的信息量表达方式采用了协方差矩阵: <span class="math display">\[\begin{align}\Sigma_{W^i} &amp;= \left(W^i-\bar{W}^i \right)\left(W^i-\bar{W}^i \right)^T \\\Sigma_{\mathcal{W}^i} &amp;= \left(\mathcal{W}^i-\mathcal{\bar{W}}^i \right)\left(\mathcal{W}^i-\mathcal{\bar{W}}^i \right)^T \\\end{align} \tag{5}\]</span> 其中 Filter 权重符合高斯分布，即 \(\bar{W}^i=\frac{1}{c_i}\sum _ {j=1}^{c _ i}W _ j ^ i\approx 0\)，\(\mathcal{\bar{W}} ^ i=\frac{1}{\tilde{c} _ i}\sum _ {j=1}^{\tilde{c} _ i}\mathcal{W} _ j^i\approx 0\)。由式(4)(5)，构建最小化目标函数： <span class="math display">\[\mathop{\arg\min}\limits_{\mathcal{W}^i}\left\Vert W^i(W^i)^T-\mathcal{W}^i(\mathcal{W}^i)^T \right\Vert \tag{6}\]</span> 将该问题转换为求取 \(W^i\) 矩阵的 Sketch 问题，则： <span class="math display">\[\left\Vert W^i(W^i)^T-\mathcal{W}^i(\mathcal{W}^i)^T \right\Vert _F \leq \epsilon\left\Vert W^i\right\Vert^2_F \tag{7}\]</span> <img src="/Filter-Pruning/sketch.png" width="50%" height="50%" title="图 2. Frequent Direction"> <img src="/Filter-Pruning/filter_sketch.png" width="50%" height="50%" title="图 3. FilterSketch"> 　　式(7)可用图 2. 所示的算法求解，最终的 Pruning 算法过程如图 3. 所示，改进的地方主要是 Filter 选择的部分，采用了 Matrix Sketch 算法。 <img src="/Filter-Pruning/pruning.png" width="60%" height="60%" title="图 4. 网络裁剪示意图"> 　　<a href="/pruning/" title="pruning">pruning</a> 中提到有分支结构的裁剪会比较麻烦，所以如图 4. 所示，本方法对分支节点的 Filter 不做裁剪处理，简化了问题。</p><h3 id="filter-pruning-via-geometric-median414">2.3. Filter Pruning via Geometric Median<a href="#4" id="4ref"><sup>[4]</sup></a><a href="#14" id="14ref"><sup>[14]</sup></a></h3><p>　　在预定义剪枝网络方法的三个步骤中，大家普遍研究步骤二中 Filter 的重要性度量设计。Filter 重要性度量基本是 Smaller-norm-less-informative 思想，<a href="#5" id="5ref">[5]</a> 中则验证了该思想并不一定正确。<strong>Smaller-norm-less-informative 假设成立的条件是</strong>：</p><ol type="1"><li>Filter 权重的规范偏差(norm deviation)要大；</li><li>Filter 权重的最小规范要小；</li></ol><p>只有满足这两个条件，该假设才成立，即可以裁剪掉规范数较小的 Filter。 <img src="/Filter-Pruning/norm_dist.png" width="60%" height="60%" title="图 5. Filter Norm Distribution"> 　　但是，如图 5. 所示，实际 Filter 的权重分布和理想的并不一致，当 Filter 分布是绿色区域时，采用 Smaller-norm-less-informative 就不合理了，而这种情况还比较多。一般性的，前几层网络的权重规范数偏差会比较大，后几层则比较小。<br><img src="/Filter-Pruning/criterion.png" width="50%" height="50%" title="图 6. Criterion for Filter Pruning"> 　　由此，本方法提出一种基于 Geometric Median 的 Filter 选择方法，如图 6. 所示，基于 Smaller-norm-less-informative 的裁剪后留下的均是规范数较大的 Filter，这还存在一定的冗余性，本方法则通过物理距离测算，剪掉冗余的 Filter。<strong>另一个角度可理解为最大程度的保留 Filter 集合的大概及具体信息，其思想与 FilterSketch 类似</strong>。<br>　　根据 Geometric Median 思想，第 \(i\) 层卷积要裁剪掉的 Filter 为： <span class="math display">\[W^i_{j^\ast}=\mathop{\arg\min}\limits_{W^i_{j^\ast}\,|\,j^\ast\in[0,c_i-1]}\sum_{j&#39;=0}^{c_i-1}\left\Vert W^i_{j^\ast}-W^i_{j&#39;}\right\Vert_2 \tag{8}\]</span> 由此裁剪掉满足条件的 \(W _ {j^*}^i\)，直至符合裁剪比率。<strong>本方法的思想非常类似于 Farthest Point Sampling 采样，留下的 Filter 即为原 Filter 集合采样的结果，且最大程度的保留了集合的信息</strong>。</p><h2 id="自动学习剪枝方法">3. 自动学习剪枝方法</h2><h3 id="abcpruner616">3.1. ABCPruner<a href="#6" id="6ref"><sup>[6]</sup></a><a href="#16" id="16ref"><sup>[16]</sup></a></h3><p><img src="/Filter-Pruning/ABCPruner.png" width="60%" height="60%" title="图 7. ABCPruner"> 　　出于<a href="#1" id="1ref">[1]</a>的结论：<strong>剪枝的本质应该是直接找到每层卷积最优的 Filter 数量，在此基础上从零开始训练也能达到原来的性能</strong>。ABCPruner 的目标就是搜索每层最优的 Filter 数量，如图 7. 所示，ABCPruner 步骤为：</p><ol type="1"><li>初始化一系列不同 Filter 数量的网络结构；</li><li>每个网络结构从 pre-trained 网络中继承权重值，fine-tune 获得每个网络的 fitness(即 accuracy)；</li><li>用 ABC 算法更新网络结构；</li><li>重复迭代 2,3 步骤，获取最高的 fitness 网络作为最终网络结构；</li></ol><h3 id="metapruning717">3.2. MetaPruning<a href="#7" id="7ref"><sup>[7]</sup></a><a href="#17" id="17ref"><sup>[17]</sup></a></h3><p><img src="/Filter-Pruning/metapruning.png" width="50%" height="50%" title="图 8. MetaPruning"> 　　同样，本方法也是基于<a href="#1" id="1ref">[1]</a>的结论。这里设计 PruningNet 来控制裁剪，步骤为：</p><ol type="1"><li>Training PruningNet<br>PruningNet 输入为网络编码向量，即每层卷积的 Filter 数量，输出为产生网络权重的编码量，如 size reshape，crop。每次训练时随机生成网络编码量，网络编码量与 PruningNet 输出共同决定了 PrunedNet 权重，两个网络联合训练；</li><li>Searching for the Best Pruned Net<br>即 Inference 过程，寻找最优的网络编码量，使得 PrunedNet 精度最高；得到最优网络后，不需要 fine-tuning。</li></ol><h3 id="generative-adversarial-learning8">3.3. Generative Adversarial Learning<a href="#8" id="8ref"><sup>[8]</sup></a></h3><p><img src="/Filter-Pruning/GAL.png" width="90%" height="90%" title="图 9. Generative Adversarial Learning"> 　　本方法主要思想来自知识蒸馏(Knowledge Distillation)和生成对抗网络(Generative Adversarial Network)，如图 9. 所示，Baseline 为完整的原始网络，PrunedNet 是为了学习一个 soft mask 来动态选择 block，branch，channel，最终裁剪后的网络由 soft mask 决定。<br>　　从知识蒸馏的角度：Baseline 就是一个大容量的网络，Pruned Net 就是个小容量的网络，用大容量网络来监督小容量网络学习。从生成对抗学习的角度：Baseline 教师，PrunedNet 是学生，用一个 Discriminator 网络来区分学生与教师的区别，使学生的输出能逼近教师的输出。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Liu, Zhuang, et al. &quot;Rethinking the Value of Network Pruning.&quot; International Conference on Learning Representations. 2018.<br><a id="2" href="#2ref">[2]</a> He, Yang, et al. &quot;Soft filter pruning for accelerating deep convolutional neural networks.&quot; arXiv preprint arXiv:1808.06866 (2018).<br><a id="3" href="#3ref">[3]</a> Lin, Mingbao, et al. &quot;Filter Sketch for Network Pruning.&quot; arXiv preprint arXiv:2001.08514 (2020).<br><a id="4" href="#4ref">[4]</a> He, Yang, et al. &quot;Filter pruning via geometric median for deep convolutional neural networks acceleration.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br><a id="5" href="#5ref">[5]</a> Ye, Jianbo, et al. &quot;Rethinking the smaller-norm-less-informative assumption in channel pruning of convolution layers.&quot; arXiv preprint arXiv:1802.00124 (2018).<br><a id="6" href="#6ref">[6]</a> Lin, Mingbao, et al. &quot;Channel Pruning via Automatic Structure Search.&quot; arXiv preprint arXiv:2001.08565 (2020).<br><a id="7" href="#7ref">[7]</a> Liu, Zechun, et al. &quot;Metapruning: Meta learning for automatic neural network channel pruning.&quot; Proceedings of the IEEE International Conference on Computer Vision. 2019.<br><a id="8" href="#8ref">[8]</a> Lin, Shaohui, et al. &quot;Towards optimal structured cnn pruning via generative adversarial learning.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br><a id="9" href="#9ref">[9]</a> Singh, Pravendra, et al. &quot;Play and prune: Adaptive filter pruning for deep model compression.&quot; arXiv preprint arXiv:1905.04446 (2019).<br><a id="11" href="#11ref">[11]</a> https://github.com/Eric-mingjie/rethinking-network-pruning<br><a id="12" href="#12ref">[12]</a> https://github.com/he-y/softfilter-pruning<br><a id="13" href="#13ref">[13]</a> https://github.com/lmbxmu/FilterSketch<br><a id="14" href="#14ref">[14]</a> https://github.com/he-y/filter-pruning-geometric-median<br><a id="16" href="#16ref">[16]</a> https://github.com/lmbxmu/ABCPruner<br><a id="17" href="#17ref">[17]</a> https://github.com/liuzechun/MetaPruning</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　文章 &lt;a href=&quot;/pruning/&quot; title=&quot;pruning&quot;&gt;pruning&lt;/a&gt; 中详细阐述了模型压缩中 Pruning 的基本方法与理论。Pruning 可分为 Structured Pruning 与 Unstructured Pruning 两
+      
+    
+    </summary>
+    
+      <category term="Model Compression" scheme="https://leijiezhang001.github.io/categories/Model-Compression/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Model Compression" scheme="https://leijiezhang001.github.io/tags/Model-Compression/"/>
+    
+  </entry>
   
   <entry>
     <title>Ground Segmentation with Gaussian Process</title>
@@ -566,39 +593,6 @@
     
     
       <category term="travel" scheme="https://leijiezhang001.github.io/tags/travel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Fast and Furious&quot;</title>
-    <link href="https://leijiezhang001.github.io/paperreading-Fast-and-Furious/"/>
-    <id>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</id>
-    <published>2019-09-24T02:23:23.000Z</published>
-    <updated>2019-11-07T14:06:23.698Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　动态目标状态估计传统的做法是将其分解为目标检测，目标跟踪，目标运动预测三个子问题进行链式求解，这回导致上游模块的误差在下游模块中会传递并放大。考虑到跟踪与预测能帮助提升检测的性能，比如对于遮挡或远距离目标，跟踪与预测能减少检测的漏检(FN)；而误检(FP)则可通过时域相关信息消除，由此本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种联合 3D 检测，跟踪，运动预测的多任务网络。</p><h2 id="model-architecture">1. Model Architecture</h2><h3 id="data-representation">1.1. Data Representation</h3><p>　　雷达坐标系下，每帧点云限定范围为\((x_{min}, x_{max}, y_{min}, y_{max}, z_{min}, z_{max})\)，那么在分辨率 \(r = (dx,dy,dz)\) 下进行栅格化，可得到体素 \((C, H, W) = (\frac{z_{max}-z_{min}}{dz}, \frac{y_{max}-y_{min}}{dy}, \frac{x_{max}-x_{min}}{dx})\), 如果体素中有点云那么该体素值置为1，否则置为0，这样就得到了俯视图下的伪图像。<br>　　此外将历史 \(T-1\) 帧点云先转换到当前本体坐标系(需要 ego motion 信息)，然后串成一起，就获得 \((T, C, H, W) \) 维的模型数据输入表示。</p><h3 id="model-formulation">1.2. Model Formulation</h3><p>　　实际输入网络的应该是 \((N, T, C, H, W) \) 维的数据，首先需要经过一个 fusion 层将数据映射到 \((N, C', H', W') \) 维，然后用一个类似与 SSD 结构的 backbone+head 网络即可。</p><h4 id="fusion">1.2.1. Fusion</h4><p><img src="/paperreading-Fast-and-Furious/fusion.png" width="80%" height="80%" title="图 1. Fusion 结构"> 　　本文提出了两种融合方式：</p><ul><li>Early Fusion<br>如图 1. 所示，直接在 T 维度上进行一维卷积，卷积 \(kernel_ size = T\)，由此得到 \((N, C, H, W) \) 维的特征。</li><li>Late Fusion<br>如图 1. 所示，通过两次 3D 卷积将 \(T=5\) 变换到 \(T=1\)，\(kernel size = (3, 3, 3)\),由此也得到 \((N, C, H, W) \) 维的特征。</li></ul><p>相比 Early Fusion，Late fusion 有更深的特征提取。</p><h4 id="backbonehead">1.2.2. Backbone+Head</h4><p><img src="/paperreading-Fast-and-Furious/head.png" width="80%" height="80%" title="图 2. Fusion 结构"> 　　backbone 采用 VGG16 结构，图 1. 可见。<br>　　head 采用类似 SSD 检测头的形式。anchor 也是有不同比例不同尺寸的矩形组成(另一种方法是，由于俯视图下同种类别的尺寸相似性，所以针对不同类别采用同一尺寸的 anchor 即够用)，角度回归则采用 \(cos, sin\) 形式。<br>　　如图 2. 所示，检测头有两个分之分支，第一个输出预测的分类 score map(n 个预测的 score map 是共享的)，第二个输出 n 个预测的 3D 框编码信息。</p><h3 id="decoding-tracklets">1.3. Decoding Tracklets</h3><p>　　由于有检测及预测的信息，所以可用简单的方法解析出跟踪 ID。历史的预测框信息可认为是当前的跟踪框，所以就自然得在 MOT 问题里进行求解。这里可直接计算跟踪框(历史预测框)与当前检测框的 overlap 误差项，然后将重合度高的目标框标记为同一 ID 即可。</p><h3 id="loss-function">1.4. Loss Function</h3><p>　　总的误差由分类误差与回归误差构成： <span class="math display">\[\xi = \sum\left(\alpha \cdot \xi_{cla} + \sum_{i=t,t+1,...,t+n}\xi_{reg}^t\right)\]</span> 这两项误差具体计算与传统的并无很大差别，此外作者还用了 OHEM 的策略，来平衡正负样本量巨大的差异。</p><h2 id="experimental-evaluation">2. Experimental Evaluation</h2><p><img src="/paperreading-Fast-and-Furious/test.png" width="80%" height="80%" title="图 3. ablation study"> 　　作者用了比 kitti 大的数据集，图 3. 所示，late fusion 比 early fusion 效果好一点，但是 late fusion 需要 3D 卷积。其它实验结果可参见文章。</p><p><a id="1" href="#1ref">[1]</a> Luo, Wenjie, Bin Yang, and Raquel Urtasun. &quot;Fast and furious: Real time end-to-end 3d detection, tracking and motion forecasting with a single convolutional net.&quot; Proceedings of the IEEE conference on Computer Vision and Pattern Recognition. 2018.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　动态目标状态估计传统的做法是将其分解为目标检测，目标跟踪，目标运动预测三个子问题进行链式求解，这回导致上游模块的误差在下游模块中会传递并放大。考虑到跟踪与预测能帮助提升检测的性能，比如对于遮挡或远距离目标，跟踪与预测能减少检测的漏检(FN)；而误检(FP)则可通过时域相
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
   </entry>
   
