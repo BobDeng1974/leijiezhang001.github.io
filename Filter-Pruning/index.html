@@ -105,7 +105,7 @@
 <meta property="og:image" content="https://leijiezhang001.github.io/Filter-Pruning/ABCPruner.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Filter-Pruning/metapruning.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Filter-Pruning/GAL.png">
-<meta property="og:updated_time" content="2020-02-04T08:26:49.740Z">
+<meta property="og:updated_time" content="2020-02-04T12:08:14.148Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Filter Pruning">
 <meta name="twitter:description" content="文章 pruning 中详细阐述了模型压缩中 Pruning 的基本方法与理论。Pruning 可分为 Structured Pruning 与 Unstructured Pruning 两种，由于 Structured Pruning 不需要特定的芯片支持，可直接在现有 CPU/GPU 架构下进行加速，所以值得作研究及应用。而 Structured Pruning 主要指 Filter Pr">
@@ -397,7 +397,7 @@
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2020-02-04T16:26:49+08:00" content="2020-02-04">
+                <time itemprop="dateUpdated" datetime="2020-02-04T20:08:14+08:00" content="2020-02-04">
                   2020-02-04
                 </time>
               </span>
@@ -457,7 +457,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  2.2k 字
+                  2.3k 字
                 </span>
               
 
@@ -545,7 +545,7 @@ PruningNet 输入为网络编码向量，即每层卷积的 Filter 数量，输�
 </ol>
 <h3 id="generative-adversarial-learning8">3.3. Generative Adversarial Learning<a href="#8" id="8ref"><sup>[8]</sup></a></h3>
 <p><img src="/Filter-Pruning/GAL.png" width="90%" height="90%" title="图 9. Generative Adversarial Learning"> 　　本方法主要思想来自知识蒸馏(Knowledge Distillation)和生成对抗网络(Generative Adversarial Network)，如图 9. 所示，Baseline 为完整的原始网络，PrunedNet 是为了学习一个 soft mask 来动态选择 block，branch，channel，最终裁剪后的网络由 soft mask 决定。<br>
-　　从知识蒸馏的角度：Baseline 就是一个大容量的网络，Pruned Net 就是个小容量的网络，用大容量网络来监督小容量网络学习。从生成对抗学习的角度：Baseline 教师，PrunedNet 是学生，用一个 Discriminator 网络来区分学生与教师的区别，使学生的输出能逼近教师的输出。</p>
+　　从知识蒸馏的角度：Baseline 就是一个大容量的教师网络，Pruned Net 就是个小容量的学生网络，用大容量网络来监督小容量网络学习。从生成对抗学习的角度：Baseline 是原始网络，PrunedNet 是生成的对抗网络，用一个 Discriminator 网络来区分原始网络与生成的对抗网络的区别，使生成的对抗网络输出逼近于原始网络。</p>
 <h2 id="reference">4. Reference</h2>
 <p><a id="1" href="#1ref">[1]</a> Liu, Zhuang, et al. &quot;Rethinking the Value of Network Pruning.&quot; International Conference on Learning Representations. 2018.<br>
 <a id="2" href="#2ref">[2]</a> He, Yang, et al. &quot;Soft filter pruning for accelerating deep convolutional neural networks.&quot; arXiv preprint arXiv:1808.06866 (2018).<br>
@@ -860,7 +860,7 @@ PruningNet 输入为网络编码向量，即每层卷积的 Filter 数量，输�
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">58.8k</span>
+    <span title="Site words total count">58.9k</span>
   
 </div>
 <!--
