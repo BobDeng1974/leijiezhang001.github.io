@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://leijiezhang001.github.io/LOAM/</loc>
+    
+    <lastmod>2020-02-08T08:02:01.527Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://leijiezhang001.github.io/Filter-Pruning/</loc>
     
     <lastmod>2020-02-04T12:08:14.148Z</lastmod>
@@ -233,7 +240,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
+    <loc>https://leijiezhang001.github.io/tags/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
@@ -247,7 +254,7 @@
   </url>
   
   <url>
-    <loc>https://leijiezhang001.github.io/tags/index.html</loc>
+    <loc>https://leijiezhang001.github.io/categories/index.html</loc>
     
     <lastmod>2019-10-07T14:29:47.148Z</lastmod>
     
