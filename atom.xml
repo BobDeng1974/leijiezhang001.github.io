@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-02-20T09:04:37.977Z</updated>
+  <updated>2020-02-23T09:24:02.959Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MOT Multimodal Fusion</title>
+    <link href="https://leijiezhang001.github.io/MOT-Fusion/"/>
+    <id>https://leijiezhang001.github.io/MOT-Fusion/</id>
+    <published>2020-02-19T04:35:40.000Z</published>
+    <updated>2020-02-23T09:24:02.959Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　同一传感器的目标状态估计在<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是<strong>数据前融合，特征级融合，目标状态后融合</strong>。本文关注目标状态后融合过程。</p><h2 id="问题描述">1. 问题描述</h2><p>　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米波雷达等)检测输出的(也可以是经过滤波的)多目标分别为：\(A=\{A _ i\in\mathbb{R}^D|i=1,...,M\}\)，\(B=\{B _ i\in\mathbb{R}^D|i=1,...,N\}\)，其中 \(\mathbb{R}^D\) 表示目标状态的维数，如位置，速度，朝向，类别等。MOT 的多模态后融合问题即由此求解融合后结果 \(C=\{C _ i\in\mathbb{R}^D|i=1,...,L\}\)，该过程主要有三步：</p><ol type="1"><li>目标匹配/数据关联：从 \(A,B\) 中找出同一目标的两个多模态观测量，设匹配数为 \(K\)；</li><li>目标状态的多模态融合：对匹配上的同一目标的两个多模态观测进行融合；</li><li>整合目标，经过滤波输出最终结果，目标数目为 \(L=M+N-K\)；</li></ol><h2 id="目标匹配">2. 目标匹配</h2><p>　　本质上与单传感器下目标状态估计中前后帧的数据关联问题一致，这里的关键步骤是：</p><ol type="1"><li>提取每个目标的特征向量：可以是位置，速度，角度，CNN特征层等；</li><li>构建 cost function：对两个目标集合建立 Cost 矩阵；</li><li>匈牙利算法找出最优匹配；</li></ol><p>　　传统的 cost function 基本是向量的 Euclidean 距离或是 cosine 距离，<a href="#1" id="1ref">[1]</a> 提出了一种 Deep Affinity Network 来一次性解决两个目标集合的匹配问题。 <img src="/MOT-Fusion/affinity.png" width="70%" height="70%" title="图 1. Affinity Network"> 　　如图 1. 所示，两个目标集 \(A\in\mathbb{R}^{M\times D}\)，\(B\in\mathbb{R}^{N\times D}\)，扩展到维度 \(\mathbb{R}^{M\times N\times D}\)，相减后输入到网络中，预测出 affinity matrix，\(C\in\mathbb{R}^{M\times N}\)，其中 \(C _ {ij}=1\) 表示匹配上同一目标，否则认为是两个目标。这里关键是 Loss 的设计，最简单的 Loss 为： <span class="math display">\[L(A,B)=\frac{1}{MN}\sum _ {i=1} ^ {M}\sum _ {j=1}^N |C _ {ij}-G _ {ij}| \tag{1}\]</span> 其中 \(G\) 为亲和度矩阵的 groundtruth。实际对亲和度矩阵并没有 0-1 要求，最终是通过匈牙利算法找出匹配的，所以只要将同一目标的分数增大，不同目标的分数减小，最终即可选出匹配。由此设计 Loss： <span class="math display">\[L(A,B)=\sum _ {i,\,j;\,G _ {ij}=1} \left(\sum _ {k;\,G _ {ik}\neq 1}\mathrm{max}(0,C _ {ik}-C _ {ij}+m)+\sum _ {p;\,G _ {pj}\neq 1}\mathrm{max}(0,C _ {pj}-C _ {ij}+m)\right)\tag{2}\]</span> 其中 \(m\) 控制正负样本的相对大小。式(2)更容易使网络收敛。</p><h2 id="多模态融合">3. 多模态融合</h2><p>　　当多传感器检测的同一目标匹配上后，需要融合出一个最终的观测。可以采用卡尔曼滤波的方法，<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中的式(1)~(6)是时序下状态估计的迭代过程。对于多模态融合，虽然是同时获取的观测，但是融合过程类似，令测量矩阵 \(H _ k\) 为单位阵，所以可得卡尔曼增益： <span class="math display">\[K _ k=\frac{\bar{P} _ k}{\bar{P} _ k+R _ k} \tag{3}\]</span> 由此计算后验概率<a href="#2" id="2ref"><sup>[2]</sup></a>： <span class="math display">\[\begin{align}\hat{x} _ k &amp;=\bar{x} _ k+K(z_k-\bar{x}) = \frac{\bar{P} _ kz _ k + \bar{x} _ kR _ k}{\bar{P} _ k+R _ k} \tag{4}\\\hat{P} _ k &amp;=(I-KH _ k)\bar{P} _ k =\frac{\bar{P} _ kR _ k}{\bar{P} _ k+R _ k}\tag{5}\end{align}\]</span> 对于多模态输入 \(A,B\)，令 \(A = \bar{x} _ k,\sigma _ A^2 = \bar{P} _ k\)，\(B=z _ k,\sigma _ B^2 =R _ k\)，可得多模态融合结果为： <span class="math display">\[\begin{align}C &amp;= \frac{\sigma _ A^2B+\sigma _ B^2A}{\sigma _ A^2+\sigma _ B^2}\\\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\\tag{6}\end{align}\]</span> 式(6)等价于： <span class="math display">\[\begin{align}\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\\\tag{7}\end{align}\]</span> 这是 BCM<a href="#3" id="3ref"><sup>[3]</sup></a>！卡尔曼滤波器也是在贝叶斯概率模型下导出来的，可见两个高斯分布的同一状态的观测量，均可通过 BCM 进行融合。<br>　　得到当前时刻多模态融合后的目标状态后，即可进一步作时序卡尔曼平滑获得最终估计的目标状态。<br>　　另一种融合方法是在 JPDAF(Joint Probabilistic Data Association Filter)<a href="#4" id="4ref"><sup>[4]</sup></a>框架下作两次 PDA 融合<a href="#5" id="5ref"><sup>[5]</sup></a>，JPDAF 是另一种数据关联(目标匹配)的方法，这里不作展开。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Kuang, Hongwu, et al. &quot;Multi-Modality Cascaded Fusion Technology for Autonomous Driving.&quot; arXiv preprint arXiv:2002.03138 (2020).<br><a id="2" href="#2ref">[2]</a> Fankhauser, Péter, et al. &quot;Robot-centric elevation mapping with uncertainty estimates.&quot; Mobile Service Robotics. 2014. 433-440.<br><a id="3" href="#3ref">[3]</a> Tresp, Volker. &quot;A Bayesian committee machine.&quot; Neural computation 12.11 (2000): 2719-2741.<br><a id="4" href="#4ref">[4]</a> Arya Senna Abdul Rachman, Arya. &quot;3D-LIDAR Multi Object Tracking for Autonomous Driving: Multi-target Detection and Tracking under Urban Road Uncertainties.&quot; (2017).<br><a id="5" href="#5ref">[5]</a> JRMOT: A Real-Time 3D Multi-Object Tracker and a New Large-Scale Dataset</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　同一传感器的目标状态估计在&lt;a href=&quot;/卡尔曼滤波器在三维目标状态估计中的应用/&quot; title=&quot;卡尔曼滤波器在三维目标状态估计中的应用&quot;&gt;卡尔曼滤波器在三维目标状态估计中的应用&lt;/a&gt;中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相
+      
+    
+    </summary>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
+    
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
+    
+      <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
+    
+  </entry>
   
   <entry>
     <title>Model Compression - &#39;Quantization&#39;</title>
@@ -562,35 +591,6 @@
       <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
     
       <category term="Lane Detection" scheme="https://leijiezhang001.github.io/tags/Lane-Detection/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Multi-Task Learning Using Uncertainty to Weigh Losses&quot;</title>
-    <link href="https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/"/>
-    <id>https://leijiezhang001.github.io/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/</id>
-    <published>2019-10-15T07:19:09.000Z</published>
-    <updated>2019-11-07T14:08:04.715Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文<a href="#1" id="1ref"><sup>[1]</sup></a>讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系统得整理其研究成果，这篇文章先只讨论一个较为实用的应用。</p><h2 id="不确定性概述">1. 不确定性概述</h2><p>　　在贝叶斯模型中，可以建模两类不确定性<a href="#2" id="2ref"><sup>[2]</sup></a>：</p><ul><li><strong>认知不确定性(Epistemic Uncertainty)</strong>，描述模型因为缺少训练数据而存在的未知，可通过增加训练数据解决；</li><li><p><strong>偶然不确定性(Aleatoric Uncertainty)</strong>，描述了数据不能解释的信息，可通过提高数据的精度来消除；</p><ul><li><strong>数据依赖地或异方差不确定性(Data-dependent or Heteroscedastic Uncertainty)</strong>，与模型输入数据有关，可作为模型预测输出；</li><li><strong>任务依赖地或同方差不确定性(Task-dependent or Homoscedastic Uncertainty)</strong>，与模型输入数据无关，且不是模型的预测输出，不同任务有不同的值；</li></ul></li></ul><p>本文讨论同方差不确定性，其描述了不同任务间的相关置信度，所以可用同方差不确定性来设计不同任务的 \(Loss\) 权重项。</p><h2 id="为什么需要设计不同任务的-loss-权重项">2. 为什么需要设计不同任务的 \(Loss\) 权重项</h2><p><img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt_weight.png" width="90%" height="90%" title="图 1. Multi-task loss weightings"> 　　如图 1. 所示，多任务学习能提高单任务的性能，但是要充分发挥多任务的性能，那么得精心调节各任务的 \(Loss\) 权重。当任务多的时候，人工搜索最优的权重项则显得费时费力，依靠模型的同方差不确定性，我们可以自动学习权重项。</p><h2 id="多任务似然建模">3. 多任务似然建模</h2><p>　　下面推倒基于同方差不确定性的最大化高斯似然过程。设模型权重 \(\mathbf{W}\)，输入 \(\mathbf{x}\)，输出为 \(\mathbf{f^W(x)}\)。对于回归任务，定义模型输出为高斯似然形式： <span class="math display">\[p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \mathcal{N}\left(\mathbf{f^W(x)}, \sigma ^2\right) \tag{1}\]</span> 其中 \(\sigma\) 为观测噪声方差，描述了模型输出中含有多大的噪声。对于分类任务，玻尔兹曼分布下的模型输出概率分布为： <span class="math display">\[p\left(\mathbf{y}\vert\mathbf{f^W(x)},\sigma\right) = \mathrm{Softmax}\left(\frac{1}{\sigma ^2}\mathbf{f^W(x)}\right) \tag{2}\]</span> 由此对于多任务，模型输出的联合概率分布为： <span class="math display">\[p\left(\mathbf{y}_1,\dots,\mathbf{y}_K\vert\mathbf{f^W(x)}\right) = p\left(\mathbf{y}_1\vert\mathbf{f^W(x)}\right) \dots p\left(\mathbf{y}_K\vert\mathbf{f^W(x)}\right) \tag{3}\]</span></p><p>　　对于回归任务，\(log\)似然函数： <span class="math display">\[\mathrm{log}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) \propto -\frac{1}{2\sigma ^2} \Vert \mathbf{y-f^W(x)} \Vert ^2 - \mathrm{log}\sigma \tag{4}\]</span> 对于分类任务，\(log\)似然函数： <span class="math display">\[\mathrm{log}p\left(\mathbf{y}=c\vert\mathbf{f^W(x)}, \sigma\right) = \frac{1}{2\sigma ^2}f_c^{\mathbf{W}}(\mathbf{x})- \mathrm{log}\sum_{c&#39;} \mathrm{exp}\left(\frac{1}{\sigma^2}f^{\mathbf{W}}_{c&#39;}(\mathbf{x}) \right) \tag{5}\]</span></p><p>　　现同时考虑回归与分类任务，则多任务的联合 \(Loss\)： <span class="math display">\[\begin{align}\mathcal{L}(\mathbf{W}, \sigma _1, \sigma _2) &amp;= -\mathrm{log}p\left(\mathrm{y_1,y_2}=c\vert\mathbf{f^W(x)} \right) \\&amp;= -\mathrm{log}\mathcal{N}\left(\mathbf{y_1};\mathbf{f^W(x)}, \sigma_1^2\right) \cdot \mathrm{Softmax}\left(\mathbf{y_2}=c;\mathbf{f^W(x)},\sigma_2\right) \\&amp;= \frac{1}{2\sigma_1^2}\Vert \mathbf{y}_1-\mathbf{f^W(x)}\Vert ^2 + \mathrm{log}\sigma_1 - \mathrm{log}p\left(\mathbf{y}_2=c\vert\mathbf{f^W(x)},\sigma_2\right) \\&amp;= \frac{1}{2\sigma_1^2}\mathcal{L}_1(\mathbf{W}) +\frac{1}{\sigma_2^2}\mathcal{L}_2(\mathbf{W}) + \mathrm{log}\sigma_1 + \mathrm{log}\frac{\sum_{c&#39;}\mathrm{exp}\left(\frac{1}{\sigma_2^2}f_{c&#39;}^{\mathbf{W}}(x)\right)}{\left(\sum_{c&#39;}\mathrm{exp}\left(f_{c&#39;}^{\mathbf{W}}(x) \right) \right)^{\frac{1}{\sigma_2^2}}} \\&amp;\approx \frac{1}{2\sigma_1^2}\mathcal{L}_1(\mathbf{W}) +\frac{1}{\sigma_2^2}\mathcal{L}_2(\mathbf{W}) + \mathrm{log}\sigma_1 + \mathrm{log}\sigma_2 \tag{6}\end{align}\]</span></p><p>由此得到两个权重项，任务噪声 \(\sigma\) 越大，则该任务的误差权重越小。实际应用中，为了数值稳定，令 \(s:=\mathrm{log}\sigma^2\): <span class="math display">\[\mathcal{L}(\mathbf{W}, s_1, s_2) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \mathrm{exp}(-s_2)\mathcal{L}_2(\mathbf{W}) + \mathrm{exp}(\frac{1}{2}s_1) + \mathrm{exp}(\frac{1}{2}s_2) \tag{7}\]</span> 对于更多任务的模型，根据任务类型也很容易扩展，网络自动学习权重项 \((s_1,s_2,...,s_n)\)。</p><h2 id="实验结果">4. 实验结果</h2><p><img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/mt.png" width="90%" height="90%" title="图 2. Multi-task"> <img src="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/ablation.png" width="90%" height="90%" title="图 3. 实验结果"> 　　如图 2. 所示，作者设计了同时作语义分割、实例分割、深度估计的网络，由图 3. 可知，用任务的不确定性来加权任务的 \(Loss\)，效果显著。</p><h2 id="参考文献">5. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> Kendall, Alex, Yarin Gal, and Roberto Cipolla. &quot;Multi-task learning using uncertainty to weigh losses for scene geometry and semantics.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.<br><a id="2" href="#2ref">[2]</a> Kendall, Alex, and Yarin Gal. &quot;What uncertainties do we need in bayesian deep learning for computer vision?.&quot; Advances in neural information processing systems. 2017.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　深度学习网络中的不确定性(Uncertainty)是一个比较重要的问题，本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;讨论了其中一种不确定性在多任务训练中的应用。目前关于深度学习不确定性的研究基本出自本文作者及其团队，后续我会较系
-      
-    
-    </summary>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/categories/Uncertainty/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
     
   </entry>
   
