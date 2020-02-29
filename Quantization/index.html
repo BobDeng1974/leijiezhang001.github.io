@@ -101,7 +101,7 @@
 <meta property="og:image" content="https://leijiezhang001.github.io/Quantization/symmetric.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Quantization/quantization-aware.png">
 <meta property="og:image" content="https://leijiezhang001.github.io/Quantization/quantized_alg.png">
-<meta property="og:updated_time" content="2020-02-29T04:14:06.910Z">
+<meta property="og:updated_time" content="2020-02-29T04:25:32.683Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Model Compression - &#39;Quantization&#39;">
 <meta name="twitter:description" content="量化(Quantization)是模型压缩主要技术之一。因为模型训练后的权重及特征图基本符合高斯分布(特征图可能是混合高斯分布)，所以将 32-bit 的张量量化到低比特后也能保持模型输出的准确度。如果只量化模型的权重，那么只是减少了模型的存储及传输大小；只有同时量化权重及特征图(Weight &amp;amp; Activation)，才能同时减少计算量。本文来详细描述下模型量化的细节。 1. Qu">
@@ -393,7 +393,7 @@
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2020-02-29T12:14:06+08:00" content="2020-02-29">
+                <time itemprop="dateUpdated" datetime="2020-02-29T12:25:32+08:00" content="2020-02-29">
                   2020-02-29
                 </time>
               </span>
@@ -561,8 +561,9 @@ y _ i &amp;\gets \gamma\frac{\hat{x} _ i-\mu _ B}{\sqrt{\sigma^2 _ B+\epsilon}} 
 \hat{b} = \frac{\gamma(b-\mu _ B)}{\sqrt{\sigma^2 _ B+\epsilon}}+ \beta\\
 \end{array}\tag{16}\right.\]</span></p>
 <h3 id="trained-quantization-thresholds">2.3. Trained Quantization Thresholds</h3>
-<p>　　Post-Training Quantization 以及 Quantization-Aware Training 都是直接对张量的分析来搜索或近似求解量化参数的，Trained Quantization Thresholds 则在训练的时候同时训练得到量化参数。<br>
-　　PACT<a href="#13" id="13ref"><sup>[13]</sup></a> 定义了激活函数输出的最大值，该最大值就是 Symmetric 量化中的激活层量化参数 Scale。具体的，改进 Relu： <span class="math display">\[ y = \mathrm{PACT}(x) = 0.5(|x|-|x-\alpha|+\alpha)=
+<p>　　Post-Training Quantization 以及 Quantization-Aware Training 都是直接对张量的分析来搜索或近似求解量化参数的，Trained Quantization Thresholds 则在训练的时候同时训练得到量化参数。</p>
+<h4 id="pact">2.3.1. PACT</h4>
+<p>　　PACT<a href="#13" id="13ref"><sup>[13]</sup></a> 定义了激活函数输出的最大值，该最大值就是 Symmetric 量化中的激活层量化参数 Scale。具体的，改进 Relu： <span class="math display">\[ y = \mathrm{PACT}(x) = 0.5(|x|-|x-\alpha|+\alpha)=
 \left\{\begin{array}{l}
 0, \;\;x\in(-\infty,0)\\
 x, \;\;x\in[0,\alpha]\\
@@ -572,6 +573,7 @@ x, \;\;x\in[0,\alpha]\\
 0, \;\;x\in(-\infty, \alpha)\\
 1, \;\;x\in[\alpha,+\infty)
 \end{array}\tag{18}\right.\]</span></p>
+<h4 id="tqt">2.3.2. TQT</h4>
 <p>　　TQT(Trained Quantization Thresholds)<a href="#14" id="14ref"><sup>[14]</sup></a>则提出了一种同时学习权重和激活函数的量化参数的方法。为了简化，其采用 Linear Symmetric Approximation，且 Scale 参数限定为 \(s=2 ^ {-f}\)，由式(8,9)可知，消除了定点乘法运算。前向传播与式(13)并无差异，对每个权重即激活层作 scale，round，saturate，de-quant 操作。反向传播则需要对量化值 \(q(x;s)\) 求导，量化值表示为： <span class="math display">\[q(x;s)=
 \left\{\begin{array}{l}
 \left\lfloor\frac{x}{s}\right\rceil \cdot s, \;\; n\leq\left\lfloor\frac{x}{s}\right\rceil\leq p\\
@@ -904,7 +906,7 @@ NVIDIA 的 TensorRT<a href="#10" id="10ref"><sup>[10]</sup></a>，TVM<a href="#1
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-scheme"><span class="nav-text">1. Quantization Scheme</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fixed-point-approximation"><span class="nav-text">1.1. Fixed Point Approximation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#range-based-linear-approximation"><span class="nav-text">1.2. Range-Based Linear Approximation</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#asymmetric-mode"><span class="nav-text">1.2.1. Asymmetric Mode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#symmetric-mode"><span class="nav-text">1.2.2. Symmetric Mode</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-alogorithm"><span class="nav-text">2. Quantization Alogorithm</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#post-training-quantization"><span class="nav-text">2.1. Post-Training Quantization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#quantization-aware-training"><span class="nav-text">2.2. Quantization-Aware Training</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#simulated-quantization"><span class="nav-text">2.2.1. Simulated Quantization</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#learning-quantization-ranges"><span class="nav-text">2.2.2. Learning Quantization Ranges</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#batch-normalization-folding"><span class="nav-text">2.2.3. Batch Normalization Folding</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trained-quantization-thresholds"><span class="nav-text">2.3. Trained Quantization Thresholds</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantized-framework"><span class="nav-text">3. Quantized Framework</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ristretto1"><span class="nav-text">3.1. Ristretto[1]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorflow-lite6qnnpack8ncnn9"><span class="nav-text">3.2. TensorFlow Lite[6]/QNNPACK[8]/NCNN[9]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorrt10"><span class="nav-text">3.3. TensorRT[10]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-scheme"><span class="nav-text">1. Quantization Scheme</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fixed-point-approximation"><span class="nav-text">1.1. Fixed Point Approximation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#range-based-linear-approximation"><span class="nav-text">1.2. Range-Based Linear Approximation</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#asymmetric-mode"><span class="nav-text">1.2.1. Asymmetric Mode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#symmetric-mode"><span class="nav-text">1.2.2. Symmetric Mode</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-alogorithm"><span class="nav-text">2. Quantization Alogorithm</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#post-training-quantization"><span class="nav-text">2.1. Post-Training Quantization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#quantization-aware-training"><span class="nav-text">2.2. Quantization-Aware Training</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#simulated-quantization"><span class="nav-text">2.2.1. Simulated Quantization</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#learning-quantization-ranges"><span class="nav-text">2.2.2. Learning Quantization Ranges</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#batch-normalization-folding"><span class="nav-text">2.2.3. Batch Normalization Folding</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trained-quantization-thresholds"><span class="nav-text">2.3. Trained Quantization Thresholds</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pact"><span class="nav-text">2.3.1. PACT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tqt"><span class="nav-text">2.3.2. TQT</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantized-framework"><span class="nav-text">3. Quantized Framework</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ristretto1"><span class="nav-text">3.1. Ristretto[1]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorflow-lite6qnnpack8ncnn9"><span class="nav-text">3.2. TensorFlow Lite[6]/QNNPACK[8]/NCNN[9]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorrt10"><span class="nav-text">3.3. TensorRT[10]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
             
 
           </div>
