@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://leijiezhang001.github.io/GAN/</loc>
+    <lastmod>2020-04-03</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/Unsupervised-Low-Light-Image-Enhancement/</loc>
+    <lastmod>2020-04-03</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/paper-reading-Learning-to-See-in-the-Dark/</loc>
+    <lastmod>2020-04-03</lastmod>
+  </url>  <url>
     <loc>https://leijiezhang001.github.io/Point-based-3D-Det/</loc>
     <lastmod>2020-03-01</lastmod>
   </url>  <url>
