@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-03T05:57:54.579Z</updated>
+  <updated>2020-04-07T09:22:24.202Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;LaserNet&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-LaserNet-An-Efficient-Probabilistic-3D-Object-Detector-for-Autonomous-Driving/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-LaserNet-An-Efficient-Probabilistic-3D-Object-Detector-for-Autonomous-Driving/</id>
+    <published>2020-04-06T07:36:13.000Z</published>
+    <updated>2020-04-07T09:22:24.202Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　3D 目标检测中，目标定位的不确定性也很关键，<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中已经较为详细的描述了在 Bayesian Deep Networks 中如何建模异方差偶然不确定性(Aleatoric Uncertainty)。在贝叶斯深度神经网络框架下，网络不仅预测目标的位置(Mean)，还预测出该预测位置的方差(Variance)。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 延续了 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中预测 Corner 点位置方差的思路，提出了一种预测目标位置方差的方法。</p><h2 id="算法框架">1. 算法框架</h2><p><img src="/paper-reading-LaserNet-An-Efficient-Probabilistic-3D-Object-Detector-for-Autonomous-Driving/framework.png" width="90%" height="90%" title="图 1. LaserNet Framework"> 　　如图 1. 所示，输入为激光点云的 Sensor Range View 表示方式，输出为点级别的目标框3D属性，框顶点位置方差，以及类别概率。最后在 Bird View 下作目标框的聚类与 NMS 等后处理。</p><h3 id="点云输入方式">1.1. 点云输入方式</h3><p>　　不同于目前主流的 Bird View 点云栅格化方式，本文将点云直接根据线束在 Sensor Range View 下进行表示，高为激光线数量，宽为 HFOV 除以角度分辨率。设计 5 个 channel：距离，高度，角度，反射值，以及是否有点的标志位。<br>　　本文认为这种点云表示方式的优点被忽视了，该视角下，点云的表达是紧促的，而且能高效得取得局部区域点，此外，能保留点云获取方式的信息。另一方面，该表达方式的缺点有，访问局部区域时，并不是空间一致的；以及需要处理物体的不同形状和遮挡问题。本文实验结果是，在 Kitti 上效果不如 Bird View 方法，但是在一个较大数据集上，能克服这些缺点。</p><h3 id="网络输出">1.2. 网络输出</h3><p>　　网络输出为点级别的预测，由三部分组成：</p><ol type="1"><li><strong>类别概率</strong><br>每个类别的概率；</li><li><strong>3D 框属性</strong><br>包括相对中心距离 \((d _ x, d _ y)\)；相对朝向 \((\omega _ x, \omega _ y)=(\mathrm{cos}\omega, \mathrm{sin}\omega)\)；以及尺寸 \((l,w)\)。最终目标框中心点位置及朝向表示为： <span class="math display">\[\left\{\begin{array}{l}\mathbf{b} _ c = [x,y]^T+\mathbf{R} _ \theta [d _ x,d _ y]^T \\\varphi = \theta + \mathrm{atan2}(\omega _ y,\omega _ x)\end{array}\tag{1}\right.\]</span> 其中 \(\theta\) 为该点的雷达扫描角度。由此可得到四个目标框角点坐标： <span class="math display">\[\left\{\begin{array}{l}\mathbf{b} _ 1 = \mathbf{b} _ c + \frac{1}{2}\mathbf{R} _ \varphi [l,w]^T\\\mathbf{b} _ 2 = \mathbf{b} _ c + \frac{1}{2}\mathbf{R} _ \varphi [l,-w]^T\\\mathbf{b} _ 3 = \mathbf{b} _ c + \frac{1}{2}\mathbf{R} _ \varphi [-l,-w]^T\\\mathbf{b} _ 4 = \mathbf{b} _ c + \frac{1}{2}\mathbf{R} _ \varphi [-l,w]^T\end{array}\tag{2}\right.\]</span></li><li><strong>顶点位置方差</strong><br>当观测不完全时(遮挡，远处)，目标框的概率分布是多模态的，所以如 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中所述，输出为混合高斯模型。对于每个点的每个类别，输出 \(K\) 个目标框属性：\(\{d _ {x,k}, d _ {y,k}, \omega _ {x,k}, \omega _ {y,k}, l _ k, w _ k\} _ {k=1}^K\)；对应的方差 \(\{s _ k\} _ {k=1}^K\)；以及模型权重 \(\{\alpha _ k\} _ {k=1}^K\)。</li></ol><h3 id="bird-view-后处理">1.3. Bird View 后处理</h3><p>　　网络其实就做了一个点级别的分割，接下来需要作聚类以得到目标框。本文采用 Mean-Shift 方法作聚类。由于是点级别的概率分布，得到目标点集后，需要用 BCN(详见 <a href="/MOT-Fusion/" title="MOT-Fusion">MOT-Fusion</a>) 转换为目标级别的概率分布： <span class="math display">\[\left\{\begin{array}{l}\hat{\mathbf{b}} _ i = \frac{\sum _ {j\in S _ i} w _ j\mathbf{b} _ j}{\sum _ {j\in S _ i}w _ j}\\\hat{\sigma} _ i^2 = \left(\sum _ {j\in S _ i}\frac{1}{\sigma ^2 _ j}\right)^{-1}\end{array}\tag{3}\right.\]</span> 其中 \(w=\frac{1}{\sigma ^ 2}\)。</p><h2 id="loss-形式">2. Loss 形式</h2><p>　　分类采用 Focal Loss。对于每个点 3D 属性的回归，首先找到最靠近真值的预测模型： <span class="math display">\[k ^ * = \mathrm{arg}\min \limits _ k\Vert\hat{\mathbf{b}} _ k-\mathbf{b} ^{gt}\Vert\tag{4}\]</span> 对该预测模型作 Loss： <span class="math display">\[\mathcal{L} _ {box}=\sum _ n\frac{1}{\hat{\sigma} _ {k ^ * }} \left\vert\hat{\mathbf{b}} _ {n,k^ * }-\mathbf{b} _ n^{gt}\right\vert + \mathrm{log}\hat{\sigma} _ {k ^ * }\tag{5}\]</span> 实际回归的是 \(s:=\mathrm{log} \sigma\)。然后对混合模型的权重 \(\{\alpha _ k\} _ {k=1}^K\) 作 cross entry loss \(\mathcal{L} _ {mix}\)。最终的回归 Loss 为： <span class="math display">\[\mathcal{L} _ {reg} = \frac{1}{N}\sum _ i \frac{\mathcal{L} _ {box, i} + \lambda \mathcal{L} _ {mix,i}}{n _ i} \tag{6}\]</span></p><h2 id="adaptive-nms">3. Adaptive NMS</h2><p>　　类别概率不能反应目标框的质量，所以本文采用预测的目标框方差作为 NMS 的参考量。将目标框方差转换为目标框的质量分数：\(\alpha _ k/2\hat{\sigma} _ k\)。<br><img src="/paper-reading-LaserNet-An-Efficient-Probabilistic-3D-Object-Detector-for-Autonomous-Driving/nms.png" width="50%" height="50%" title="图 2. Adaptive NMS"> 　　此外不同目标在 Bird-View 下 IoU 最大值有一定的限制，如图 2. 所示，最坏的情况，Bird-View 下两个框的 IoU 最大限制为设计为： <span class="math display">\[t=\left\{\begin{array}{l}\frac{\sigma _ 1+\sigma _ 2}{2w-\sigma _ 1 - \sigma _ 2} &amp; \sigma _ 1+\sigma _ 2 &lt; w\\1 &amp; otherwise\end{array}\tag{7}\right.\]</span> 当两个目标框的 IoU 大于阈值时，可能的情况是：1. 目标框错误，则删除低分数的目标框；2. 方差估计错误，那么增大方差使最大阈值满足 IoU 条件。</p><h2 id="预测分布的分析">4. 预测分布的分析</h2><p><img src="/paper-reading-LaserNet-An-Efficient-Probabilistic-3D-Object-Detector-for-Autonomous-Driving/calibration.png" width="80%" height="80%" title="图 3. Uncertainty(Variance) Calibration"> 　　评价 Variance(Uncertainty) 预测的好坏，可以画 Calibration 图。如图 3. 所示，横坐标为预测的 Mean 与真值形成的高斯概率分布下的 CDF，而纵坐标为预测的 Variance 统计出的高斯分布下的 CDF。理想情况下，两者是 \(y=x\) 的关系，如图所示，在 ATG4D 大数据集上，预测的 Variance 效果更好。</p><h2 id="一些思考">5. 一些思考</h2><p>　　不管是 2D 检测还是 3D 检测，这种先(语义)分割后聚类出目标的思想，有很强的优势：召回率高，超参数少，自带分割信息等。本文又应用 Aleatoric Uncertainty 来建模检测的不确定性--位置方差(不确定性干嘛用，怎么用，不多说了)，有很好的借鉴意义。</p><h2 id="reference">6. Reference</h2><p><a id="1" href="#1ref">[1]</a> Meyer, Gregory P., et al. &quot;Lasernet: An efficient probabilistic 3d object detector for autonomous driving.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　3D 目标检测中，目标定位的不确定性也很关键，&lt;a href=&quot;/Heteroscedastic-Aleatoric-Uncertainty/&quot; title=&quot;Heteroscedastic Aleatoric Uncertainty&quot;&gt;Heteroscedastic 
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;Learning to See in the Dark&quot;</title>
@@ -544,33 +577,6 @@
       
       
         &lt;p&gt;　　在上一篇 paper reading &lt;a href=&quot;/paper-reading-Deep-Multi-Sensor-Lane-Detection/&quot; title=&quot;Deep Multi-Sensor Lane Detection&quot;&gt;Deep Multi-Senso
-      
-    
-    </summary>
-    
-      <category term="Lane Detection" scheme="https://leijiezhang001.github.io/categories/Lane-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Lane Detection" scheme="https://leijiezhang001.github.io/tags/Lane-Detection/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Deep Multi-Sensor Lane Detection&quot;</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-Deep-Multi-Sensor-Lane-Detection/</id>
-    <published>2019-11-09T03:54:34.000Z</published>
-    <updated>2019-11-09T13:54:34.000Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　前文 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a> 已经较详细得阐述了俯视图下作车道线检测的逆透视原理，提到传统 IPM 有个较强的假设：地面是平坦的。对于 L4 自动驾驶，在这个假设下车道线检测不管是精度还是可靠性，都远远不够。如果有高精度地图，那么这些问题都有方法来消除。当然，如果有高精度地图，且自定位准确，也就不需要车道线检测了，所以这里讨论，在无高精度地图下，本文<a href="#1" id="1ref"><sup>[1]</sup></a>如何通过激光点云数据学习的方法解决上述问题。</p><h2 id="网络结构">1. 网络结构</h2><p><img src="/paper-reading-Deep-Multi-Sensor-Lane-Detection/lane_det.png" width="90%" height="90%" title="图 1. Multi-Sensor Lane Detection"> 　　如图 1. 所示，整个算法有两个网络组成：</p><ul><li><strong>地面估计(Ground Height Estimation)网络</strong><br>输入是俯视图下历史 N 帧的栅格点云，输出的是俯视图下地面高度；</li><li><strong>车道线检测(Lane Prediction)网络</strong><br>输入是俯视图下历史 N 帧的栅格点云，并且叠加前视图图像逆透视变换到俯视图后的图像，输出为像素级别的车道线检测结果；</li></ul><p>历史 N 帧点云需要经过 ego-motion 补偿到当前本车位置，补偿后的点云只对运动物体会存在变形，而网络正好需要忽视运动物体。通过地面估计得到了俯视图下稠密的地面估计后，就可以将前视图的图像投影到俯视图下了。具体的过程为：取地面估计的三维点(高度+像素坐标经过分辨率变换后的物理坐标)，投影到图像上，然后双线性插值取得图像像素值，填充至俯视图上。这种透视变换是借助 3D 点信息完成的，原理可详见 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a>。</p><h2 id="differentiable-warping-function">2. Differentiable Warping Function</h2><p>　　其实这里估计出来的地面高度就是个简陋的高精度地图，所以这种方案理论上就能消除上述问题。并且，投影的过程采用了可求导的映射方程(differentiable warping function)，所以整个算法可以端到端的训练。 <img src="/paper-reading-Deep-Multi-Sensor-Lane-Detection/STN.png" width="90%" height="90%" title="图 2. Spatial Transformer Networks"> 　　关于可求导的映射方程，这里借鉴了 DeepMind 的 Spatial Transformer Networks<a href="#2" id="2ref"><sup>[2]</sup></a> 的思想。传统卷积网络只对较小的位移有位移不变性，而 STN 引入 2D/3D 仿射/透视变换，显示得将特征层变换到有利于分类的形态，这样整个网络就具有了仿射甚至透视(位移，旋转，裁剪，尺度，歪斜)不变性。如图 2. 所示，STN 有三部分构成：</p><ol type="1"><li><strong>Localisation Net</strong>，对于 2D 仿射，回归预测出仿射变换矩阵 \(\theta \in \mathbb{R}_{2\times 3}\);</li><li><strong>Grid Generator</strong>，根据仿射变换矩阵及仿射变换前后特征图的大小，建立仿射前后坐标映射关系；</li><li><strong>Sampler</strong>，根据坐标映射关系设计可求导的插值采样方法(如双线性)，从输入特征中采样出特征值填入仿射后的特征图中；</li></ol><p>　　本文则是一个透视变换矩阵 \(P\)，但是 \(P\) 不需要网络预测，其完全由激光雷达与相机的内外参决定，这个需要提前标定好。预测的地面高度通过 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a> 中的式 (3) 即可与图像坐标系建立联系，作为 Grid Generator。最后采用可求导的 Sampler，这个模块就可以嵌入到网络中，进行端到端的训练。</p><h2 id="loss">3. Loss</h2><p>　　Loss 采用 SmoothL1 Loss，其有两种构成：</p><ul><li>地面估计项<br><span class="math display">\[ L_{gnd} = \sum_{p\in Output Image} \Vert z_{p,gt}-z_{p,pred}\Vert \tag{1}\]</span></li><li>车道线检测项<br><span class="math display">\[ L_{lane} = \sum_{p\in Output Image} \left\Vert \left(\tau-\mathrm{min}\{d_{p,gt}, \tau\}\right)-d_{p,pred}\right\Vert \tag{2}\]</span> 其中 \(\tau\) 是车道线真值标签的衰减像素区域，高速场景设为 30，城市道路设为 20。</li></ul><h2 id="其它思考">4. 其它思考</h2><p>　　既然 STN 专门是用来作仿射/透视变换的，那么是否可以在不借助激光点云的情况下，用前视图图像直接回归出透视变换到俯视图的透视矩阵 \(P\) ？理论上是可行的，但是训练过程不一定能收敛，需要精心设计训练过程，以及针对斜坡还会有一定的距离误差。</p><h2 id="参考文献">5. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> Bai, Min, et al. &quot;Deep Multi-Sensor Lane Detection.&quot; 2018 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). IEEE, 2018.<br><a id="2" href="#2ref">[2]</a> Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. &quot;Spatial transformer networks.&quot; Advances in neural information processing systems. 2015.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　前文 &lt;a href=&quot;/lane-det-from-BEV/&quot; title=&quot;Apply IPM in Lane Detection from BEV&quot;&gt;Apply IPM in Lane Detection from BEV&lt;/a&gt; 已经较详细得阐述了俯视图下作车道
       
     
     </summary>
