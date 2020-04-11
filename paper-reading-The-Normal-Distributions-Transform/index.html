@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="Point Cloud,SLAM,Localization,">
 
 
 
@@ -88,13 +88,18 @@
 
 
 
-<meta property="og:type" content="website">
-<meta property="og:title" content="LeijieZhang">
-<meta property="og:url" content="https://leijiezhang001.github.io/page/5/index.html">
+<meta name="description" content="机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。 　　LOAM 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差">
+<meta name="keywords" content="Point Cloud,SLAM,Localization">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Normal Distributions Transform for Laser Scan Matching">
+<meta property="og:url" content="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/index.html">
 <meta property="og:site_name" content="LeijieZhang">
+<meta property="og:description" content="机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。 　　LOAM 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差">
 <meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2020-04-11T11:29:19.873Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="LeijieZhang">
+<meta name="twitter:title" content="The Normal Distributions Transform for Laser Scan Matching">
+<meta name="twitter:description" content="机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。 　　LOAM 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差">
 
 
 
@@ -124,13 +129,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/page/5/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/">
 
 
 
 
 
-  <title>LeijieZhang</title>
+  <title>The Normal Distributions Transform for Laser Scan Matching | LeijieZhang</title>
   
 
 
@@ -194,8 +199,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 <a href="https://github.com/LeijieZhang001" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewbox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -332,9 +336,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -347,7 +351,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/MOT-评价指标-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Leijie">
@@ -364,9 +368,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/MOT-评价指标-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/" itemprop="url">MOT 评价指标-"Evaluating Multiple Object Tracking Performance, the CLEAR MOT Metrics"</a></h1>
+          <h1 class="post-title" itemprop="name headline">The Normal Distributions Transform for Laser Scan Matching</h1>
         
 
         <div class="post-meta">
@@ -378,15 +380,15 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-06-02T14:23:46+08:00">
-                2019-06-02
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-04-10T09:39:54+08:00">
+                2020-04-10
               </time>
             
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-11-07T22:05:29+08:00" content="2019-11-07">
-                  2019-11-07
+                <time itemprop="dateUpdated" datetime="2020-04-11T19:29:19+08:00" content="2020-04-11">
+                  2020-04-11
                 </time>
               </span>
             
@@ -409,8 +411,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MOT/" itemprop="url" rel="index">
-                    <span itemprop="name">MOT</span>
+                  <a href="/categories/SLAM/" itemprop="url" rel="index">
+                    <span itemprop="name">SLAM</span>
                   </a>
                 </span>
 
@@ -428,6 +430,11 @@
           
 
           
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>次
+            </span>
+          
 
           
             <div class="post-wordcount">
@@ -440,7 +447,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  1.1k 字
+                  1.4k 字
                 </span>
               
 
@@ -456,7 +463,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  3 分钟
+                  5 分钟
                 </span>
               
             </div>
@@ -477,23 +484,45 @@
       
 
       
-        
-          
-          　　这篇文章介绍了两个综合性指标 MOTA 以及 MOTP 的计算过程，这两个指标有优劣势，但是作为综合性指标至今在学术界仍广泛应用。本文主要介绍其设计思想及计算过程。
-　　一个理想的 MOT 算法，我们期望每一帧：
+        <p>　　机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。<br>
+　　<a href="/LOAM/" title="LOAM">LOAM</a> 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差函数，从而最小二乘非线性优化求解位姿。这种方案如果特征点噪声较大无匹配对，那么就会有较大的误差。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 将地图点云栅格化，每个栅格又统计点云的高斯分布，匹配的时候计算该帧点云在每个栅格的概率，从而迭代至最优匹配位姿。<br>
+　　<strong>有闭环检测</strong>的 SLAM 建立的地图即可作为离线定位地图，定位的过程就是当前时刻点云与地图配准的过程，当然后续可以融合其它传感器(GPS，IMU)输出最终的绝对位姿。<strong>点云与地图配准的过程与建图时点云与局部地图或上一时刻点云配准的过程非常相似</strong>。本文介绍一种区别于 <a href="/LOAM/" title="LOAM">LOAM</a> 特征匹配的基于概率统计优化的 NDT 配准方法。</p>
+<h2 id="点云配准算法过程">1. 点云配准算法过程</h2>
+<p>　　考虑二维情况，本文点云配准算法过程为：</p>
+<ol type="1">
+<li>建立 \(t-1\) 帧点云的 NDT；</li>
+<li>初始化待优化的相对位姿参数 \(T\);</li>
+<li>用 \(T\) 将 \(t\) 帧点云变换到 \(t-1\) 坐标系；</li>
+<li>找到变换每个变换点对应的 \(t-1\) 帧栅格的高斯分布；</li>
+<li>该变换 \(T\) 的度量分数为变换点在高斯分布下的概率和；</li>
+<li>用 Newton 法迭代优化 \(T\);</li>
+<li>重复 3. 直到收敛；</li>
+</ol>
+<p>　　这里主要涉及 NDT，目标函数构建(即 \(T\) 的度量分数)，Newton 法优化三个内容。</p>
+<h3 id="ndt">1.1. NDT</h3>
+<p>　　NDT 是点云栅格化后一系列高斯分布的表示，其过程为：</p>
+<ol type="1">
+<li>将点云进行栅格化；</li>
+<li>统计每个栅格的点 \(\mathbf{x} _ {i=1..n}\)；</li>
+<li>计算每个栅格高斯分布的 Mean: \(\mathbf{q} = \frac{1}{n}\sum _ i\mathbf{x} _ i\);</li>
+<li>计算 Covariance Matrix: \(\Sigma = \frac{1}{n}\sum _ i(\mathbf{x} _ i -\mathbf{q})(\mathbf{x} _ i-\mathbf{q})^t\)；</li>
+</ol>
+<p>　　由此，<strong>NDT 描述了栅格内每个位置出现点的概率</strong>，即 \(\mathbf{x}\) 有点的概率为： <span class="math display">\[ p(\mathbf{x}) \sim \mathrm{exp}\left(-\frac{(\mathbf{x-q})^t\sum ^ {-1}(\mathbf{x-q})}{2}\right) \tag{1}\]</span> 需要注意的是 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 描述的是每个栅格有点的概率，NDT 描述的是每个栅格点云的概率分布。为了更准确的建模，采用重叠栅格化的设计以消除离散化的影响，以及限定 Covariance 矩阵的最小奇异值。</p>
+<h3 id="目标函数构建">1.2. 目标函数构建</h3>
+<p>　　考虑二维情况，需要优化的位姿参数为 \(\mathbf{p}=(t _ x, t _ y, \varphi)^t\)，第2个点云(待配准点云)中的点为 \(\mathbf{x} _ i\)，其变换到第1个点云坐标系后的表示为 \(\mathbf{x}' _ i\)，对应的第1个点云栅格的 NDT 表示为 \(\mathbf{\Sigma} _ i, \mathbf{q} _ i\)。由此可计算该变换位姿下，其度量分数为： <span class="math display">\[\mathrm{score}(\mathbf{p})=\sum _ i\mathrm{exp}\left(-\frac{(\mathbf{x}&#39; _ i-\mathbf{q} _ i)^t\sum _ i ^ {-1}(\mathbf{x}&#39; _ i-\mathbf{q} _ i)}{2}\right) \tag{2}\]</span> 最大化度量函数即可求解最优的位姿，优化过程一般都是最小化目标函数，所以设定目标函数为 \(-\mathrm{score}\)。</p>
+<h3 id="newton-法优化迭代">1.3. Newton 法优化迭代</h3>
+<p>　　设 \(\mathbf{q}=\mathbf{x}' _ i-\mathbf{q} _ i\)，那么目标函数为： <span class="math display">\[ s = -\mathrm{exp}\frac{-\mathbf{q^t\sum ^ {-1}q}}{2} \tag{3}\]</span> 每次迭代过程为： <span class="math display">\[\mathbf{p\gets p+\Delta p} \tag{4}\]</span> 而 \(\mathbf{\Delta p}\) 来自： <span class="math display">\[\mathbf{H\Delta p} = \mathbf{-g} \tag{5}\]</span> 其中 \(\mathbf{g}\) 是目标函数对优化参数的导数，\(\mathbf{H}\) 为目标函数的 Hessian 矩阵： <span class="math display">\[\left\{\begin{array}{l}
+g _ i=\frac{\partial s}{\partial p _ i}\\
+H _ {ij} = \frac{\partial s}{\partial p _ i\partial p _ j}
+\end{array}\tag{6}\right.\]</span></p>
+<h2 id="建图与定位">2. 建图与定位</h2>
+<p>　　本文的建图是通过<strong>关键帧集合与关键帧之间的位姿变化实现的</strong>，定位的时候去找重合度最高的关键帧作点云配准。此外，当找不到重合度较高的关键帧时，可以实时更新当前帧作为关键帧添加到地图中，还可以对地图作进一步的全局，半全局优化。</p>
+<h2 id="一些思考">3. 一些思考</h2>
+<p>　　本文建图是关键帧的形式，更鲁棒的做法是将点云配准到一起，在世界坐标系下获得场景的稠密点云，然后再 NDT 化，这样能更准确的建模点云分布。<br>
+　　<a href="/LOAM/" title="LOAM">LOAM</a> 维护的是栅格化的地图，每个栅格限制特征点的数量，所以本质上存储的是原始点云图(被选出是特征点的点云)。为了更好的描述栅格内的特征分布，可以对其作类似 NDT 近似，同时加入能描述该分布的特征，比如对于面特征，加入法向量。</p>
+<h2 id="reference">4. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Biber, Peter &amp; Straßer, Wolfgang. (2003). The Normal Distributions Transform: A New Approach to Laser Scan Matching. IEEE International Conference on Intelligent Robots and Systems. 3. 2743 - 2748 vol.3. 10.1109/IROS.2003.1249285.</p>
 
-准确检测目标的数量；
-准确估计每个目标的状态，如位置，朝向，速度等；
-准确估计每
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/MOT-评价指标-Evaluating-Multiple-Object-Tracking-Performance-the-CLEAR-MOT-Metrics/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
       
     </div>
     
@@ -501,419 +530,100 @@
     
 
     
+      <div>
+	    
+<div style="text-align:center;color: #ccc;font-size:14px;">
+----------------- END -----------------</div>
+      </div>
+    
 		
 
     
 
     
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>赞赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="Leijie WeChat Pay">
+        <p>WeChat Pay</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
 	
 	
+    
+      <div>
+        <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:</strong>
+    Leijie
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link:</strong>
+    <a href="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/" title="The Normal Distributions Transform for Laser Scan Matching">https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice: </strong>
+    All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> unless stating additionally.
+  </li>
+</ul>
+
+      </div>
     
 
 	
     <footer class="post-footer">
       
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-
-
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/MOT-综述-Multiple-Object-Tracking-A-Literature-Review/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Leijie">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LeijieZhang">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/MOT-综述-Multiple-Object-Tracking-A-Literature-Review/" itemprop="url">MOT 综述-'Multiple Object Tracking: A Literature Review'</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-28T16:22:58+08:00">
-                2019-05-28
-              </time>
-            
-            
-              <span class="post-updated">
-                &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-11-07T22:05:43+08:00" content="2019-11-07">
-                  2019-11-07
-                </time>
-              </span>
-            
-
-            
-
-            
-          </span>
-
+        <div class="post-tags">
           
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MOT/" itemprop="url" rel="index">
-                    <span itemprop="name">MOT</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
+            <a href="/tags/Point-Cloud/" rel="tag"><i class="fa fa-tag"></i> Point Cloud</a>
           
-
+            <a href="/tags/SLAM/" rel="tag"><i class="fa fa-tag"></i> SLAM</a>
           
-            
+            <a href="/tags/Localization/" rel="tag"><i class="fa fa-tag"></i> Localization</a>
           
-
-          
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Words count in article&#58;</span>
-                
-                <span title="Words count in article">
-                  2.6k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Reading time &asymp;</span>
-                
-                <span title="Reading time">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
         </div>
-      </header>
-    
+      
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
+      
       
       
 
       
-        
-          
-          　　之前做 MOT 还是沿着 SOT 的思路，这篇文章对 MOT 有一个很深入且很有框架性的综述，以下对这篇文章做一个提炼，并加入一些自己的想法。
-　　MOT 作为一个中层任务，是一些高层任务的基础，比如行人的 pose estimation，action recognition，behavior 
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/MOT-综述-Multiple-Object-Tracking-A-Literature-Review/#more" rel="contents">
-              Read more &raquo;
-            </a>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/paper-reading-Probabilistic-3D-Multi-Object-Tracking-for-Autonomous-Driving/" rel="next" title="[paper_reading]-" probabilistic 3d multi-object tracking for autonomous driving"">
+                <i class="fa fa-chevron-left"></i> [paper_reading]-"Probabilistic 3D Multi-Object Tracking for Autonomous Driving"
+              </a>
+            
           </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
 
-    
-		
+          <span class="post-nav-divider"></span>
 
-    
-
-    
-	
-	
-    
-
-	
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-
-
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/3D-Detection-paper-list/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Leijie">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LeijieZhang">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/3D-Detection-paper-list/" itemprop="url">3D Detection Paper List</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
+          <div class="post-nav-prev post-nav-item">
             
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-22T11:43:33+08:00">
-                2019-05-22
-              </time>
-            
-            
-              <span class="post-updated">
-                &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-11-07T22:04:09+08:00" content="2019-11-07">
-                  2019-11-07
-                </time>
-              </span>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Trash/" itemprop="url" rel="index">
-                    <span itemprop="name">Trash</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Words count in article&#58;</span>
-                
-                <span title="Words count in article">
-                  30 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Reading time &asymp;</span>
-                
-                <span title="Reading time">
-                  1 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
+          </div>
         </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
-        
-          
-          这篇文章从输入数据类别上进行 3D Detection paper 的归类。
-RGB
-RGB-D(双目，单目+点云)
-Lidar
-
-          
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/3D-Detection-paper-list/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-		
-
-    
-
-    
-	
-	
-    
-
-	
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -925,221 +635,27 @@ Lidar
   </article>
 
 
-    
-      
 
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/study-topic-list/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Leijie">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LeijieZhang">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/study-topic-list/" itemprop="url">Study Topic List</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-20T13:30:54+08:00">
-                2019-05-20
-              </time>
-            
-            
-              <span class="post-updated">
-                &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2019-11-07T22:10:18+08:00" content="2019-11-07">
-                  2019-11-07
-                </time>
-              </span>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Trash/" itemprop="url" rel="index">
-                    <span itemprop="name">Trash</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Words count in article&#58;</span>
-                
-                <span title="Words count in article">
-                  257 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Reading time &asymp;</span>
-                
-                <span title="Reading time">
-                  1 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          　　本文罗列了相关领域知识的学习资料。
-1. Detection
-1.1. 2D Detection
-
-入门
-amusi
-[Object Detection @handong](https://handong1587.github.io/deep_learning/2015/10/09/object
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/study-topic-list/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
+    <div class="post-spread">
       
     </div>
-    
-    
-    
-
-    
-		
-
-    
-
-    
-	
-	
-    
-
-	
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
   </div>
 
 
-  
-  
-  
-  </article>
-
-
-    
-  </section>
-
-  
-  <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span>
-  </nav>
-
-
-
           </div>
           
 
 
           
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDQyOS8yMDk2MQ=="></div>
+    </div>
+
+  
+
+
 
         </div>
         
@@ -1160,8 +676,17 @@ amusi
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -1252,6 +777,22 @@ amusi
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#点云配准算法过程"><span class="nav-text">1. 点云配准算法过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ndt"><span class="nav-text">1.1. NDT</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目标函数构建"><span class="nav-text">1.2. 目标函数构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#newton-法优化迭代"><span class="nav-text">1.3. Newton 法优化迭代</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#建图与定位"><span class="nav-text">2. 建图与定位</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一些思考"><span class="nav-text">3. 一些思考</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -1453,6 +994,10 @@ amusi
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
@@ -1481,6 +1026,17 @@ amusi
 
 
 
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
   
 
 

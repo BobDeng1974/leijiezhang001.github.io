@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-09T05:58:16.352Z</updated>
+  <updated>2020-04-11T11:29:19.873Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,36 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>The Normal Distributions Transform for Laser Scan Matching</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/</id>
+    <published>2020-04-10T01:39:54.000Z</published>
+    <updated>2020-04-11T11:29:19.873Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。<br>　　<a href="/LOAM/" title="LOAM">LOAM</a> 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差函数，从而最小二乘非线性优化求解位姿。这种方案如果特征点噪声较大无匹配对，那么就会有较大的误差。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 将地图点云栅格化，每个栅格又统计点云的高斯分布，匹配的时候计算该帧点云在每个栅格的概率，从而迭代至最优匹配位姿。<br>　　<strong>有闭环检测</strong>的 SLAM 建立的地图即可作为离线定位地图，定位的过程就是当前时刻点云与地图配准的过程，当然后续可以融合其它传感器(GPS，IMU)输出最终的绝对位姿。<strong>点云与地图配准的过程与建图时点云与局部地图或上一时刻点云配准的过程非常相似</strong>。本文介绍一种区别于 <a href="/LOAM/" title="LOAM">LOAM</a> 特征匹配的基于概率统计优化的 NDT 配准方法。</p><h2 id="点云配准算法过程">1. 点云配准算法过程</h2><p>　　考虑二维情况，本文点云配准算法过程为：</p><ol type="1"><li>建立 \(t-1\) 帧点云的 NDT；</li><li>初始化待优化的相对位姿参数 \(T\);</li><li>用 \(T\) 将 \(t\) 帧点云变换到 \(t-1\) 坐标系；</li><li>找到变换每个变换点对应的 \(t-1\) 帧栅格的高斯分布；</li><li>该变换 \(T\) 的度量分数为变换点在高斯分布下的概率和；</li><li>用 Newton 法迭代优化 \(T\);</li><li>重复 3. 直到收敛；</li></ol><p>　　这里主要涉及 NDT，目标函数构建(即 \(T\) 的度量分数)，Newton 法优化三个内容。</p><h3 id="ndt">1.1. NDT</h3><p>　　NDT 是点云栅格化后一系列高斯分布的表示，其过程为：</p><ol type="1"><li>将点云进行栅格化；</li><li>统计每个栅格的点 \(\mathbf{x} _ {i=1..n}\)；</li><li>计算每个栅格高斯分布的 Mean: \(\mathbf{q} = \frac{1}{n}\sum _ i\mathbf{x} _ i\);</li><li>计算 Covariance Matrix: \(\Sigma = \frac{1}{n}\sum _ i(\mathbf{x} _ i -\mathbf{q})(\mathbf{x} _ i-\mathbf{q})^t\)；</li></ol><p>　　由此，<strong>NDT 描述了栅格内每个位置出现点的概率</strong>，即 \(\mathbf{x}\) 有点的概率为： <span class="math display">\[ p(\mathbf{x}) \sim \mathrm{exp}\left(-\frac{(\mathbf{x-q})^t\sum ^ {-1}(\mathbf{x-q})}{2}\right) \tag{1}\]</span> 需要注意的是 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 描述的是每个栅格有点的概率，NDT 描述的是每个栅格点云的概率分布。为了更准确的建模，采用重叠栅格化的设计以消除离散化的影响，以及限定 Covariance 矩阵的最小奇异值。</p><h3 id="目标函数构建">1.2. 目标函数构建</h3><p>　　考虑二维情况，需要优化的位姿参数为 \(\mathbf{p}=(t _ x, t _ y, \varphi)^t\)，第2个点云(待配准点云)中的点为 \(\mathbf{x} _ i\)，其变换到第1个点云坐标系后的表示为 \(\mathbf{x}' _ i\)，对应的第1个点云栅格的 NDT 表示为 \(\mathbf{\Sigma} _ i, \mathbf{q} _ i\)。由此可计算该变换位姿下，其度量分数为： <span class="math display">\[\mathrm{score}(\mathbf{p})=\sum _ i\mathrm{exp}\left(-\frac{(\mathbf{x}&#39; _ i-\mathbf{q} _ i)^t\sum _ i ^ {-1}(\mathbf{x}&#39; _ i-\mathbf{q} _ i)}{2}\right) \tag{2}\]</span> 最大化度量函数即可求解最优的位姿，优化过程一般都是最小化目标函数，所以设定目标函数为 \(-\mathrm{score}\)。</p><h3 id="newton-法优化迭代">1.3. Newton 法优化迭代</h3><p>　　设 \(\mathbf{q}=\mathbf{x}' _ i-\mathbf{q} _ i\)，那么目标函数为： <span class="math display">\[ s = -\mathrm{exp}\frac{-\mathbf{q^t\sum ^ {-1}q}}{2} \tag{3}\]</span> 每次迭代过程为： <span class="math display">\[\mathbf{p\gets p+\Delta p} \tag{4}\]</span> 而 \(\mathbf{\Delta p}\) 来自： <span class="math display">\[\mathbf{H\Delta p} = \mathbf{-g} \tag{5}\]</span> 其中 \(\mathbf{g}\) 是目标函数对优化参数的导数，\(\mathbf{H}\) 为目标函数的 Hessian 矩阵： <span class="math display">\[\left\{\begin{array}{l}g _ i=\frac{\partial s}{\partial p _ i}\\H _ {ij} = \frac{\partial s}{\partial p _ i\partial p _ j}\end{array}\tag{6}\right.\]</span></p><h2 id="建图与定位">2. 建图与定位</h2><p>　　本文的建图是通过<strong>关键帧集合与关键帧之间的位姿变化实现的</strong>，定位的时候去找重合度最高的关键帧作点云配准。此外，当找不到重合度较高的关键帧时，可以实时更新当前帧作为关键帧添加到地图中，还可以对地图作进一步的全局，半全局优化。</p><h2 id="一些思考">3. 一些思考</h2><p>　　本文建图是关键帧的形式，更鲁棒的做法是将点云配准到一起，在世界坐标系下获得场景的稠密点云，然后再 NDT 化，这样能更准确的建模点云分布。<br>　　<a href="/LOAM/" title="LOAM">LOAM</a> 维护的是栅格化的地图，每个栅格限制特征点的数量，所以本质上存储的是原始点云图(被选出是特征点的点云)。为了更好的描述栅格内的特征分布，可以对其作类似 NDT 近似，同时加入能描述该分布的特征，比如对于面特征，加入法向量。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Biber, Peter &amp; Straßer, Wolfgang. (2003). The Normal Distributions Transform: A New Approach to Laser Scan Matching. IEEE International Conference on Intelligent Robots and Systems. 3. 2743 - 2748 vol.3. 10.1109/IROS.2003.1249285.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。&lt;br&gt;
+　　&lt;a hr
+      
+    
+    </summary>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
+    
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
+    
+      <category term="Localization" scheme="https://leijiezhang001.github.io/tags/Localization/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;Probabilistic 3D Multi-Object Tracking for Autonomous Driving&quot;</title>
@@ -564,33 +594,6 @@
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
       <category term="Segmentation" scheme="https://leijiezhang001.github.io/tags/Segmentation/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Model Compression - &#39;Pruning&#39;</title>
-    <link href="https://leijiezhang001.github.io/pruning/"/>
-    <id>https://leijiezhang001.github.io/pruning/</id>
-    <published>2019-11-15T03:56:23.000Z</published>
-    <updated>2019-11-18T11:25:07.739Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　模型压缩技术主要有：Pruning，Regularization，Quantization，KnowLedge Distillation，Comditional Computation等。本文主要讨论剪枝技术(Pruning)。复杂模型存在存储空间大，计算量大等问题，对其进行剪枝使网络中的权重及特征层稀疏化(Regularization 也是稀疏化的过程)，能获得以下效益：</p><ul><li><strong>模型更小</strong><br>稀疏化的模型含有大量的零值，称为稀疏表达(Sparse Representation)，通过稀疏矩阵压缩技术进行编码压缩后得到压缩表达(Compressed Representation)。片内内存(On-chip Mem)与片外内存(Off-chip Mem)数据的传输可用压缩表达，使实际传输中的模型内存更小，而计算时，可通过反编码算法得到稀疏表达，从而进行正常的矩阵运算；也可以直接用压缩表达进行矩阵运算，这需要特殊的硬件支持，并且稀疏化的过程一般是结构化剪枝(Structured Pruning)或是正则。</li><li><strong>速度更快</strong><br>目前大部分矩阵运算芯片，性能瓶颈都在片内片外内存的带宽，稀疏化后能有效压缩矩阵单元，降低模型传输内存；另一方面，通过结构化的剪枝，在特定硬件下，能直接减少零值运算量。</li><li><strong>能效更高</strong><br>片外内存访问所花费的能量大概比片内内存多两个数量级，所以降低模型的传输内存，甚至将模型及中间计算量(如特征层)直接塞到片内内存，减少与片外内存的交互，能有效提高能效。</li></ul><p>　　剪枝的过程主要是：根据剪枝类型选用对应的稀疏性定义方式；剪枝前模型的敏感度分析；应用剪枝算法及策略。以下根据 Distiller<a href="#1" id="1ref"><sup>[1]</sup></a> 库分别对这三部分进行详细阐述。</p><h2 id="稀疏性定义">1. 稀疏性定义</h2><p>　　剪枝大致可分为 element-wise 剪枝以及 Structured 剪枝，element-wise 剪枝只需要定义每个张量的稀疏性，即 Element-wise Sparsity，而 Structured 剪枝需要定义不同结构的稀疏性，有 Filter-wise Sparsity，Channel-wise Sparsity，Kernel-wise Sparsity，Block-wise Sparsity，Column-wise Sparsity，Row-wise Sparsity。<br>　　设输入特征层 IFM(Input Feature Map)\(\in\mathbb{R}^{N\times C_1\times H_1\times W_1}\)，卷积核 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\)，则输出特征层 OFM(Output Feature Map)\(\in\mathbb{R}^{N\times C_2\times H_2\times W_2}\)。</p><h3 id="element-wise-sparsity">1.1. Element-wise Sparsity</h3><p>　　张量元素的稀疏性，设 \(X\in\mathbb{R}^{N\times C\times H\times W}\)： <span class="math display">\[\Vert X\Vert_{element-wise} = \frac{l_0(X)}{N\times C\times H\times W} = \frac{\sum_{n=1}^{N}\sum_{c=1}^{C}\sum_{h=1}^{H}\sum_{w=1}^{W}\left\vert X_{n,c,h,w} \right\vert ^0}{N\times C\times H\times W} \tag{1}\]</span> 其中 \(l_0\) 正则根据元素是否为 0，确定输出 0/1。</p><h3 id="filter-wise-sparsity">1.2. Filter-wise Sparsity</h3><p>　　对于有 \(C_2\) 个卷积核的 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\)，其 Filter-wise 的稀疏性可表示为： <span class="math display">\[\Vert X\Vert_{filter-wise} = \frac{\sum_{c_2=1}^{C_2}\left\vert\sum_{c_1=1}^{C_1}\sum_{k_1=1}^{K}\sum_{k_2=1}^{K}\vert X_{c_2,c_1,k_1,k_2}\vert \right\vert ^0}{C_2} \tag{2}\]</span></p><h3 id="kernel-wise-sparsity">1.3. Kernel-wise Sparsity</h3><p>　　卷积核 Filter\(\in\mathbb{R}^{C_2\times C_1\times K\times K}\) 拥有 \(C_2\times C_1\) 个 \(K\times K\) 大小的 Kernel，其 Kernel-wise 的稀疏性可表示为： <span class="math display">\[\Vert X\Vert_{kernel-wise} = \frac{\sum_{c_2=1}^{C_2}\sum_{c_1=1}^{C_1}\left\vert\sum_{k_1=1}^{K}\sum_{k_2=1}^{K}\vert X_{c_2,c_1,k_1,k_2}\vert \right\vert ^0}{C_2\times C_1} \tag{3}\]</span></p><h3 id="channel-wise-sparsity">1.4. Channel-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{N\times C\times H\times W}\)： <span class="math display">\[\Vert X\Vert_{channel-wise} = \frac{\sum_{c=1}^{C}\left\vert\sum_{n=1}^{N}\sum_{h=1}^{H}\sum_{w=1}^{W}\vert X_{n,c,h,w}\vert \right\vert ^0}{C} \tag{4}\]</span></p><h3 id="column-wise-sparsity">1.5. Column-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{H\times W}\)： <span class="math display">\[\Vert X\Vert_{column-wise} = \frac{\sum_{h=1}^{H}\left\vert\sum_{w=1}^{W}\vert X_{h,w}\vert \right\vert ^0}{H} \tag{5}\]</span></p><h3 id="row-wise-sparsity">1.6. Row-wise Sparsity。</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{H\times W}\)： <span class="math display">\[\Vert X\Vert_{row-wise} = \frac{\sum_{w=1}^{W}\left\vert\sum_{h=1}^{H}\vert X_{h,w}\vert \right\vert ^0}{W} \tag{6}\]</span></p><h3 id="block-wise-sparsity">1.7. Block-wise Sparsity</h3><p>　　对于张量单元 \(X\in\mathbb{R}^{N\times C\times H\times W}\)，设定 block\(\in\mathbb{R}^{repetitions\times depth\times 1\times1}\)，由此将 \(X\) 划分为 \(\frac{N\times C}{repetitions\times depth}\times (repetitions\times depth)\times (H\times W)=N'\times B\times K\)。block-sparsity 定义为： <span class="math display">\[\Vert X\Vert_{block-wise} = \frac{\sum_{n=1}^{N&#39;}\sum_{k=1}^K\left\vert\sum_{b=1}^{B}\vert X_{n,b,k}\vert \right\vert ^0}{N&#39;\times K} \tag{7}\]</span></p><h2 id="模型敏感度分析sensitivity-analysis">2. 模型敏感度分析(Sensitivity Analysis)</h2><p>　　在剪枝前，我们首先要确定减哪几层，每层减多少(即剪枝阈值或剪枝程度)。这就涉及到模型中每层网络对模型输出的敏感度分析(Sensitivity Analysis)。<a href="#2" id="2ref">[2]</a> 提出了一种有效的方法来确定每层的敏感度。在一个已训练模型下，分别对每一层进行不同程度的剪枝，得到对应的网络输出精度，绘制敏感度曲线。<br><img src="/pruning/sensitivity.png" width="70%" height="70%" title="图 1. 敏感度分析"> 　　如图 1. 所示，AlexNet 网络各层对 element-wise 剪枝的敏感度曲线显示，越深的网络层对输出越不敏感，尤其是全连接层，所以剪枝程度可以更高。而对于非常敏感的浅层网络，则需要降低剪枝程度，甚至不剪枝。</p><h2 id="剪枝算法">3. 剪枝算法</h2><h3 id="magnitude-pruner">3.1. Magnitude Pruner</h3><p>　　这是最基本的剪枝方法，对于要剪枝的对象，判断其绝对值是否大于阈值 \(\lambda\)，如果小于阈值，则将该对象置为零。该对象可以是 element-wise，也可以是其它结构化的对象，如 filter，Kernel 等。<br>　　该方法需要直接设定阈值，而阈值的设定是比较困难的。</p><h3 id="sensitivity-pruner">3.2. Sensitivity Pruner</h3><p>　　卷积网络每层的权重值为高斯分布，由高斯分布的性质可知，在标准差 \(\sigma\) 内，有 68% 的元素，所以阈值可设定为 \(\lambda=s\times \sigma\)，其表示了 \(s\times 68\%\) 的元素被剪枝掉。</p><h3 id="level-pruner">3.3. Level Pruner</h3><p>　　Level Pruner 直接设定需要剪枝的比例，即直接设定剪枝后的稀疏性，这比前两种方法更加稳定。具体做法就是对每个对象进行排序，然后以此裁剪，直到裁剪到设定的比例。</p><h3 id="automated-gradual-pruneragp">3.4. Automated Gradual Pruner(AGP)</h3><p>　　<a href="#3" id="3ref">[3]</a>提出了一种训练剪枝的方法，在 Level Pruner 基础上，随着训练的过程，设计剪枝的稀疏性从初始的 \(s_i\) 增加到目标 \(s_f\)，其数学表示为： <span class="math display">\[ s_t = s_f+(s_i-s_f)\left(1-\frac{t-t_0}{n\Delta t}\right)^3 \; \mathrm{for} \, t\in \{t_0, t_0+\Delta t,...,t_0+n\Delta t\} \tag{8}\]</span> 实现的效果是，初始阶段，剪枝比较厉害，越到最后，剪枝的量越少，直到达到目标剪枝值。</p><h3 id="structure-pruners">3.5. Structure Pruners</h3><p>　　这里讨论结构化剪枝中 Filter 以及 Channel 的剪枝<a href="#4" id="4ref"><sup>[4]</sup></a>，对应的需要用到前面提到的 Filter-wise 以及 Channel-wise 的稀疏性。不同于 element-wise 剪枝，结构化剪枝由于网络的连接性会更复杂，这里考虑三种链接情况。</p><h4 id="连接结构1">3.5.1. 连接结构1</h4><p><img src="/pruning/filter1.png" width="70%" height="70%" title="图 2. 连接结构1"> 　　如图 2. 所示，设第\(i\)层特征 \(X_i\in\mathbb{R}^{C_i\times H_i\times W_i}\)，经过卷积核 \(\mathcal{F}\in\mathbb{R}^{C_{i+1}\,\times\, C_i\,\times\,K\,\times\,K}\)后得到第 \(i+1\)层特征层 \(X_{i+1}\in\mathbb{R}^{C_{i+1}\,\times\, H_{i+1}\,\times\, W_{i+1}}\)。图中绿色及黄色代表剪枝掉的 Filter，对应的输出少了这两个卷积计算得到的 channel 维度的两个特征图，再往后就是去除 BN 里面对应 channel 层的 scale 以及 shift 信息(Distiller 中自动删除)，最后再次应用的卷积核需要去除对应的 channel，即类似做 channel-wise 剪枝。由此可见，结构化剪枝会影响后面的网络结构，需要根据网络信息流作网络调整。<br>　　第 \(i\) 卷积层运算量 MAC 为 \(C_{i+1}C_iK^2H_{i+1}W_{i+1}\)，如果剪枝掉 \(m\) 个卷积核，那么第 i 层卷积减少的运算量为 \(mC_iK^2H_{i+1}W_{i+1}\)，下一层 \(i+1\) 卷积层减少的运算量为 \(C_{i+2}mK^2H_{i+2}W_{i+2}\)。所以在第 \(i\) 层剪枝掉 \(m\) 个卷积核，会使第 \(i,i+1\) 层的运算量各减少 \(m/C_{i+1}\)。</p><h4 id="连接结构2">3.5.2. 连接结构2</h4><p><img src="/pruning/filter2.png" width="60%" height="60%" title="图 3. 连接结构2"> 　　如图 3. 所示，与被剪枝的特征图直连的卷积核均需要作 channel 维度的裁剪，这一步在 Distiller 中自动进行。</p><h4 id="连接结构3">3.5.3. 连接结构3</h4><p><img src="/pruning/filter3.png" width="60%" height="60%" title="图 4. 连接结构3"> 　　如图 4. 所示，如果两个卷积层的输出要做 element-wise 相加操作，那么就要求两个卷积层的输出大小要一样。这就要求对这两个卷积层的卷积核裁剪过程要一样，包括裁剪的卷积数量以及卷积位置。这需要在 Distiller 中显示的指定。</p><h2 id="参考文献">4. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> https://nervanasystems.github.io/distiller/index.html<br><a id="2" href="#2ref">[2]</a> Han, Song, et al. &quot;Learning both weights and connections for efficient neural network.&quot; Advances in neural information processing systems. 2015.<br><a id="3" href="#3ref">[3]</a> Zhu, Michael, and Suyog Gupta. &quot;To prune, or not to prune: exploring the efficacy of pruning for model compression.&quot; arXiv preprint arXiv:1710.01878 (2017).<br><a id="4" href="#4ref">[4]</a> Li, Hao, et al. &quot;Pruning filters for efficient convnets.&quot; arXiv preprint arXiv:1608.08710 (2016).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　模型压缩技术主要有：Pruning，Regularization，Quantization，KnowLedge Distillation，Comditional Computation等。本文主要讨论剪枝技术(Pruning)。复杂模型存在存储空间大，计算量大等问题，对
-      
-    
-    </summary>
-    
-      <category term="Model Compression" scheme="https://leijiezhang001.github.io/categories/Model-Compression/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Model Compression" scheme="https://leijiezhang001.github.io/tags/Model-Compression/"/>
     
   </entry>
   
