@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-11T11:29:19.873Z</updated>
+  <updated>2020-04-15T03:07:01.997Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>PointFlowNet</title>
+    <link href="https://leijiezhang001.github.io/PointFlowNet/"/>
+    <id>https://leijiezhang001.github.io/PointFlowNet/</id>
+    <published>2020-04-13T01:54:59.000Z</published>
+    <updated>2020-04-15T03:07:01.997Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　点云的 Scene Flow 与 Semantic 一样是一个较低层的信息，通过 Point-Wise Semantic 信息可以作物体级别的检测，这种方式有很高的召回率，且超参数较少。同样，通过 Point-Wise Scene Flow 作目标级别的运动估计(当然也可作物体点级别聚类检测的线索)，也会非常鲁棒。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 将点级别/Voxel 级别的 Scene Flow 与 3D 目标检测融合在一起，作物体级别的运动估计，工作系统性较强。</p><h2 id="问题描述">1. 问题描述</h2><p>　　设 \(t\) 时刻点云 \(\mathbf{P} _ t\in\mathbb{R}^{M\times 3}\)，那么需要求解的未知量有：</p><ul><li>每个点的 Scene Flow: \(\mathbf{v} _ i\in\mathbb{R} ^3\);</li><li>每个点集的 Rigid Motion: \(\mathbf{R} _ i\in\mathbb{R}^{3\times 3}\)，\(\mathbf{t} _ i\in\mathbb{R}^{3}\);</li><li>每个物体的 3D 属性：Location，Orientation，Size，Rigid Motion;</li></ul><h2 id="算法框架">2. 算法框架</h2><p><img src="/PointFlowNet/framework.png" width="90%" height="90%" title="图 1. PoingFlowNet Framework"> 　　如图 1. 所示，PointFlowNet 由四部分组成，分别为：Feature Encoder，Scene Flow/Ego-motion Estimation and 3D Object Detection，Rigid Motion Estimation，Object Motion Decoder。Feature Encoder 将前后帧点云栅格化后作特征提取，然后 Context Encoder 作进一步的特征融合去提取；输出的特征第一个分支作 Voxel 级别的 Scene Flow 预测，进一步作每个点的 Rigid Motion 预测(<strong>每个点属于对应物体的 Motion 在该 Voxel 坐标系下的表示</strong>)；第二个分支作 Ego-Motion 的预测；第三个分支作 3D 目标检测，进一步作目标的 Motion Decoder。</p><h3 id="feature-encoder">2.1. Feature Encoder</h3><p>　　不同的点云特征提取方式都可采用，本文采用传统的 Bird-View Voxel 表示方式，然后作 2D/3D 卷积。同时还需要将前后帧的点云作特征融合，这里也完全可以采用 <a href="/paperreading-FlowNet3D/" title="FlowNet3D">FlowNet3D</a> 的特征提取形式。</p><h3 id="scene-flowrigid-motion-decoder">2.2. Scene Flow/Rigid Motion Decoder</h3><p>　　Scene Flow 是作 Bird-View 下 Voxel 级别的场景流预测，然后再预测 Rigid Motion。 <img src="/PointFlowNet/rigid-motion.png" width="80%" height="80%" title="图 2. Rigid MOtion Estimation"> 　　如图 2. 所示，世界坐标系 \(\mathbf{W}\) 下点 \(\mathbf{p}\) 的 scene flow 表示为 \(\mathbf{v}\)，刚体物体的局部坐标系从 \(\mathbf{A}\) 经过 \((\mathbf{R _ A, t _ A})\) 运动到 \(\mathbf{B}\) ，那么其 scene flow 可表示为： <span class="math display">\[\mathbf{v=[R _ A(p-o _ A)+t _ A]-(p-o _ A)} \tag{1}\]</span> 本文论证了两个定理：</p><ol type="1"><li>scene flow 只能通过刚体局部坐标系的运动导出，不能直接通过世界坐标系下的刚体运动导出(除非运动无旋转量)。所以如图 1. 所示，通过 scene flow 预测出的 voxel motion 是局部坐标系下的，还需通过坐标变换到世界坐标系下。<strong>这里每个 Voxel 预测量的局部坐标系采用 Voxel 中心点</strong>。作目标运动估计时，&quot;世界坐标系&quot;其实可以定义为物体坐标系(Voxel 为局部坐标系)，最后再通过 Ego-motion 变换到世界坐标系。</li><li>不管是局部坐标系 \(\mathbf{A}\) 还是 \(\mathbf{B}\)，都能导出 scene flow。</li></ol><p>　　如图 2. 所示，实验也验证了 scene flow 不能直接学习到世界坐标系下的 translation 运动。</p><h3 id="ego-motion-regressor">2.3. Ego-motion Regressor</h3><p>　　根据前后帧的点云回归本车的运动(ego-motion)，ego-motion 建立局部坐标系与世界坐标系的联系。如果有更精准的外部模块估计的 ego-motion，则可以直接替换采用。</p><h3 id="d-object-detection-and-object-motion-decoder">2.4. 3D Object Detection and Object Motion Decoder</h3><p>　　Bird-view 下 Voxel 后的 3D 检测方法很多，可以是 Anchor-based，Anchor-free，Semantic Segmentation 等方法，其中如果采用 Semantic Segmentation + cluster 方法，那么 scene flow 的结果也可作为 cluster 的线索。<br>　　有了 3D 目标以及目标内 Voxel 的 Rigid Motion 后，取平均或中值即可得到目标的 Motion。<br>　　<strong>Voxel Rigid Motion 可以有两种回归方法：</strong></p><ol type="1"><li>translation 真值为实际该 Voxel 的位移，rotation 为对应刚体的旋转量；</li><li>translation 与 rotation 均为对应刚体的位移与旋转量；</li></ol><p>我理解的本文是采用方法 1. 这种形式，这种形式的好处是回归的就是真实 Voxel 的位移，与输入的特征是 Voxel 级别对应的，但是简单的对目标内的 Voxel 取平均或中值只是目标位移的近似，实际目标的真实位移应该为旋转中心 Voxel 的位移。而方法 2. 是物体级别的回归量，均值即可反应物体的运动，只要构建物体级别的 Loss，用 Voxel 去学习物体级别的运动应该问题不大，所以可能方法 2. 更合理。</p><h2 id="loss-functions">3. Loss Functions</h2><p>　　采用 Voxel 级别的 Loss，总的 Loss 为： <span class="math display">\[\mathcal{L}=\alpha\mathcal{L} _ {flow}+\beta\mathcal{L} _ {rigmo} + \gamma\mathcal{L} _ {ego}+\mathcal{L} _ {det}\tag{2}\]</span> 这四部分具体的形式为：</p><ol type="1"><li>Scene Flow Loss<br>对于有效的 Voxel，作预测值与真值的 \(\mathcal{l} _ 1\) 误差： <span class="math display">\[\mathcal{L} _ {flow}=\frac{1}{K}\sum _ j\Vert \mathbf{v} _ j-\mathbf{v} _ j ^ * \Vert \tag{3}\]</span></li><li>Rigid Motion Loss<br>对于有效的 Voxel，作预测值与真值(真值有两种形式，详见 2.4 讨论)的 \(\mathcal{l} _ 1\) 误差： <span class="math display">\[\mathcal{L} _ {rigmo} = \frac{1}{K}\sum _ j\Vert\mathbf{t} _ j-\mathbf{t} _ j^ * \Vert+\lambda\Vert\theta _ j-\theta _ j^ * \Vert\tag{4}\]</span></li><li>Ego-motion Loss<br>同样的对预测值与真值作 \(\mathcal{l} _ 1\) Loss: <span class="math display">\[\mathcal{L} _ {ego}=\Vert\mathbf{t} _ {BG}-\mathbf{t} _ {BG}^ * \Vert+\lambda\Vert\theta _ {BG}-\theta _ {BG}^ * \Vert \tag{5}\]</span></li><li>Detection Loss<br>不作赘述。</li></ol><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Behl, Aseem, et al. &quot;Pointflownet: Learning representations for rigid motion estimation from point clouds.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　点云的 Scene Flow 与 Semantic 一样是一个较低层的信息，通过 Point-Wise Semantic 信息可以作物体级别的检测，这种方式有很高的召回率，且超参数较少。同样，通过 Point-Wise Scene Flow 作目标级别的运动估计(当然也
+      
+    
+    </summary>
+    
+      <category term="Scene Flow" scheme="https://leijiezhang001.github.io/categories/Scene-Flow/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Scene Flow" scheme="https://leijiezhang001.github.io/tags/Scene-Flow/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+  </entry>
   
   <entry>
     <title>The Normal Distributions Transform for Laser Scan Matching</title>
@@ -561,39 +594,6 @@
       <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;RandLA-Net&quot;</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-RandLA-Net/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-RandLA-Net/</id>
-    <published>2019-12-04T01:08:09.000Z</published>
-    <updated>2019-12-04T06:44:02.741Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　不同与点云 3D 检测，可以 Voxel 化牺牲一定的分辨率，点云语义分割则要求点级别的分辨率，所以栅格化做点云分割信息会有一定的损失。但是直接对所有点进行特征提取，计算量又相当巨大，为了平衡效率与性能，一般也不得不对点云进行采样处理。这种点云级别的处理方式有 <a href="/PointNet-系列论文详读/" title="PointNet++">PointNet++</a>， <a href="/paperreading-FlowNet3D/" title="FlowNet3D">FlowNet3D</a> 等。 <img src="/paper-reading-RandLA-Net/arch2.png" width="90%" height="90%" title="图 1. RandLA-Net"> 　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出的方法主要为了解决大尺度点云集下，如何高效提取点云局部特征的问题。针对大尺度点云集，作者对比了不同采样算法，得出随机采样最简单高效的结论；针对随机采样丟失信息的问题，以及为了提高局部特征提取能力，本文提出了局部特征聚合(Local Feature Aggregation)模块，该模块包含 Local Spatial Encoding，Attentive Pooling，以及 Dilated Residual Block。<br>　　如图 1. 所示，LFA 作为基本模块用于特征提取，下采样采用随机采用，上采样过程类似图像中的 dconv，包含向上插值以及 MLP 过程。</p><h2 id="sampling">1. Sampling</h2><p>　　关于点云采样，在 <a href="/paperreading-FlowNet3D/" title="FlowNet3D">FlowNet3D</a> 中有简单介绍。本文将采样算法分为两大类：</p><ul><li>Heuristic Sampling<ol type="1"><li>Farthest Point Sampling(FPS)， <a href="/paperreading-FlowNet3D/" title="FlowNet3D">FlowNet3D</a> 中有介绍，是一种均匀采样方法。其算法复杂度为 \(\mathcal{O}(N^2)\)。</li><li>Inverse Density Importance Sampling(IDIS)，计算每个点的密度属性，根据属性选取 K 个点，其复杂度为 \(\mathcal{O}(N)\)。</li><li>Random Sampling(RS)，随机采样，复杂度为 \(\mathcal{O}(1)\)。</li></ol></li><li>Learning-based Sampling<br>...</li></ul><p>　　本文作者认为随机采样复杂度最低，其它采样复杂度太高。我认为也不能这么说，在一定策略及加速下，其它采样算法效率也可以很高。比如栅格化后在采样，可以高效的并行加速，并且使得稀疏区域保留更多信息。</p><h2 id="local-feature-aggregation">2. Local Feature Aggregation</h2><p><img src="/paper-reading-RandLA-Net/arch1.png" width="90%" height="90%" title="图 2. RandLA-Net"> 　　特征提取非常关键，尤其在本文采用随机采样后，稀疏区域信息丢失比较严重的情况下。如图 2. 所示，本文提出了局部特征聚合(Local Feature Aggregation)模块，包含 Local Spatial Encoding，Attentive Pooling，以及 Dilated Residual Block。</p><h3 id="local-spatial-encoding">2.1. Local Spatial Encoding</h3><p>　　在原始点云中提取每个点的局部特征，类似 <a href="/paperreading-FlowNet3D/" title="FlowNet3D">FlowNet3D</a>(PointNet++) 中的 set conv 层，这里多了手工特征信息，其步骤为：</p><ol type="1"><li>针对每个点 \(p_i\)，用 KNN 找到与其最近的 K 个点: \(\{p _ i^1,...p _ i^k,...p _ i^K\}\)；</li><li>针对最近邻的每个点 \(p_i^k\)，设计其相对位置的特征： <span class="math display">\[ \mathrm{r}_i^k = \mathrm{MLP}\left(p_i\oplus p_i^k\oplus (p_i-p_i^k)\oplus ||p_i-p_i^k||\right) \tag{1}\]</span></li><li>针对最近领的每个点 \(p_i^k\)，其本来的特征为 \(\mathrm{f}_i^k\)，叠加相对位置特征 \(\mathrm{r}_i^k\) 后得到每个点的特征为 \(\mathrm{\hat{f}}_i^k\)。由此最近领点集的特征为： \(\mathrm{\hat{F}}_i=\{\hat{\mathrm{f}}_i^1,...\hat{\mathrm{f}}_i^k,...\hat{\mathrm{f}}_i^K\}\)。</li></ol><h3 id="attentive-pooling">2.2. Attentive Pooling</h3><p>　　该模块的作用是聚合 \(p_i\) 的最近邻点集特征 \(\hat{\mathrm{F}}_i\)。PointNet 的 SA 层(FlowNet3D 中的 set conv 层)直接用 Max/Mean 这种对称函数聚合，本文采用一种更有效的基于注意力机制的 pooling 方式，其步骤为：</p><ol type="1"><li>计算注意力分数，对每个特征设计分数计算方式为： <span class="math display">\[ \mathrm{s}_i^k = \mathrm{g}\left(\hat{\mathrm{f}}_i^k, W\right) \tag{2}\]</span> 其中 \(\mathrm{g}\) 表示一个感知机 MLP(W 为其权重) 以及一个 softmax 函数。</li><li>聚合，根据注意力分数，权重求和，得到 \(p_i\) 点的特征： <span class="math display">\[ \bar{\mathrm{f}}_i = \sum_{k=1}^K \left(\hat{\mathrm{f}}_i^k \cdot \mathrm{s}_i^k \right) \tag{3}\]</span></li></ol><h3 id="dilated-residual-block">2.3.  Dilated Residual Block</h3><p><img src="/paper-reading-RandLA-Net/LA.png" width="60%" height="60%" title="图 3. LA Module"> 　　如图 2. 及 3. 所示，连续堆叠多个 LA 模块，能起到增加感受野的效果，然后引入 residual 思想，图 2. 下图就构成了一个 LFA 的基础模块。</p><p><a id="1" href="#1ref">[1]</a> Hu, Qingyong, et al. &quot;RandLA-Net: Efficient Semantic Segmentation of Large-Scale Point Clouds.&quot; arXiv preprint arXiv:1911.11236 (2019).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　不同与点云 3D 检测，可以 Voxel 化牺牲一定的分辨率，点云语义分割则要求点级别的分辨率，所以栅格化做点云分割信息会有一定的损失。但是直接对所有点进行特征提取，计算量又相当巨大，为了平衡效率与性能，一般也不得不对点云进行采样处理。这种点云级别的处理方式有 &lt;a h
-      
-    
-    </summary>
-    
-      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/categories/Semantic-Segmentation/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="Segmentation" scheme="https://leijiezhang001.github.io/tags/Segmentation/"/>
     
   </entry>
   
