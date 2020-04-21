@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-17T02:09:42.539Z</updated>
+  <updated>2020-04-21T03:38:54.663Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Reconfigurable Voxels, A New Representation for LiDAR-Based Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-Reconfigurable-Voxels/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-Reconfigurable-Voxels/</id>
+    <published>2020-04-20T01:54:31.000Z</published>
+    <updated>2020-04-21T03:38:54.663Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　Voxel-based 点云特征提取虽然损失了一定的信息，但是计算高效。Voxel-based 方法一个比较大的问题是，由于<strong>点云分布的不均匀性</strong>，作卷积时会导致可能计算的区域没有点，从而不能有效提取局部信息。为了解决栅格化后栅格中点云分布的不均匀问题，目前看到的有以下几种方法：</p><ol type="1"><li>Deformable Convolution，采用可变形卷积方法，自动学习卷积核的连接范围，理论上应该能更有效得使卷积核连接到点密度较高的栅格；</li><li><a href="/paper-reading-PolarNet/" title="PolarNet">PolarNet</a>提出了一种极坐标栅格化方式，因为点云获取的特性，这种方法获得的栅格中点数较为均匀;</li><li>手动设计不同分辨率的栅格，作特征提取，然后融合。比如近处分辨率较高，远处较低的方式；</li><li>本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种自动选择栅格领域及分辨率，从而最大化卷积区域点数的方法；</li></ol><p><img src="/paper-reading-Reconfigurable-Voxels/reconfig.png" width="80%" height="80%" title="图 1. Reconfig Voxels"> 　　如图 1. 所示，本文提出的 Reconfigurable Voxel 方法，能自动选择领域内点数较多的栅格特征提取，进而作卷积运算，避免点数较少，从而信息量较少的栅格作特征提取操作；此外还可根据点数自动调整分辨率以获得合适的栅格点数。通过这种方法，每个栅格输入到网络前都能有效提取周围点数较多区域的特征信息。</p><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-Reconfigurable-Voxels/pipeline.png" width="80%" height="80%" title="图 2. Framework"> 　　如图 2. 所示，本文以检测任务为例，分三部分：Voxel/Pillar Feature Extraction，Backbone，RPN/Detection Head。后两个采用传统的方法，本文主要是改进 Voxel/Pillar Feature Extraction，这是输入到网络前的特征提取阶段。</p><h2 id="voxelpillar-feature-extraction">2. Voxel/Pillar Feature Extraction</h2><p>　　传统的输入到 2D 卷积网络的特征要么是手工提取的，要么是用 <a href="/paperreading-PointPillars/" title="PointPillars">PointPillars</a> 网络去学习每个 Voxel 的特征。由此输入到网络的特征不是最优的，因为点云的稀疏性会导致后面的 2D 卷积网络作特征提取时遇到很多“空”的 Voxel。本文提出的方法就能显式得搜索每个 Voxel 周围有点的区域作特征提取，使得之后 2D 卷积特征提取更加有效。其步骤为：</p><ul><li>点云栅格化，并存储每个 Voxel 周围 Voxel 的索引；</li><li>每个 Voxel 周围 Voxel 作 Biased Random Walk，去搜索有更稠密点云的 Voxel；</li><li>将每个 Voxel 与新搜索到的周围 Voxel 作特征提取与融合，得到该 Voxel 特征；</li></ul><h3 id="biased-random-walking-neighbors">2.1. Biased Random Walking Neighbors</h3><p>　　邻域 Voxel 搜索目标是：<strong>在距离较近的情况下寻找较稠密的 Voxel</strong>。由此设计几种策略：</p><ul><li>点数越少的 Voxel，有更高概率作 Random Walk，以及更多 Step 去周围相邻的 Voxel；</li><li>点数越多的 Voxel，有更高概率被其它 Voxel Random Walk 到；</li></ul><p>　　将以上策略数学化。设第 \(j\) 个 Voxel 有 \(N(j)\) 个点，最大点数为 \(n\)，其作 Random Walk 的概率为 \(P _ w(j)\)，步数 Step 为 \(S(j)\)，第 \(i\) 步到达的 Voxel 为 \(w _ j(i)\)，其四领域 Voxel 集合为 \(V(w _ j(i))\)，从该 Voxel 走到下一个 Voxel 的概率为 \(P(w _ j(i+1)|w _ j(i))\)。由此得到以上策略的数学描述： <span class="math display">\[P _ w(j)=\frac{1}{N(j)} \tag{1}\]</span> <span class="math display">\[S(j)=n-N(j)\tag{2}\]</span> <span class="math display">\[P\left(w _ j(i+1)|w _ j(i)\right) = \frac{N\left(w _ j(i+1)\right)}{\sum _ {v\in V(w _ j(i))}N(v)}\tag{3}\]</span> 需要注意的是，\(S(j)\) 是在开始时计算的，此后每走一步就减1。 <img src="/paper-reading-Reconfigurable-Voxels/random_walk.png" width="90%" height="90%" title="图 3. Random walk"> 　　如图 3. 所示，左边为单分辨率下 Voxel 搜索过程。</p><h3 id="reconfigurable-voxels-encoder">2.2. Reconfigurable Voxels Encoder</h3><p>　　每个 Voxel \(v _ i\) 搜索到最优的 4 领域 Voxel 集 \(V(v _ i)\) 后，需要融合得到该 Voxel 的特征： <span class="math display">\[\begin{align}F(v _ i) &amp;= \psi\left(f _ {v _ i}, f _ {V(v _ i)}\right)\\&amp;= \varphi _ 1\left[\varphi _ 2(f _ {v _ i}), \varphi _ 2\left(\sum _ {j=1}^4 W _ j(f _ {v _ i})f _ {V _ {j(v _ i)}}\right)\right] _ f\tag{4}\end{align}\]</span> 其中 \(\varphi _ 1\) 为 low-level 操作，如 average pooling，\(\varphi _ 2\) 为 high-level 操作，如 MLP。</p><h3 id="multi-resolution-reconfigurable-voxels">2.3. Multi-resolution Reconfigurable Voxels</h3><p>　　图 3. 左边是单分辨率情况，Random Walking 可以拓展到多分辨率情形。当点云非常稀疏的时候，就很有必要降低栅格的分辨率。如图 3. 所示，\(P _ w\) 计算时除以 4，以维持与高分辨率的一致性；高分辨率到低分辨率搜索概率为 \(0.25P _ w\)，低分辨率到高分辨率搜索概率为 \(0.5P _ w\)。其余准则与单分辨率一致。实验结果表面多分辨率有一定提升，但是相比单分辨率提升不明显。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Wang, Tai, Xinge Zhu, and Dahua Lin. &quot;Reconfigurable Voxels: A New Representation for LiDAR-Based Point Clouds.&quot; arXiv preprint arXiv:2004.02724 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　Voxel-based 点云特征提取虽然损失了一定的信息，但是计算高效。Voxel-based 方法一个比较大的问题是，由于&lt;strong&gt;点云分布的不均匀性&lt;/strong&gt;，作卷积时会导致可能计算的区域没有点，从而不能有效提取局部信息。为了解决栅格化后栅格中点云分布
+      
+    
+    </summary>
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/categories/Deep-Learning/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;PolarNet&quot;</title>
@@ -565,35 +596,6 @@
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
       <category term="ICP" scheme="https://leijiezhang001.github.io/tags/ICP/"/>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
-    
-      <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ADH(Annealed Dynamic Histograms) Tracker</title>
-    <link href="https://leijiezhang001.github.io/ADH-Tracker/"/>
-    <id>https://leijiezhang001.github.io/ADH-Tracker/</id>
-    <published>2019-12-24T00:57:49.000Z</published>
-    <updated>2019-12-28T04:11:46.213Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　<a href="/卡尔曼滤波详解/" title="卡尔曼滤波详解">卡尔曼滤波详解</a>中详细推导了卡尔曼滤波及其扩展卡尔曼滤波基于贝叶斯的推导过程。由贝叶斯法则式(7)，<strong>状态估计问题可定义为：已知似然及先验概率，最大化后验概率的过程</strong>。其中先验即为“运动学模型(motion model)”，似然即为“观测”，后验概率即为待估计的状态量。对于卡尔曼滤波，对应了式(1)的运动方程及测量方程。<br>　　用扩展卡尔曼滤波来估计目标状态的原理可见<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>。该文重点讨论基于质点的一系列运动学模型，以及基于刚体的前转向车模型；测量模型则没做深入研究，默认是目标重心级别的测量量。比如，观测量如果是三维框，那么自然可得到目标的位置，相减就得到速度的观测量。<br>　　但是基于点云的目标检测中，目标的观测量更准确的应该是点集(cluster)。<strong>如何在贝叶斯框架下，定义点集的运动学模型及观测模型</strong>，对提高目标状态的估计显得尤其重要。ADH Tracker<a href="#1" id="1ref"><sup>[1]</sup></a> 就是一种点集状态估计方法，其描述了一种可跟踪目标表面形状特性的概率模型，本文主要阐述 ADH Tracker 的原理及实现细节。</p><h2 id="点集状态估计的概率模型">1. 点集状态估计的概率模型</h2><h3 id="贝叶斯框架">1.1. 贝叶斯框架</h3><p><img src="/ADH-Tracker/bayesian.png" width="50%" height="50%" title="图 1. 点集状态估计的贝叶斯概率模型"> 　　如图 1. 所示，状态量为 \(x_t\)，点集状态为 \(s_t\)，测量/观测量为 \(z_t\)，\(s_t\) 表示为从目标点集中采样的点集。 <img src="/ADH-Tracker/gaussian.png" width="50%" height="50%" title="图 2. 传感器噪声"> 　　如图 2. 所示，由于传感器的噪声 \(\Sigma_e\)，实际的目标上的点集 \(s_t\) 需要加上传感器噪声，以及目标的当前位置，才是最终的观测量点集 \(z_t\): <span class="math display">\[z_{t,j} \sim \mathcal{N}(s_{t,j},\Sigma_e) + x_{t,p}  \tag{1}\]</span> 注意坐标系是在前一时刻目标的中心，状态量中的位置是相对位置，所以前一时刻目标点服从分布： <span class="math display">\[z_{t-1,i} \sim \mathcal{N}(s_{t-1,i},\Sigma_e)  \tag{2}\]</span> 图 1. 的贝叶斯模型下： <span class="math display">\[p(z_{t-1}|x_t,s_{t-1}) = p(z_{t-1}|s_{t-1}) \tag{3}\]</span> 由于目标的遮挡等位置变换，目标上的点集 \(s_t\) 又是随时间变化的，假设 \(p(V)\) 表示当前时刻点集从前一时刻点集采样的先验概率，那么当前时刻每个点从前一时刻采样的概率为： <span class="math display">\[p(s_{t,j}|s_{t-1}) = p(V)p(s_{t,j}|s_{t-1},V) + p(\neg V)p(s_{t,j}|s_{t-1},\neg V) \tag{4}\]</span> 假设当前点在前一时刻不可见的均为被遮挡的情况，那么： <span class="math display">\[p(s_{t,j}|s_{t-1},\neg V) = k_1(k_2-(s_{t,j}|s_{t-1},V))\]</span> 合并可得： <span class="math display">\[p(s_{t,j}|s_{t-1}) = \eta(p(s_{t,j}|s_{t-1},V) +k) \tag{5}\]</span></p><h3 id="状态估计问题">1.2. 状态估计问题</h3><p>　　式(1)~(5)描述了该贝叶斯网络下各变量之间的关系，状态估计求解的目标是：在所有观测量的基础上估计当前状态，即\(p(x_t|z_1...z_t)\)。根据贝叶斯法则： <span class="math display">\[p(x_t|z_1...z_t)=\eta\; p(z_t|x_t,z_1...z_{t-1}) p(x_t|z_1...z_{t-1}) \tag{6}\]</span> 其中 \(\eta\) 为归一化常数，<strong>第一项是观测模型，第二项是运动模型</strong>。如果依据条件独立，观测模型则可简化为： <span class="math display">\[p(z_t|x_t,z_1...z_{t-1}) = p(z_t|x_t)\]</span> 但是这里考虑到 \(s_t\) 均是从同一目标采样的，所以条件独立性不成立，将观测模型简化近似为： <span class="math display">\[p(z_t|x_t,z_1...z_{t-1}) \approx p(z_t|x_t,z_{t-1}) \tag{7}\]</span> 直观上理解为，当前观测不仅依赖当前状态，还依赖上一时刻的观测量。</p><h2 id="adh-tracker-观测模型">2. ADH Tracker 观测模型</h2><p>　　观测模型式(7)可重写为： <span class="math display">\[\begin{align}p(z_t|x_t,z_{t-1}) &amp;= \int p(z_t,s_t|x_t,z_{t-1})ds_t \\&amp;= \int p(z_t|s_t,x_t)p(s_t|x_t,z_{t-1})ds_t \\&amp;= \int p(z_t|s_t,x_t)\left(\int p(s_t,s_{t-1}|x_t,z_{t-1})ds_{t-1}\right)ds_t \\&amp;= \int p(z_t|s_t,x_t)\left(\int p(s_t|s_{t-1})p(s_{t-1}|x_t,z_{t-1})ds_{t-1}\right)ds_t \\&amp;= \int p(z_t|s_t,x_t)\left(\int \eta\;p(s_t|s_{t-1})p(z_{t-1}|x_t,s_{t-1})p(s_{t-1})ds_{t-1}\right)ds_t \\&amp;= \int p(z_t|s_t,x_t)\left(\int \eta\;p(s_t|s_{t-1})p(z_{t-1}|s_{t-1})p(s_{t-1})ds_{t-1}\right)ds_t\tag{8}\end{align}\]</span> 式(1)(2)(5)可得高斯模型: <span class="math display">\[\left\{\begin{array}{l}p(z_t|s_t,x_t) = \mathcal{N}(z_t;s_t+x_{t,p},\Sigma_e) \\p(z_{t-1}|s_{t-1}) = \mathcal{N}(z_{t-1};s_{t-1},\Sigma_e) \\ p(s_t|s_{t-1}) = \eta\left(\mathcal{N}(s_{t};s_{t-1},\Sigma_r)+k \right) \\ \end{array}\tag{9}\right.\]</span> 其中 \(\Sigma_e \) 为传感器噪声方差，\(\Sigma_r\) 为传感器不同距离的分辨率。因为两个高斯分布相乘还是高斯分布，所以由式(8)(9-2)(9-3)，可得： <span class="math display">\[ p(s_t|x_t,z_{t-1}) = \eta (\mathcal{N}(s_t;z_{t-1},\Sigma_r+\Sigma_e)+k) \tag{10}\]</span> 进一步由式(8)(9-1)(10)可得： <span class="math display">\[p(z_t|x_t,z_{t-1}) = \eta \left(\mathcal{N}(z_t;z_{t-1}+x_{t,p},\Sigma_r+2\Sigma_e)+k \right) \tag{11}\]</span> 　　观测模型实际计算中，令 \(\bar{z} _ {t-1}\) 为点集 \(z_{t-1}\) 经过状态量变换后的点集，即 \(\bar{z} _ {t-1}=z _ {t-1}+x _ {t,p}\)；对于 \(z _ j\in z _ t\)，令 \(\bar{z} _ i \) 为 \(z _ j\) 在点集 \(\bar{z}_ { t-1}\) 中的最近点。那么: <span class="math display">\[ p(z_t|x_t,z_{t-1}) = \eta \left(\prod_{z_j\in z_t} \mathrm{exp}\left(-\frac{1}{2}(z_j-\bar{z_i})^T\Sigma^{-1}(z_j-\bar{z}_i)\right)+k\right) \tag{12}\]</span> 其中 \(\Sigma=2\Sigma_e+\Sigma_r\)。</p><h2 id="adh-tracker-运动模型">3. ADH Tracker 运动模型</h2><p>　　这里使用的是质点匀速模型，因为在 \((R,t)\) 搜索空间中得到了一组不同概率的解，所以可用多变量高斯分布去拟合这组解： <span class="math display">\[\left\{\begin{array}{l}\mu_t=\sum_i p(x_{t,i}|z_i...z_t)x_{t,i}\\\Sigma_t = \sum_i p(x_{t,i}|z_1...z_t)(x_{t,i}-\mu_t)(x_{t,i}-\mu_t)^T\end{array}\tag{13}\right.\]</span> 其中 \(x_{t,i}\) 为第 \(i\) 组解对应的状态量。得到该状态量的高斯分布后，就可以用匀速运动模型预测下一时刻的状态。<br>　　同时针对每一组解空间中的候选解，还可计算其匀速模型下的速度概率项，叠加到观测概率中。</p><h2 id="adh-算法">4. ADH 算法</h2><p><img src="/ADH-Tracker/adh.png" width="60%" height="60%" title="图 3. ADH 原理"> 　　对 \((R,t)\) 解空间进行有效搜索直接决定求解速度，如图 3. 所示，将解空间(state space)分割成一系列搜索区域，每个区域基于后验概率 \(p(x_t|z_1...z_t)\) 计算区域离散概率： <span class="math display">\[\begin{align}p(c_i) &amp;= p(c_i\cap R) \\&amp;= p(c_i|R)p(R) \\&amp;= \frac{p(x_i|z_1...z_t)\vert c_i\vert}{\sum_{j\in R}p(x_j|z_1...z_t)\vert c_i\vert} p(R) \\&amp;= \eta p(x_i|z_1...z_t)p(R)\tag{14}\end{align}\]</span> 其中 \(R\) 为待细分的区域集合(cells)，其被划分为子区域 \(c_i\in R\)，所以区域概率满足 \(\sum_{i\in R}p(c_i) = p(R)\)。对拥有较大离散概率的区域，进一步细分搜索区域，进行迭代搜索。初始化时，\(p(R)=1\)。<br>　　这里需要制定区域细分的策略，考虑最大化划分前后区域概率分布的 KL-divergence，即 KL-divergence 能描述划分后，后验概率与真实分布的相似性，越接近真实分布，前后区域离散概率分布的 KL-divergence 会越小。而为了提高搜索效率，要求前后离散概率分布的 KL-divergence 要最大，最终收敛到真实分布。<br>　　假设 \(R\) 区域的离散概率分布为 \(P_i\)，需要划分 \(k\) 个区域。那么划分前，可以认为其概率分布为每个 cell 概率为 \(P_i/k\)；划分后，其概率分布为：\(\sum_{j=1}^kp_j=P_i\)。这两个分布的 KL-divergence 为： <span class="math display">\[ D_{KL}(A\Vert B)=\sum_{j=1}^k p_j \mathrm{In}\left(\frac{p_j}{P_i/k}\right) \tag{15} \]</span> 当某个细分区域 \(p_{j'} = P_i\) 时： <span class="math display">\[ D_{KL}(A\Vert B)=P_i \mathrm{In}k  \tag{16}\]</span> 如果每个 cell 后验概率计算需要时间 \(t\) 秒，那么每秒能获得最大的 DL-divergence 为 \(P_i\mathrm{In}k/(kt)\)，由此可以选择策略：</p><ul><li>对 \(P_i\) 大于一定阈值的区域进行划分；</li><li>每个搜索维度划分的区域个数设定为 \(k=3\)。因为该函数在 \(k=e\) 时取得最大值。</li></ul><p><img src="/ADH-Tracker/adh_alg2.png" width="80%" height="80%" title="图 4. ADH Tracker"> 　　图 4. 为 ADH Tracker 算法的伪代码。</p><h2 id="adh-tracker-实现细节2">5. ADH Tracker 实现细节<a href="#2" id="2ref"><sup>[2]</sup></a></h2><h3 id="kalman-部分">5.1. Kalman 部分</h3><p>　　ADH 代码中 centroid-based kalman 的运动模型为质点匀速模型，较为简单。 其设置为：状态量 \(x=[v_x,v_y,v_z]\)，测量量 \(z=\frac{1}{\delta t}[p_x,p_y,p_z]\)。状态转移矩阵 \(A\) 以及观测矩阵 \(C\) 均为单位阵。过程噪声为高斯分布，其协方差矩阵为 \(Q_k = diag(\sigma_a,\sigma_a,\sigma_{a_z})\cdot \delta ^2 t\)，测量噪声的协方差矩阵为 \(R_k = diag(\sigma_m,\sigma_m,\sigma_m)\)。由此可方便的计算 kalman 预测及更新两个过程。</p><h3 id="adh-部分">5.2. ADH 部分</h3><p>　　ADH 算法中，每个采样分辨率下需要多次计算解空间中各 \((R,t)\) 下的观测模型，而观测模型计算中，每次需要通过 KD-Tree 寻找两个点集的匹配点，再通过式(12)计算观测概率模型。这样会非常耗时，因为观测模型本质上就是求解两个点集相似度，所以代码实现中，作者采用的策略为：首先将被匹配的点集进行栅格化，然后将点集中每个点以稠密度(density)高斯概率分布的形式拓展一定栅格范围，每个栅格取拓展到该栅格的点的高斯概率值的最大值。之后任何一个点集需要与之计算观测模型(相似度)，只要直接统计索引这个点集在该栅格下的概率值即可。</p><h2 id="参考文献">6. 参考文献</h2><p><a id="1" href="#1ref">[1]</a> Held, David, et al. &quot;Robust real-time tracking combining 3D shape, color, and motion.&quot; The International Journal of Robotics Research 35.1-3 (2016): 30-49.<br><a id="2" href="#2ref">[2]</a> https://github.com/davheld/precision-tracking</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　&lt;a href=&quot;/卡尔曼滤波详解/&quot; title=&quot;卡尔曼滤波详解&quot;&gt;卡尔曼滤波详解&lt;/a&gt;中详细推导了卡尔曼滤波及其扩展卡尔曼滤波基于贝叶斯的推导过程。由贝叶斯法则式(7)，&lt;strong&gt;状态估计问题可定义为：已知似然及先验概率，最大化后验概率的过程&lt;/stron
-      
-    
-    </summary>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
-    
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
       <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
     
