@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-23T02:34:12.937Z</updated>
+  <updated>2020-04-27T02:31:31.376Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>OctoMap</title>
+    <link href="https://leijiezhang001.github.io/OctoMap/"/>
+    <id>https://leijiezhang001.github.io/OctoMap/</id>
+    <published>2020-04-23T02:23:05.000Z</published>
+    <updated>2020-04-27T02:31:31.376Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　地图是机器人领域非常重要的模块，也可以认为是自动驾驶保障安全的基础模块。根据存储建模类型，地图可分为拓扑地图，栅格地图，点云地图等。<a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 就是一种能在线检测静态障碍物的栅格地图。自动驾驶领域，地图的用处有：</p><ul><li><strong>高精度定位</strong>，一般是 3D 栅格地图，但是栅格中近似存储点云原始信息；</li><li><strong>路径规划</strong>，不同规划算法依赖不同地图，自动驾驶中比较靠谱又简单的规划算法一般依赖拓扑地图，俗称高精度语义地图，描述一些车道线等路面拓扑关系；而在室内或低速无道路信息场景，则会用如 \(A ^ * \) 算法在栅格地图上进行路径规划；</li><li><strong>辅助感知检测未定义类别的障碍物</strong>，有人称之为静态地图，一般是 2.5D 栅格地图，图层可以自定义一些语义信息；</li></ul><p>下游不同模块对不同存储方式的利用效率是不同的，所以需要针对不同下游任务设计不同地图建模方式。本文<a href="#1" id="1ref"><sup>[1]</sup></a>介绍了一种基于八叉树的栅格地图建模方法。<br>　　对于机器人而言，类似 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 能建模 FREE，OCCUPIED，UNMAPPED AREAS 的地图是信息量比较丰富的，但是 Grid-Mapping 是 2D 的。这里对 3D 地图有以下要求：</p><ul><li><strong>Probabilistic Representation</strong><br>测量都会有不确定性，这种不确定性需要用概率表征出来；另外多传感器融合也需要基于概率的表示；</li><li><strong>Modeling of Unmapped Areas</strong><br>对机器人导航而言，显式得表示哪些区域是观测未知的也非常重要；</li><li><strong>Efficiency</strong><br>地图构建与存储需要非常高效，一般而言，地图的内存消耗会是瓶颈；</li></ul><p><img src="/OctoMap/maps.png" width="90%" height="90%" title="图 1. Different Representations of Maps"> 　　如图 1. 所示，原始点云地图信息量丰富，但是不能结构化存储；Elevation Maps 与 Multi-level Surface Maps 虽然高效，但是不能表征未观测的区域信息。OctoMap 可以认为是 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 的 3D 版本，信息量丰富且高效。</p><h2 id="octomap-mapping-framework">1. OctoMap Mapping Framework</h2><h3 id="octrees">1.1. Octrees</h3><p><img src="/OctoMap/OctoMap.png" width="40%" height="40%" title="图 2. 八叉树地图存储"> 　　如图 2. 所示，八叉树是将空间递归得等分成八份(QuadTree 四叉树则等分为四份)，每个节点可以存储 Occupied，Free，Unknown 信息(Occupied 概率即可)。此外，如果子节点的状态都一样，那么可以进行剪枝，只保留大节点低分辨率的 Voxel，达到紧凑存储的目的。<br>　　时间复杂度上，对于有 \(n\) 个节点，深度为 \(d\) 的八叉树，那么单次查询的时间复杂度为 \(\mathcal{O}(d)=\mathcal{O}(\mathrm{log}\,n)\)；遍历节点的时间复杂度为 \(\mathcal{O}(n)\)。\(d = 16, r = 1cm\)，可以覆盖 \((655.36m)^3\)的区域。</p><h3 id="probabilistic-sensor-fusion">1.2. Probabilistic Sensor Fusion</h3><p>　　时序概率融合也是基于贝叶斯滤波，详见 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a>，只不过这里是 3D Mapping，作 Raycasting 的时候采用 <a href="/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/" title="What You See is What You Get">What You See is What You Get</a> 中提到的 Fast Voxel Traversal 算法。实际应用中，一般都会采用上下界限制概率值，这种限制也能提高八叉树的剪枝率。</p><h3 id="multi-resolution-queries">1.3. Multi-Resolution Queries</h3><p>　　由于八叉树的特性，OctoMap 支持低于最高分辨率的 Voxel 概率查询，即父节点是子节点的平均概率，或是子节点的最大概率: <span class="math display">\[\bar{l}(n)=\frac{1}{8}\sum _ {i=1}^8 L (n _ i)\\\hat{l}(n)=\max\limits _ iL(n _ i)\tag{1}\]</span> 其中 \(l\) 是测量模型下概率的 log-odds 值。</p><h2 id="implementation-details-statics">2. Implementation Details &amp; Statics</h2><h3 id="memory-efficient-node-map-file-generation">2.1. Memory-Efficient Node &amp; Map File Generation</h3><p><img src="/OctoMap/save.png" width="60%" height="60%" title="图 3. Node Memory Consumption and Serialization"> 　　如图 3. 左图所示，每个节点只分配一个 float 型的数据存储以及指向子节点地址数组的地址指针(而不是直接包含子节点地址的指针)，只有存在子节点时，才会分配子节点的地址数组空间。由此在 32-bit 系统中(4 字节对齐)，每个父节点需要 40B，子节点需要 8B；在 64-bit 系统中(8 字节对齐)，每个父节点需要 80B(\(4+9\times 8\))，子节点需要 16B(\(4+8)\)。<br>　　地图存储需要在信息量损失最小的情况下进行压缩。如图 3. 右图所示，存储序列化时，每个叶子节点总共需要 4B 概率值，不需要状态量；每个父节点总共需要 2B，表示 8 个子节点的 2bit 状态量(貌似与论文有出入，其不是最优的压缩)。在这种压缩方式下，大范围地图的存储大小一般也能接受。根据存储的地图重建地图时，只需要知道坐标原点即可。</p><h3 id="accessing-data-memory-consumption">2.2. Accessing Data &amp; Memory Consumption</h3><p><img src="/OctoMap/memusage1.png" width="60%" height="60%" title="图 4. Memory Usage VS. Scan Num."> 　　Freiburg 建图大小为 \((202\times 167\times 28) m^3\)，如图 4. 所示，随着点云扫描区域扩大，OctoMap 表示方式能有效降低建图大小。 <img src="/OctoMap/memusage2.png" width="60%" height="60%" title="图 5. Memory Usage VS. Resolution"> 　　图 5. 则说明建图大小与分辨率的关系。 <img src="/OctoMap/inserttime.png" width="60%" height="60%" title="图 6. Insert Date Time VS. Resolution"> <img src="/OctoMap/traversetime.png" width="60%" height="60%" title="图 7. Traverse Data Time VS. Depth"> 　　图 6. 显示了往图中插入一个节点所需时间，1000 个节点在毫秒级；图 7. 显示了遍历所有节点所需的时间，基本也在毫秒级。 <img src="/OctoMap/compress.png" width="60%" height="60%" title="图 8. Compression Ratio"> 　　通过限制概率上下界，可以剪枝压缩图，用 KL-diverge 来评估压缩前后图的分布相似性，图 8. 显示了压缩比与网络大小及相似性的关系。</p><h3 id="some-strategies">2.3. Some Strategies</h3><p><img src="/OctoMap/case.png" width="60%" height="60%" title="图 9. Corner Case Handle"> 　　如图 9. 所示，前后帧位姿的抖动，会导致 Occupied 持续观测的不稳定，所以需要一些领域约束策略来保证 Occupied 的稳定观测。这种类似的策略在 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 工程实现中也需要采用，因为实际的 Pose 肯定会有噪声，导致同一目标的栅格前后有一定概率不能完全命中。</p><h2 id="rethinking">3. ReThinking</h2><p>　　对于自动驾驶来说，高度方向的范围不需要很大，甚至四叉树足矣，如果采用八叉树，那么需要将高度方向的分辨率降低，从而更加紧凑的构建地图。<br>　　此外自动驾驶肯定是需要大范围建图的，如平方千公里级别。所以切片式的地图存储与查询就显得尤为重要，换句话说，需要动态得载入局部地图，这就有两种思路：</p><ul><li>动态载入完全局部地图<br>要求前后局部地图有一定的重叠，通过索引式的存储可以不存储重叠区域的地图信息；</li><li>动态载入部分局部地图<br>随着机器人本体的运动，实时动态载入前方更远处的地图，丢掉后方远处的历史地图。这对在线地图结构的灵活性要求比较高，如果基于八叉树，那么需要作片区域剪枝及插入的操作，效率不一定高；</li></ul><p>　　在自动驾驶领域，目前用于高精度定位的栅格地图与用于 PNC 规划控制的拓扑地图(高精地图)已经比较成熟；而用于环境感知的静态语义地图还没形成大范围的共识。不管从工程实现效果及效率上，还是语义信息描述定义上，还需作很多探索与实践。比如，可以定义最底层的语义信息：地面高度，此外也可以把车道线信息打到栅格图层中去(但是可能加大对 PNC 的搜索计算量)，等等。所以可能最优的存储查询方式并不是八叉树，<strong>可能还是栅格化后并对每个栅格哈希化，牺牲一定的内存空间，然后作 \(O(1)\) 的快速插入与查询</strong>。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Hornung, Armin, et al. &quot;OctoMap: An efficient probabilistic 3D mapping framework based on octrees.&quot; Autonomous robots 34.3 (2013): 189-206.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　地图是机器人领域非常重要的模块，也可以认为是自动驾驶保障安全的基础模块。根据存储建模类型，地图可分为拓扑地图，栅格地图，点云地图等。&lt;a href=&quot;/Grid-Mapping/&quot; title=&quot;Grid-Mapping&quot;&gt;Grid-Mapping&lt;/a&gt; 就是一种能在
+      
+    
+    </summary>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
+    
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
+    
+      <category term="Mapping" scheme="https://leijiezhang001.github.io/tags/Mapping/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;What You See is What You Get, Exploiting Visibility for 3D Object Detection&quot;</title>
@@ -565,33 +594,6 @@
       
       
         &lt;p&gt;　　&lt;a href=&quot;/Heteroscedastic-Aleatoric-Uncertainty/&quot; title=&quot;Heteroscedastic Aleatoric Uncertainty&quot;&gt;Heteroscedastic Aleatoric Uncertainty&lt;/
-      
-    
-    </summary>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/categories/Uncertainty/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Heteroscedastic Aleatoric Uncertainty</title>
-    <link href="https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/"/>
-    <id>https://leijiezhang001.github.io/Heteroscedastic-Aleatoric-Uncertainty/</id>
-    <published>2020-01-03T01:13:17.000Z</published>
-    <updated>2020-01-05T09:46:50.875Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 已经详细描述了贝叶斯模型中几种可建模的不确定性(uncertainty)，并应用了<strong>任务依赖/同方差不确定性(Task-dependent or Homoscedastic Aleatoric Uncertainty)</strong>来自动学习多任务中的 Loss 权重。本文讨论同为偶然不确定性(Aleatoric Uncertainty)的<strong>数据依赖/异方差不确定性(Data-dependent or Heteroscedastic Aleatoric Uncertainty)</strong>。需要注意的是，偶然不确定性(Aleatoric Uncertainty)描述的是数据不能解释的信息，只能通过提高数据的精度来消除；而认知不确定性(Epistemic Uncertainty)描述的是模型因为缺少训练数据而存在的未知，可通过增加训练数据解决。<br>　　为什么要建模 Heteroscedastic Aleatoric Uncertainty？Learning 算法一个比较致命的问题是，网络能输出预测量，但是网络不知道其预测的不确定性，如目标状态估计中，需要获得观测的协方差矩阵<strong>(检测作为观测模块，理论上需要出检测的 Uncertainty，包括 Aleatoric 与 Epistemic Uncertainty，但是 Epistemic Uncertainty 只能通过多次采样近似得到，不能实时应用，所以一般只考虑 Aleatoric Uncertainty 作为观测的不确定性)</strong>。尤其在自动驾驶领域，<strong>我们不仅关注模型知道什么，更要关注模型不知道什么</strong>。<br>　　本文通过贝叶斯神经网络来建模 Aleatoric Uncertainty，并分析其应用效果。</p><h2 id="aleatoric-uncertainty-建模">1. Aleatoric Uncertainty 建模</h2><p>　　针对一批训练数据集\(\{\mathbf{X,Y}\}\)，训练模型 \(\mathbf{y=f^W(x)}\)，在贝叶斯框架下，预测量的后验分布为： <span class="math display">\[p\left(\mathbf{y\vert x,X,Y}\right) = \int p\left(\mathbf{y\,|\,f^W(x)}\right) p\left(\mathbf{W\,|\,X,Y}\right)d\mathbf{W} \tag{0}\]</span> 其中 \(p(\mathbf{W\,|\,X,Y})\) 为模型参数的后验分布，描述了模型的不确定性，即 Epistemic Uncertainty；\(p\left(\mathbf{y\,|\,f^W(x)}\right)\) 为观测似然，描述了观测不确定性，即Aleatoric Uncertainty。Epistemic Uncertainty 只能通过近似推断获得，本文不作讨论。<br>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 已经详细推导了 Aleatoric Uncertainty 的建模过程，这里摘抄如下：</p><p><span class="math display">\[\mathcal{L}(\mathbf{W}, s_1, s_2) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \mathrm{exp}(-s_2)\mathcal{L}_2(\mathbf{W}) + \mathrm{exp}(\frac{1}{2}s_1) + \mathrm{exp}(\frac{1}{2}s_2) \tag{1}\]</span> 其中 \(\mathcal{L}(\mathbf{W},s_1)\) 为回归项，\(\mathcal{L}(\mathbf{W},s_2)\) 为分类项。<br>　　<a href="#1" id="1ref">[1]</a><a href="#2" id="2ref">[2]</a><a href="#3" id="3ref">[3]</a> 中建模的回归项 loss uncertainty 与式(1)有细微出入(可以认为是 Uncertainty 的正则项不同，但是效果类似)，其负log似然为： <span class="math display">\[-\mathrm{log}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) \propto \frac{1}{2\sigma ^2} \Vert \mathbf{y-f^W(x)} \Vert ^2 + \frac{1}{2}\mathrm{log}\sigma^2 \tag{2}\]</span> 所以其回归项 loss 为： <span class="math display">\[\mathcal{L}(\mathbf{W}, s_1) = \frac{1}{2}\mathrm{exp}(-s_1)\mathcal{L}_1(\mathbf{W}) + \frac{1}{2}s_1 \tag{3}\]</span></p><h3 id="d-object-detection-by-regressing-corners2">1.1. 3D Object Detection by regressing corners<a href="#2" id="2ref"><sup>[2]</sup></a></h3><p>　　该方案是在俯视图下回归 3D 框的 8 个角点，总共 24 个参数。假设观测为多变量的高斯分布，即： <span class="math display">\[\left\{\begin{array}{l}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \mathcal{N}\left(\mathbf{f^W(x)}, \Sigma(\mathbf{x}) \right) \\\Sigma(\mathbf{x}) = diag(\sigma _ {\mathbf{x}}^2)\end{array}\tag{4}\right.\]</span> 其中 \(\mathbf{y}\) 是预测的目标框参数，\(\sigma _ {\mathbf{x}}^2\) 是 24 维的向量，表示了观测数据的噪声水平，由式(3)可知，噪声越大，其对 Loss 的作用越小。</p><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric.png" width="60%" height="60%" title="图 1. Aleatoric Uncertainty 与 3D corner 关系"> 　　如图 1. 所示，同一目标，靠近本车的 corner 点，其 Aleatoric Uncertainty 越小；距离越远，目标被遮挡的越严重，其 Aleatoric Uncertainty 越高。</p><h3 id="d-object-detection-by-regressing-location-and-orientation-3">1.2. 3D Object Detection by regressing location and orientation <a href="#3" id="3ref"><sup>[3]</sup></a></h3><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/regression_uncert.png" width="80%" height="80%" title="图 2. network arch"> 　　如图 2. 所示，网络结构比较简单，这里建模了三种 uncertainty: RPN bbox regression \(\sigma^2_{\mathbf{t_r}}\)；Head 中的 location \(\sigma^2_{\mathbf{t_v}}\)；Head 中的 orientation \(\sigma^2_{\mathbf{r_v}}\)。最终的 Loss 由三项式(3) 以及两项分类 loss 构成。<br><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Uncert.png" width="80%" height="80%" title="图 3. Aleatoric Uncertainty 与目标状态关系"> 　　如图 3. 所示，TV(Total Variance) 与目标状态的关系。对于距离越远，遮挡越严重的目标，其 Aleatoric Uncertainty 会越高，因为其观测到的点云会比较少。</p><h3 id="semantic-segmentation-1">1.3. Semantic Segmentation <a href="#1" id="1ref"><sup>[1]</sup></a></h3><p><img src="/Heteroscedastic-Aleatoric-Uncertainty/Aleatoric_Epistemic.png" width="60%" height="60%" title="图 4. Aleatoric Uncertainty 在语义分割中的关系"> 　　如图 4. 所示，Aleatoric Uncertainty 在远处，边缘处较大；而 Epistemic Uncertainty 对没见过的数据/区域较大。</p><h2 id="aleatoric-uncertainty-预测">2. Aleatoric Uncertainty 预测</h2><p>　　<a href="/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/" title="Multi-task Learning Using Uncertainty to Weigh Losses">Multi-task Learning Using Uncertainty to Weigh Losses</a> 中 Uncertainty 不需要作为预测输出，可将其设计为网络的 weights，且每个任务都设计为单变量高斯分布的形式。<a href="#2" id="2ref">[2]</a><a href="#3" id="3ref">[3]</a> 中则将 Uncertainty 设计为网络的输出，且是多变量高斯分布。更一般的，假设模型输出为混合高斯分布： <span class="math display">\[\left\{\begin{array}{l}p\left(\mathbf{y}\vert\mathbf{f^W(x)}\right) = \sum_k \alpha_k \mathcal{N}\left(\mathbf{f^W(x)}_{(k)}, \Sigma(\mathbf{x})_{(k)} \right)\\\sum_k \alpha_k = 1\end{array}\tag{5}\right.\]</span> 　　对于 3D Detection 问题，网络输出的 3D 框参数为 \(\mathbf{y}=(x,y,z,l,h,w,\theta)\)，当输出满足 \(K\) 个混合高斯分布时，网络的输出量有：</p><ul><li>\(K\) 组目标框参数预测量 \(\{\mathbf{y}_k\}\)；</li><li>\(K\) 个对数方差 \(\{s_k\}\)；</li><li>\(K\) 个混合高斯模型权重参数 \(\{\alpha_k\}\)；</li></ul><p>　　训练时，找出与真值分布最近的一组预测量，混合高斯模型权重用 softmax 回归并用 cross-entropy loss，找到最相似的分布后，将该分布的方差用式(3)作用于回归的 Loss 项；测试时，找到混合高斯模型最大的权重项，对应的高斯分布，即作为最终的输出分布。这里只考虑了输出 3D 框的一个整体的方差，也可以输出定位方差+尺寸方差+角度方差，只要将该方差作用于对应的 Loss 项即可。当 \(K=1\) 时，就是多变量单高斯模型，一般也够用。</p><h2 id="metrics">3. Metrics</h2><p>TODO</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Kendall, Alex, and Yarin Gal. &quot;What uncertainties do we need in bayesian deep learning for computer vision?.&quot; Advances in neural information processing systems. 2017.<br><a id="2" href="#2ref">[2]</a> Feng, Di, Lars Rosenbaum, and Klaus Dietmayer. &quot;Towards safe autonomous driving: Capture uncertainty in the deep neural network for lidar 3d vehicle detection.&quot; 2018 21st International Conference on Intelligent Transportation Systems (ITSC). IEEE, 2018.<br><a id="3" href="#3ref">[3]</a> Feng, Di, et al. &quot;Leveraging heteroscedastic aleatoric uncertainties for robust real-time lidar 3d object detection.&quot; 2019 IEEE Intelligent Vehicles Symposium (IV). IEEE, 2019.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　&lt;a href=&quot;/paperreading-MT-Learning-Using-Uncertainty-to-Weight-Losses/&quot; title=&quot;Multi-task Learning Using Uncertainty to Weigh Losses&quot;&gt;M
       
     
     </summary>
