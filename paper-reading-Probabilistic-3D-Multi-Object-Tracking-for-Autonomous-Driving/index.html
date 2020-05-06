@@ -97,7 +97,7 @@
 <meta property="og:description" content="卡尔曼滤波器在三维目标状态估计中的应用中已经较详细得阐述了 3D MOT 状态估计过程，文章末提到观测过程的协方差矩阵初始化问题可以用观测的不确定性解决，Heteroscedastic Aleatoric Uncertainty 就是通过贝叶斯深度神经网络来建模该不确定性。本文[1] 提供了另一种简化的观测不确定性计算方法，同时估计运动模型与观测模型的不确定性，即过程噪声与测量噪声。 1. K">
 <meta property="og:locale" content="default">
 <meta property="og:image" content="https://leijiezhang001.github.io/paper-reading-Probabilistic-3D-Multi-Object-Tracking-for-Autonomous-Driving/framework.png">
-<meta property="og:updated_time" content="2020-04-09T05:58:16.352Z">
+<meta property="og:updated_time" content="2020-05-06T06:32:45.376Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="[paper_reading]-&quot;Probabilistic 3D Multi-Object Tracking for Autonomous Driving&quot;">
 <meta name="twitter:description" content="卡尔曼滤波器在三维目标状态估计中的应用中已经较详细得阐述了 3D MOT 状态估计过程，文章末提到观测过程的协方差矩阵初始化问题可以用观测的不确定性解决，Heteroscedastic Aleatoric Uncertainty 就是通过贝叶斯深度神经网络来建模该不确定性。本文[1] 提供了另一种简化的观测不确定性计算方法，同时估计运动模型与观测模型的不确定性，即过程噪声与测量噪声。 1. K">
@@ -389,8 +389,8 @@
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2020-04-09T13:58:16+08:00" content="2020-04-09">
-                  2020-04-09
+                <time itemprop="dateUpdated" datetime="2020-05-06T14:32:45+08:00" content="2020-05-06">
+                  2020-05-06
                 </time>
               </span>
             
@@ -449,7 +449,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  2k 字
+                  2.1k 字
                 </span>
               
 
@@ -465,7 +465,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  9 分钟
+                  10 分钟
                 </span>
               
             </div>
@@ -563,7 +563,8 @@ q _ {d _ a}\\
 \end{align}\tag{5}\]</span> 　　以上卡尔曼过程与<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>，以及<a href="/卡尔曼滤波详解/" title="卡尔曼滤波详解">卡尔曼滤波详解</a>完全一致。</p>
 <h2 id="covariance-matrices-estimation">2. Covariance Matrices Estimation</h2>
 <p>　　如何确定卡尔曼滤波过程中的 \(\Sigma _ 0, \mathbf{Q, R}\)？传统方法是直接用一个确定的经验矩阵赋值；理想的是用<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 建模处理，但是会相对较复杂；本文用更简单的基于统计方法来确定协方差矩阵。<br>
-　　<strong>观测量的方差(不确定性)与目标的属性有关</strong>，如距离，遮挡，类别等。本文没有区分这些属性，只统计了一种观测量的方差，<strong>更好的处理方式是按照不同属性，统计不同的方差</strong>。而 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 是 Instance 级别的方差预测。<strong>这种统计出来的方差虽然细粒度差一点，但是非常合理，因为只要模型训练好后，模型预测的分布是与训练集分布相似的</strong>，所以用训练集的方差来直接代替模型预测的方差也较为合理。<br>
+　　<strong>观测量的方差(不确定性)与目标的属性有关</strong>，如距离，遮挡，类别等。本文没有区分这些属性，只统计了一种观测量的方差，<strong>更好的处理方式是按照不同属性，统计不同的方差</strong>。而 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 是 Instance 级别的方差预测。<strong>这种统计出来的方差虽然细粒度差一点，但是非常合理，因为只要模型训练好后，模型预测的分布是与训练集分布相似的(理想情况)</strong>，所以用训练集的方差来直接代替模型预测的方差也较为合理。<br>
+　　<span style="color:red"><strong>更准确的来说，不确定性与物体的属性以及标注误差有关，这里只统计了标注误差(标注误差在大多数情况下都是同分布的)，而实际上遮挡大的目标，是更难学习的(目标学习有难易之分，即预测分布与训练集分布会有偏差)，即预测结果会有额外量的不确定性，所以这种离线统计方法也有很大的局限性</strong>。</span><br>
 　　设训练集的真值标签：\(\left\{\left\{x _ t^m, y _ t^m, z _ t^m, a _ t^m\right\} _ {m=1}^M\right\} _ {t = 1}^T\)。</p>
 <h2 id="motionprocess-noise-model">2.1. Motion/Process Noise Model</h2>
 <p>　　假设各状态量的噪声独立同分布，那么对于位置与朝向噪声，有： <span class="math display">\[\begin{align}
@@ -895,7 +896,7 @@ q _ {d _ {x _ t}} &amp;\approx d _ {x _ {t+1}} - d _ {x _ t}\\
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">85.3k</span>
+    <span title="Site words total count">85.4k</span>
   
 </div>
 <!--
