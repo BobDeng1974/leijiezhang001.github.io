@@ -716,16 +716,17 @@
     <div class="sidebar-inner">
 
       
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            Overview
-          </li>
-        </ul>
+       
+        
+          <ul class="sidebar-nav motion-element">
+            <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+              Table of Contents
+            </li>
+            <li class="sidebar-nav-overview" data-target="site-overview">
+              Overview
+            </li>
+          </ul>
+        
       
 
       <section class="site-overview-wrap sidebar-panel">
@@ -756,7 +757,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">15</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -819,22 +820,24 @@
         </div>
       </section>
 
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
 
-            
+        
+        <!--noindex-->
+          <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+            <div class="post-toc">
+
               
-            
+                
+              
 
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-text">1. 背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#flownet-系列"><span class="nav-text">1.1. FlowNet 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pointnet-系列"><span class="nav-text">1.2. PointNet 系列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#flownet3d-网络结构"><span class="nav-text">2. FlowNet3D 网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#set-conv-layer"><span class="nav-text">2.1. set conv layer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#flow-embedding-layer"><span class="nav-text">2.2. flow embedding layer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#set-upconv-layer"><span class="nav-text">2.3. set upconv layer</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其它细节"><span class="nav-text">3. 其它细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#training-loss"><span class="nav-text">3.1. Training Loss</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#three-meta-architectures"><span class="nav-text">3.2. Three Meta-architectures</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#runtime"><span class="nav-text">3.3.  Runtime</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#applications-scan-registration-motion-segmentation"><span class="nav-text">3.4.  Applications: Scan Registration &amp; Motion Segmentation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实验结果"><span class="nav-text">4. 实验结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">5. 参考文献</span></a></li></ol></div>
-            
+              
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-text">1. 背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#flownet-系列"><span class="nav-text">1.1. FlowNet 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pointnet-系列"><span class="nav-text">1.2. PointNet 系列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#flownet3d-网络结构"><span class="nav-text">2. FlowNet3D 网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#set-conv-layer"><span class="nav-text">2.1. set conv layer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#flow-embedding-layer"><span class="nav-text">2.2. flow embedding layer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#set-upconv-layer"><span class="nav-text">2.3. set upconv layer</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其它细节"><span class="nav-text">3. 其它细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#training-loss"><span class="nav-text">3.1. Training Loss</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#three-meta-architectures"><span class="nav-text">3.2. Three Meta-architectures</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#runtime"><span class="nav-text">3.3.  Runtime</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#applications-scan-registration-motion-segmentation"><span class="nav-text">3.4.  Applications: Scan Registration &amp; Motion Segmentation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实验结果"><span class="nav-text">4. 实验结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">5. 参考文献</span></a></li></ol></div>
+              
 
-          </div>
-        </section>
-      <!--/noindex-->
+            </div>
+          </section>
+        <!--/noindex-->
+        
       
 
       
@@ -864,7 +867,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">86.6k</span>
+    <span title="Site words total count">86.7k</span>
   
 </div>
 <!--

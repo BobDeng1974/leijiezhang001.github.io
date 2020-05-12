@@ -794,16 +794,17 @@ NVIDIA 的 TensorRT<a href="#10" id="10ref"><sup>[10]</sup></a>，TVM<a href="#1
     <div class="sidebar-inner">
 
       
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            Overview
-          </li>
-        </ul>
+       
+        
+          <ul class="sidebar-nav motion-element">
+            <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+              Table of Contents
+            </li>
+            <li class="sidebar-nav-overview" data-target="site-overview">
+              Overview
+            </li>
+          </ul>
+        
       
 
       <section class="site-overview-wrap sidebar-panel">
@@ -834,7 +835,7 @@ NVIDIA 的 TensorRT<a href="#10" id="10ref"><sup>[10]</sup></a>，TVM<a href="#1
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">15</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -897,22 +898,24 @@ NVIDIA 的 TensorRT<a href="#10" id="10ref"><sup>[10]</sup></a>，TVM<a href="#1
         </div>
       </section>
 
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
 
-            
+        
+        <!--noindex-->
+          <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+            <div class="post-toc">
+
               
-            
+                
+              
 
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-scheme"><span class="nav-text">1. Quantization Scheme</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fixed-point-approximation"><span class="nav-text">1.1. Fixed Point Approximation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#range-based-linear-approximation"><span class="nav-text">1.2. Range-Based Linear Approximation</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#asymmetric-mode"><span class="nav-text">1.2.1. Asymmetric Mode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#symmetric-mode"><span class="nav-text">1.2.2. Symmetric Mode</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-alogorithm"><span class="nav-text">2. Quantization Alogorithm</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#post-training-quantization"><span class="nav-text">2.1. Post-Training Quantization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#quantization-aware-training"><span class="nav-text">2.2. Quantization-Aware Training</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#simulated-quantization"><span class="nav-text">2.2.1. Simulated Quantization</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#learning-quantization-ranges"><span class="nav-text">2.2.2. Learning Quantization Ranges</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#batch-normalization-folding"><span class="nav-text">2.2.3. Batch Normalization Folding</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trained-quantization-thresholds"><span class="nav-text">2.3. Trained Quantization Thresholds</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pact"><span class="nav-text">2.3.1. PACT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tqt"><span class="nav-text">2.3.2. TQT</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantized-framework"><span class="nav-text">3. Quantized Framework</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ristretto1"><span class="nav-text">3.1. Ristretto[1]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorflow-lite6qnnpack8ncnn9"><span class="nav-text">3.2. TensorFlow Lite[6]/QNNPACK[8]/NCNN[9]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorrt10"><span class="nav-text">3.3. TensorRT[10]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
-            
+              
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-scheme"><span class="nav-text">1. Quantization Scheme</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fixed-point-approximation"><span class="nav-text">1.1. Fixed Point Approximation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#range-based-linear-approximation"><span class="nav-text">1.2. Range-Based Linear Approximation</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#asymmetric-mode"><span class="nav-text">1.2.1. Asymmetric Mode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#symmetric-mode"><span class="nav-text">1.2.2. Symmetric Mode</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantization-alogorithm"><span class="nav-text">2. Quantization Alogorithm</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#post-training-quantization"><span class="nav-text">2.1. Post-Training Quantization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#quantization-aware-training"><span class="nav-text">2.2. Quantization-Aware Training</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#simulated-quantization"><span class="nav-text">2.2.1. Simulated Quantization</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#learning-quantization-ranges"><span class="nav-text">2.2.2. Learning Quantization Ranges</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#batch-normalization-folding"><span class="nav-text">2.2.3. Batch Normalization Folding</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trained-quantization-thresholds"><span class="nav-text">2.3. Trained Quantization Thresholds</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pact"><span class="nav-text">2.3.1. PACT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tqt"><span class="nav-text">2.3.2. TQT</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quantized-framework"><span class="nav-text">3. Quantized Framework</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ristretto1"><span class="nav-text">3.1. Ristretto[1]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorflow-lite6qnnpack8ncnn9"><span class="nav-text">3.2. TensorFlow Lite[6]/QNNPACK[8]/NCNN[9]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tensorrt10"><span class="nav-text">3.3. TensorRT[10]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
+              
 
-          </div>
-        </section>
-      <!--/noindex-->
+            </div>
+          </section>
+        <!--/noindex-->
+        
       
 
       
@@ -942,7 +945,7 @@ NVIDIA 的 TensorRT<a href="#10" id="10ref"><sup>[10]</sup></a>，TVM<a href="#1
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">86.6k</span>
+    <span title="Site words total count">86.7k</span>
   
 </div>
 <!--

@@ -718,16 +718,17 @@
     <div class="sidebar-inner">
 
       
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            Overview
-          </li>
-        </ul>
+       
+        
+          <ul class="sidebar-nav motion-element">
+            <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+              Table of Contents
+            </li>
+            <li class="sidebar-nav-overview" data-target="site-overview">
+              Overview
+            </li>
+          </ul>
+        
       
 
       <section class="site-overview-wrap sidebar-panel">
@@ -758,7 +759,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">15</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -821,22 +822,24 @@
         </div>
       </section>
 
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
 
-            
+        
+        <!--noindex-->
+          <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+            <div class="post-toc">
+
               
-            
+                
+              
 
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基于原始三维空间操作"><span class="nav-text">1. 基于原始三维空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#问题描述"><span class="nav-text">1.1. 问题描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hbox-的选择"><span class="nav-text">1.2. \(h,\Box\) 的选择</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#euclidean-conv"><span class="nav-text">1.2.1. Euclidean Conv</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet1"><span class="nav-text">1.2.2. PointNet[1]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#deep-parametric-continuous-convoluion2"><span class="nav-text">1.2.3. Deep Parametric Continuous Convoluion[2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet3flownet3d4continuous-fusion-layer5"><span class="nav-text">1.2.4. PointNet++[3]/FlowNet3D[4]/Continuous Fusion Layer[5]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#edgeconvdgcnn6"><span class="nav-text">1.2.5. EdgeConv(DGCNN)[6]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#randla-net7"><span class="nav-text">1.2.6. RandLA-Net[7]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tanet12"><span class="nav-text">1.2.7. TANet[12]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointconv13"><span class="nav-text">1.2.8. PointConv[13]</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于映射空间操作"><span class="nav-text">2. 基于映射空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#bilateral-convolutional-layerbcl8splatnet9hplflownet10"><span class="nav-text">2.1. Bilateral Convolutional Layer(BCL[8])(SPLATNet[9]/HPLFlowNet[10])</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">3. 参考文献</span></a></li></ol></div>
-            
+              
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基于原始三维空间操作"><span class="nav-text">1. 基于原始三维空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#问题描述"><span class="nav-text">1.1. 问题描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hbox-的选择"><span class="nav-text">1.2. \(h,\Box\) 的选择</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#euclidean-conv"><span class="nav-text">1.2.1. Euclidean Conv</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet1"><span class="nav-text">1.2.2. PointNet[1]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#deep-parametric-continuous-convoluion2"><span class="nav-text">1.2.3. Deep Parametric Continuous Convoluion[2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointnet3flownet3d4continuous-fusion-layer5"><span class="nav-text">1.2.4. PointNet++[3]/FlowNet3D[4]/Continuous Fusion Layer[5]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#edgeconvdgcnn6"><span class="nav-text">1.2.5. EdgeConv(DGCNN)[6]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#randla-net7"><span class="nav-text">1.2.6. RandLA-Net[7]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tanet12"><span class="nav-text">1.2.7. TANet[12]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pointconv13"><span class="nav-text">1.2.8. PointConv[13]</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于映射空间操作"><span class="nav-text">2. 基于映射空间操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#bilateral-convolutional-layerbcl8splatnet9hplflownet10"><span class="nav-text">2.1. Bilateral Convolutional Layer(BCL[8])(SPLATNet[9]/HPLFlowNet[10])</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文献"><span class="nav-text">3. 参考文献</span></a></li></ol></div>
+              
 
-          </div>
-        </section>
-      <!--/noindex-->
+            </div>
+          </section>
+        <!--/noindex-->
+        
       
 
       
@@ -866,7 +869,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">86.6k</span>
+    <span title="Site words total count">86.7k</span>
   
 </div>
 <!--
