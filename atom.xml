@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-04-27T02:31:31.376Z</updated>
+  <updated>2020-05-12T02:52:01.071Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何搭建一个 ADAS 产品</title>
+    <link href="https://leijiezhang001.github.io/How-to-Build-An-ADAS/"/>
+    <id>https://leijiezhang001.github.io/How-to-Build-An-ADAS/</id>
+    <published>2020-05-07T01:36:23.000Z</published>
+    <updated>2020-05-12T02:52:01.071Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　ADAS(Advanced Driver Assistance System) 高级辅助驾驶系统是指 L3 及 L3 以下的汽车自动化系统。前装 ADAS 一般也包括感知，决策，控制三个部分，而后装 ADAS 则只包括感知，决策两部分，且各功能的决策出口一般就是声音或视觉警报。本文讨论后装 ADAS 系统的设计与搭建过程。<br>　　一个 ADAS 产品的搭建一般涉及到硬件及结构，平台系统，算法功能等。市面上比较有名的 ADAS 产品有基于单目的 Mobileye，Minieye，极目智能等，基于双目的中科慧眼，双髻鲨等，本文讨论一种三目结构的 ADAS 产品搭建过程。</p><h2 id="硬件及结构">1. 硬件及结构</h2><p>　　单目 ADAS 与双目 ADAS 各有优劣，目前最成功的 Mobileye 是基于单目的产品，其优势是成本低，探测范围广，缺点是标定麻烦，测距精度低，算法复杂；而双目的优势是容易自动化标定，测距精度高，缺点则是成本高，探测范围受基线限制。</p><h3 id="镜头">1.1. 镜头</h3><h4 id="参数">1.1.1. 参数</h4><p>　　镜头的作用是汇聚光线到 Sensor 成像。镜头的主要参数有：</p><ul><li><strong>焦距</strong>，焦距决定成像大小，视场角大小，景深大小和画面的透视强弱。</li><li><strong>FOV(视场角)</strong>，分为水平视场角 HFOV 和垂直视场角 VFOV，一般关注 HFOV，焦距越大，HFOV 越小。</li><li><strong>F 值(口径比)</strong>，F = 镜头焦距/光圈直径，表示镜头的透光量。在相同透光量下，长焦的口径要比短焦大。</li><li><strong>光圈</strong>，用来调节进光量。</li><li><strong>景深</strong>，是指当某一物体聚焦清晰时，在该物体前后一段距离内所物体都是清晰的，这段距离叫做景深。</li></ul><h4 id="指标">1.1.2. 指标</h4><p>镜头指标有：</p><ul><li><strong>耀斑，鬼影，炫光</strong>。镜头反射，色散会导致一些列的耀斑，鬼影，炫光的情况，尤其在逆光的场景中。这可以通过镜头表面镀特定的膜，加偏正片等方法来缓解或解决。</li><li><strong>画质清晰度</strong>。通常用 MTF 曲线来评价，最终画质的清晰度是整个成像过程所决定的，比如还要高像素，每个环节都可通过 MTF 评估。</li><li><strong>感光区要大</strong>。经过镜头的光要覆盖 Sensor 感光范围。</li><li><strong>CRA</strong>(Chief Ray of Angle，主光线角度)。镜头与 Sensor 的 CRA 要尽可能一致，以减少 Shading 现象。Shading 是指成像中心比周围更加聚光而导致的光强及色彩偏差。</li><li><strong>光圈</strong>。光圈尽可能大，以透过更多的光。</li><li><strong>畸变</strong>。广角镜头容易产生桶形畸变，长焦镜头容易产生枕形畸变。畸变要尽可能小，当然，一般相机内参标定都能校正畸变，但是导致图像边缘的裁剪。</li></ul><h4 id="景深细节">1.1.3. 景深细节</h4><p><img src="/How-to-Build-An-ADAS/jingshen.jpg" width="70%" height="70%" title="图 1. 景深示意图"> 　　如图 1. 所示，在焦点前后，光线开始聚集和扩散，点的影像变得模糊，形成一个扩大的圆，人眼能够辨认最小的圆称为<strong>容许弥散圆</strong>，蔡司公司制定的标准是，弥散圆直径\(=\frac{1}{1730}\times\)底片对角线长度。焦距越大，光圈越大，景深越浅。<br><img src="/How-to-Build-An-ADAS/focus.png" width="60%" height="60%" title="图 2. 最大景深示意图"> 　　景深与对焦点的关系则比较复杂(对焦是指调节成像面与透镜距离的过程)，首先引入超焦距概念。如图 2. 所示，当镜头对焦在无穷远时，景深前界(离镜头最近清晰点)到镜头的距离称为<strong>超焦距</strong>。当对焦到超焦距点时，获得的景深更深，即近处的盲区更小。超焦距的计算公式为： <span class="math display">\[超焦距 = 焦距 + \frac{焦距 ^2}{弥散圆直径\times 光圈} \tag{1}\]</span> 实际定焦镜头可以直接推算光圈、对焦点、景深的关系。 <img src="/How-to-Build-An-ADAS/demo1.png" width="40%" height="40%" title="图 3. 定焦镜头手动对焦过程1"> <img src="/How-to-Build-An-ADAS/demo2.png" width="40%" height="40%" title="图 4. 定焦镜头手动对焦过程2"> 如图 3. 所示，当光圈为 8 时，对焦在无穷远处，则前景深为 \((3, \infty)\)，无后景深，由定义知此时 3 即为超焦距；当对焦到超焦距 3m 时，前景深为 \((1.5,3)\)，后景深为 \((3,\infty)\)，总的景深为 \((1.5, \infty)\)。所以对焦到超焦距，能获得更小的近处盲区。</p><h3 id="sensor">1.2. Sensor</h3><p>　　ADAS 或自动驾驶应用场景下要求 Sensor 有高感光度(High Sensitivity)，高动态范围(High Dynamic Range)。Sony 官网已经有几款适合自动驾驶场景的 Sensor 可供选择。高感光度及高动态范围也可以通过后期 ISP 改善，但是这样会引入较大噪声，所以如果 Sensor 本身低光照下感光度较高，出入隧道时动态范围较宽，那么后期获得的图像质量就会很高。<br>　　此外 Sony 官网<a href="#1" id="1ref"><sup>[1]</sup></a> 中还提到了频闪消除(LED Flicker Mitigation)，理论上这个可以通过控制曝光时间消除，下面 ISP 章节再做介绍。</p><h3 id="结构-id">1.3. 结构 ID</h3><p>　　结构 ID 需要考虑的方面有：散热，美观，遮光。其中遮光在车内后装产品中非常重要，因为挡风玻璃会将车内的物体反射到镜头内，所以我们看到市面上的 ADAS 产品基本都是都有很长的遮光罩，安装时紧贴挡风玻璃。但是这样也会降低产品的美观成都，所以要不要遮光罩也得看是否影响算法功能，比如对基于深度学习的检测算法基本没有影响，但是对于基于双目的立体匹配算法，影响较大。此外，还有其它方式可以消除或减轻该影响，一是镜头加入偏振片，二是算法端作背景滤出处理，因为时间序列上反射的物体模式是固定的。</p><h3 id="三目硬件选型与设计">1.4. 三目硬件选型与设计</h3><p>　　三目 ADAS 系统由 RGB 主摄及灰度双摄构成，主摄主要用于行车记录仪功能，双目用于目标测距及相关功能实现。各硬件选型的准则为：</p><ul><li><strong>镜头材质</strong>。玻璃材质耐高温成本高，塑胶材质不耐高温成本低，由于车内容易出现高温，所以一般选择玻璃材质。</li><li><strong>对焦</strong>。因为需要远近均能清晰成像，所以要求景深要深，为获得最大的景深，选择对焦到超焦距处，进一步权衡光圈与近处盲区，在焦距确定的情况下，增大光圈，直到盲区符合指标要求。<br></li><li><strong>焦距/视野(FOV)</strong>。主摄因为有行车记录仪的需求，所以可选择 HFOV 大于 100° 的镜头，覆盖 A 柱盲区；双目的 HFOV 可以根据功能需求选择，主要有两方面决定，看远要求 FOV 小，看侧面切入的车则要求 FOV 大，从中作权衡。<br></li><li><strong>Sensor</strong>。在成本允许的情况下，要选高感光度高动态范围的型号。主摄选 4K 像素的，这样在大 FOV 下远处分辨率依然较高。<br></li><li><strong>快门</strong>。主摄的快门可以选用便宜的 rolling shutter，而双目对像素级别的曝光一致性要求较高，所以必须选用 global shutter。<br></li><li><strong>结构</strong>。结构首先要满足功能需求，当然如果算法功能能克服挡风玻璃反射的问题，那么去掉遮光罩会极大提升 ID 美观度。</li></ul><h2 id="平台系统">2. 平台系统</h2><p>　　平台系统不仅要支持</p><p>　　<a href="#2" id="2ref"><sup>[2]</sup></a></p><h3 id="aisp">2.1. 3A+ISP</h3><p>　　3A 指 AE，AF，AWB，自动驾驶应用场景中，不需要自动变焦(上文提到是定焦的)，自动白平衡也是与传统需求一致的，这里比较棘手的是自动曝光 AE 的调节。由于光圈与焦距，以及快门时间是固定的，所以 AE 只可通过 ISO，增益放大系数调节。AE 本质上是一个负反馈系统，可通过 PID 算法进行控制调节，对 AE 的要求是“快，准，稳”。即控制系统的曲线响应要快，能将被控变量-曝光量调节到准确的值，最后曲线震荡收敛要稳。</p><p>频闪</p><h3 id="cpudspgpu">2.2. CPU/DSP/GPU</h3><h2 id="算法功能">3. 算法功能</h2><p>　　ADAS 功能模块主要有车道偏离预警系统(LDWS，Lane Departure Warning System)，前碰撞预警系统(FCW，Forward Collision Warnings)，自适应巡航(ACC，Adaptivecruise Control)等。这里主要介绍基于三目的 LDWS，FCW 功能，以及红绿灯提醒/前车启动提醒小功能。</p><h3 id="标定">3.0. 标定</h3><p>　　三目系统的内外参离线标定已经比较成熟，这里不作展开。其中双目系统中立体视觉对外参精度要求比较高，所以如果双目之间没有刚体连接(DJI 无人机的双目系统目前基本是刚体连接的，所以应该没做在线自标定)，那么外参的在线自标定就非常重要。<br>　　一般的方法是左右目提取特征点，然后最小化重投影误差，从而以较低频率来更新双目之间的外参。</p><h3 id="ldws">3.1. LDWS</h3><h4 id="需求描述">3.1.1. 需求描述</h4><p>　　借鉴华为的产品功能需求分析方法，原始需求-&gt;初始需求-&gt;系统特性-&gt;系统需求。原始需求是产品经理对产品的功能定义及需求；初始需求是工程师针对原始需求分解的算法功能需求；系统特性是工程师对算法功能设定的指标特性；最后，系统需求是工程师为了满足系统特性而分解的最终系统需求。<br>　　LDWS 功能的目的：通过对车道偏离情况的提前预警，降低用户在无意识下偏离车道带来的危险。其原始需求有：</p><ul><li>仅在一定速度以上时开启该功能(如 55km/h);</li><li>对报警实际，精度要求，车道线类别及弯道曲率要求，应符合 JT/T 883, GT/T 26773-2011，ISO 17361 标准；</li><li>夜晚正常工作；</li><li>暴雨、沙尘，大雪等天气，可允许漏报，但是不能误报；</li><li>雨刷、弯道、掉头时，不会导致误报；</li><li>当可以获取到车辆转向灯时，转向灯开启时忽略车道线偏离预警；</li></ul><p>　　为了满足原始需求，可列一些必要的初始需求：</p><ul><li>车道线识别；</li><li>报警交互；</li><li>系统监控；</li><li>感知融合，标定等反馈模块；</li><li>测试功能；</li><li>性能要求符合特定指标；</li><li>生产相关：如生产过程中的初始化标定流程；</li></ul><p>　　由此可进一步推演出系统特性与系统需求，这里不作展开。</p><h3 id="fcw">3.2. FCW</h3><h3 id="红绿灯提醒-前车启动提醒">3.3. 红绿灯提醒 &amp; 前车启动提醒</h3><p>　　前车启动提醒的基本算法模块与 FCW 一致，主要是注意近处盲区的问题。红绿灯提醒包括红绿灯检测与决策提醒两部分。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> https://www.sony-semicon.co.jp/e/products/IS/automotive/technology.html<br>https://zhuanlan.zhihu.com/p/37171453</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　ADAS(Advanced Driver Assistance System) 高级辅助驾驶系统是指 L3 及 L3 以下的汽车自动化系统。前装 ADAS 一般也包括感知，决策，控制三个部分，而后装 ADAS 则只包括感知，决策两部分，且各功能的决策出口一般就是声音或视
+      
+    
+    </summary>
+    
+      <category term="Autonomous Driving System" scheme="https://leijiezhang001.github.io/categories/Autonomous-Driving-System/"/>
+    
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="ADAS" scheme="https://leijiezhang001.github.io/tags/ADAS/"/>
+    
+  </entry>
   
   <entry>
     <title>OctoMap</title>
@@ -577,33 +604,6 @@
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Epistemic Uncertainty for Active Learning</title>
-    <link href="https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/"/>
-    <id>https://leijiezhang001.github.io/Epistemic-Uncertainty-for-Active-Learning/</id>
-    <published>2020-01-04T01:44:00.000Z</published>
-    <updated>2020-01-05T09:33:26.709Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中详细讨论了 Aleatoric Uncertainty 的建模以及应用。本文讨论 Epistemic Uncertainty 的建模，以及在 Active Learning 中的应用。Epistemic Uncertainty 描述了模型因为缺少训练数据而存在的不确定性，所以其可应用于 Active Learning。应用场景有：</p><ul><li><strong>减少训练时间</strong>：在大数据集下，训练时挑选当前模型认知困难的样本，减少训练数据从而减少训练时间；</li><li><strong>减少无效标注</strong>：只挑选当前模型认知困难的样本进行标注、迭代模型；</li></ul><p><img src="/Epistemic-Uncertainty-for-Active-Learning/active_learning.png" width="50%" height="50%" title="图 1. active learning 工作流"> 　　<a href="#1" id="1ref">[1]</a>中提到的一种 Active Learning 工作流如图 1. 所示，重要环节有 Estimating Uncertainty 以及 Querying Data。该工作流假设了<strong>一个完美的图像检测器(至少有个完美的召回率)</strong>，图像检测器提供目标 proposal，3D 检测对 proposal 作 uncertainty 估计，从而确定是否标注。 Estimating Uncertainty 指的是 Epistemic Uncertainty 的建模；Querying Data 则设计一种策略，其能通过估计的 Uncertainty 来选择模型认知困难的样本。<br>　　由于 Epistemic Uncertainty 只能通过 Monte-Carlo 等方法近似得到，这些方法都是基于模型预测的目标进行 Uncertainty 估计的，所以对于漏检的目标，其 Uncertainty 是无法有效获取的。换句话说，本文讨论的 Epistemic Uncertainty 只能抓取预测的正样本(TP)置信度不高，以及误检(FP)的 Uncertainty 信息，无法获得TP置信度非常低的样本 Uncertainty，即完全没见过的目标。<strong>所以基于 Epistemic Uncertainty 的 Active Learning，理论上只能使正样本置信度提高，以及消除误检；对于漏检，需要加入一定的随机性，让模型先“见到”这种类型的目标。</strong></p><h2 id="estimating-epistemic-uncertainty">1. Estimating Epistemic Uncertainty</h2><p>　　针对一批训练数据集\(\{\mathbf{X,Y}\}\)，训练模型 \(\mathbf{y=f^W(x)}\)，在贝叶斯框架下，预测量的后验分布为<a href="#3" id="3ref"><sup>[3]</sup></a>： <span class="math display">\[p\left(\mathbf{y\vert x,X,Y}\right) = \int p\left(\mathbf{y\,|\,f^W(x)}\right) p\left(\mathbf{W\,|\,X,Y}\right)d\mathbf{W} \tag{1}\]</span> 其中 \(p(\mathbf{W\,|\,X,Y})\) 为模型参数的后验分布，描述了模型的不确定性，即 Epistemic Uncertainty；\(p\left(\mathbf{y\,|\,f^W(x)}\right)\) 为观测似然，描述了观测不确定性，即Aleatoric Uncertainty。接下来讨论如何计算 Epistemic Uncertainty。</p><h3 id="分类问题">1.1. 分类问题</h3><p><img src="/Epistemic-Uncertainty-for-Active-Learning/softmax.png" width="60%" height="60%" title="图 2. softmax for unseen data"> 　　如图 2. 所示<a href="#2" id="2ref"><sup>[2]</sup></a>，softmax 可能会对没见过的目标产生较高的概率输出(如误检)。所以不能直接使用分类的概率输出作为 Uncertainty 估计。</p><ul><li><strong>Monte-Carlo Dropout</strong><br><a href="#2" id="2ref">[2]</a>中提出了 Monte-Carlo 近似求解 Epistemic Uncertainty 的方法，其指出：在训练阶段，Dropout 等价于优化网络权重 \(W\) 的 Bernoulli 分布；在测试阶段，使用 Dropout 对样本进行多次测试，能得到模型权重的后验分布，即 Epistemic Uncertainty。由此得到： <span class="math display">\[p(\mathbf{y|x}) \approx \frac{1}{T}\sum^T_{t=1} p(\mathbf{y|x,W}_t) = \frac{1}{T}\sum^T_{t=1}softmax_{(\mathbf{W}_t)}(\mathbf{x}) \tag{2}\]</span> 其中 \(\mathbf{W}_t\) 为第 \(t\) 次 Inference 网络权重。</li><li><strong>Deep Ensembles</strong><br>Deep Ensemble 则是一种非贝叶斯的方法，该方法用不同的初始化方法训练一系列网络 \(\{\mathbf{M} _ e\} _ {e=1}^E\)。那么： <span class="math display">\[p(\mathbf{y|x}) \approx \frac{1}{E}\sum^E_{e=1} p(\mathbf{y|x,M}_e) = \frac{1}{E}\sum^E_{e=1}softmax_{(\mathbf{M}_e)}(\mathbf{x}) \tag{3}\]</span></li></ul><p>　　有了预测的概率后，可用 Shannon Entropy 或者 Mutual Information 来计算目标的信息量，即 Uncertainty。</p><ul><li><strong>Shannon Entropy(SE)</strong><br>SE 计算公式为: <span class="math display">\[\mathcal{H}[\mathbf{y|x}] = -\sum^C_{c=1}p(y=c|\mathbf{x})\,\mathrm{log}\,p(y=c|\mathbf{x}) \tag{4}\]</span></li><li><strong>Mutual Information(MI)</strong><br>由于 Monte-Carlo 以及 Deep Ensembles 获取的是概率分布，以 Monte-Carlo 为例，由此可计算 MI： <span class="math display">\[\mathcal{I}[\mathbf{y;W}] = \mathcal{H}[\mathbf{y|x}] - \mathbb{E}\mathcal{H}[\mathbf{y|x,W}] \approx \mathcal{H}[\mathbf{y|x}] + \frac{1}{T}\sum_{t=1}^T\sum_{c=1}^Cp(y=c|\mathbf{x,W}_t)\,\mathrm{log}\,p(y=c|\mathbf{x,W}_t) \tag{5}\]</span></li></ul><p>　　SE 测量的是预测 Uncertainty，MI 测量的是模型对该数据的 Uncertainty。根据该 Uncertainty，即可挑选样本进行标注。Uncertainty 越高，代表该样本对模型的信息量更大，所以需要进一步标注来训练模型。</p><h3 id="回归问题">1.2. 回归问题</h3><p>　　Monte-Carlo 采样下，假设获得的回归量为 \(\{\mathbf{v}\}_{t=1}^T\)。那么其均值和方差为： <span class="math display">\[\left\{\begin{array}{l}\mathcal{M}_{\mathbf{v}} \approx \frac{1}{T}\sum_{t=1}^T\mathbf{v}_t \\\mathcal{C}_{\mathbf{v}} = \frac{1}{T}\sum_{t=1}^T\mathbf{v}_t\mathbf{v}_t^T-\mathcal{M}_{\mathbf{v}}\mathcal{M}_{\mathbf{v}}^T\end{array}\tag{6}\right.\]</span> 由此得到回归量的 Uncertainty： <span class="math display">\[TV_{\mathbf{v}} = trace\left(\mathcal{C}_{\mathbf{v}} \right) \tag{7}\]</span> 该 Uncertainty 越大，说明该数据对模型的信息也越多，所以可进一步标注训练。</p><h2 id="metrics">2. Metrics</h2><p>TODO</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Feng, Di, et al. &quot;Deep active learning for efficient training of a lidar 3d object detector.&quot; arXiv preprint arXiv:1901.10609 (2019).<br><a id="2" href="#2ref">[2]</a> Gal, Yarin. Uncertainty in deep learning. Diss. PhD thesis, University of Cambridge, 2016.<br><a id="3" href="#1ref">[3]</a> Feng, Di, Lars Rosenbaum, and Klaus Dietmayer. &quot;Towards safe autonomous driving: Capture uncertainty in the deep neural network for lidar 3d vehicle detection.&quot; 2018 21st International Conference on Intelligent Transportation Systems (ITSC). IEEE, 2018.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　&lt;a href=&quot;/Heteroscedastic-Aleatoric-Uncertainty/&quot; title=&quot;Heteroscedastic Aleatoric Uncertainty&quot;&gt;Heteroscedastic Aleatoric Uncertainty&lt;/
-      
-    
-    </summary>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/categories/Uncertainty/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
     
   </entry>
   
