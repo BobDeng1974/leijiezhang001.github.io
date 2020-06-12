@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-05-22T10:04:17.044Z</updated>
+  <updated>2020-06-12T02:22:23.113Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
@@ -570,37 +601,6 @@
       <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
     
       <category term="Model Compression" scheme="https://leijiezhang001.github.io/tags/Model-Compression/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Ground Segmentation with Gaussian Process</title>
-    <link href="https://leijiezhang001.github.io/Ground-Segmentation-with-Gaussian-Process/"/>
-    <id>https://leijiezhang001.github.io/Ground-Segmentation-with-Gaussian-Process/</id>
-    <published>2020-01-21T09:00:34.000Z</published>
-    <updated>2020-02-01T08:53:34.072Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　地面分割可作为自动驾驶系统的一个重要模块，本文介绍一种基于高斯过程的地面分割方法。</p><h2 id="算法概要">1. 算法概要</h2><p><img src="/Ground-Segmentation-with-Gaussian-Process/ground_seg.png" width="80%" height="80%" title="图 1. ground segmentation"> 　　为了加速，本方法<a href="#1" id="1ref"><sup>[1]</sup></a>将三维地面分割问题分解为多个一维高斯过程来求解，如图 1. 所示，其步骤为：</p><ol type="1"><li><strong>Polar Grid Map</strong><br>将点云用极坐标栅格地图表示，二维地面估计分解成射线方向的多个一维地面估计；</li><li><strong>Line Fitting</strong><br>在每个一维方向，根据梯度大小，作可变数量的线段拟合；</li><li><strong>Seed Estimation</strong><br>在半径 \(B\) 范围内，如果某个 Grid 绝对高度(Grid 高度定义为该 Grid 内所有点的最小高度，其绝对高度则是与本车传感器所在地面的比较)大于 \(T_s\)，那么就将其作为 Seed；</li><li><strong>Ground Model Estimation with Gaussian Process</strong><br>采用高斯过程生成每个一维方向 Grid 的地面估计量，这里为了进一步加速，可以删除冗余的 Seed；根据地面估计模型，将满足模型的 Grid 加入 Seed，更新模型，迭代直至收敛，满足模型的 Seed 条件为： <span class="math display">\[\begin{align}V[z]&amp;\leq  t_{model}\\\frac{|z_*-\bar{z}|}{\sqrt{\sigma^2_n+V[z]}} &amp;\leq t_{data}\end{align} \tag{0}\]</span></li><li><strong>Point-wise Segmentation</strong><br>得到地面估计模型后，就得到了每个 Grid 是否为地面的标签量，对于属于地面标签量的 Grid 内的点，与 Grid 高度的相对高度小于 \(T_r\)，则认为该点属于地面。</li></ol><h2 id="高斯过程">2. 高斯过程</h2><p>　　步骤四中用高斯过程来估计地面模型，对于每个极射线方向的 Grids，假设有 \(n\) 个已经确定是地面的训练集：\(D=\{(r _ i,z _ i)\} _ {i=1}^n\)。根据高斯过程定义，这些样本的联合概率分布为： <span class="math display">\[p(Z|R)\sim N(f(R)+\mu,K) \tag{1}\]</span> 其中 \(R=[r_1,...,r_n]^T\) 为每个 Grid 的距离量，\(Z=[z_1,...,z_n]^T\) 为该 Grid 地面高度，\(f(\cdot)\)为高斯过程要回归的函数。\(\mu\) 设计为零，协方差矩阵 \(K\) 表示变量之间的关系，由协方差方程与噪音项构成： <span class="math display">\[K(r_i,r_j)=k(r_i,r_j)+\sigma^2_n\delta_{ij}\tag{2}\]</span> 其中当且仅当 \(i==j\) 时 \(\delta _ {ij} =1\)。<br>　　一般的协方差方程是静态，同向的(stationary, isotropic): <span class="math display">\[k(r_i,r_j)=\sigma_f^2\mathrm{exp}\left(-\frac{(r_i-r_j)^2}{2l^2}\right) \tag{3}\]</span> 其中 \(\sigma_f^2\) 是信号协方差，\(l\) 是 length-scale。该方程假设了全空间内 length-scale 的一致性，然而实际上，<strong>越平坦的地面区域，我们需要越大的 length-scale，因为此时该区域对周围区域的概率输出能更大</strong>，所以可进一步设计协方差方程为: <span class="math display">\[k(r_i,r_j)=\sigma_f^2\left(l_i^2\right)^{\frac{1}{4}}\left(l_j^2\right)^{\frac{1}{4}}\left(\frac{l_i^2+l_j^2}{2}\right)^{-\frac{1}{2}}  \mathrm{exp}\left(-\frac{2(r_i-r_j)^2}{l_i^2+l_j^2}\right) \tag{4}\]</span> 其中 \(l_i\) 为位置 \(r_i\) 的 length-scale。\(l_i\) 由该位置距离最近的线段梯度决定(步骤二): <span class="math display">\[l_i=\left\{\begin{array}{l}a\cdot \mathrm{log}\left(\frac{1}{|g(r_i)|}\right) \,\, if\, |g(r_i)|&gt;g_{def}\\a\cdot \mathrm{log}\left(\frac{1}{|g_{def}|}\right) \,\, otherwise\end{array}\tag{5}\right.\]</span> 　　高斯回归预测的过程为，对于测试集 \(T=(r_\ast,z_\ast)\)，其与训练集的联合概率分布为： <span class="math display">\[\begin{bmatrix}Z\\z_\ast\\\end{bmatrix}\simN\left(0,\begin{bmatrix}K(R,R) &amp; K(R,r_\ast)\\K(r_\ast,R) &amp; K(r_\ast,r_\ast)\\\end{bmatrix}\right)\tag{6}\]</span> 那么，高斯过程回归预测为： <span class="math display">\[\begin{align}\bar{z}_\ast &amp;=K(r_\ast,R)K^{-1}Z\\V[z_\ast] &amp;= K(r_\ast,r_\ast)-K(r_\ast,R)K^{-1}K(R,r_\ast)\end{align} \tag{7}\]</span> 由此得到测试集的预测量，由式(0)可决定该测试量是否标记为地面，进一步迭代估计地面模型，直至收敛。<br>　　需要注意的是，以上我们假设高斯过程的超参数 \(\theta=\{\sigma_f,a,\sigma_n\}\) 是已知的，实际应用中，可以将超参数设定为经验量，也可以基于训练集用 SGD 学习出一个最优量，这里不做展开。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Chen, Tongtong, et al. &quot;Gaussian-process-based real-time ground segmentation for autonomous land vehicles.&quot; Journal of Intelligent &amp; Robotic Systems 76.3-4 (2014): 563-582.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　地面分割可作为自动驾驶系统的一个重要模块，本文介绍一种基于高斯过程的地面分割方法。&lt;/p&gt;
-&lt;h2 id=&quot;算法概要&quot;&gt;1. 算法概要&lt;/h2&gt;
-&lt;p&gt;&lt;img src=&quot;/Ground-Segmentation-with-Gaussian-Process/ground
-      
-    
-    </summary>
-    
-      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/categories/Semantic-Segmentation/"/>
-    
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="Segmentation" scheme="https://leijiezhang001.github.io/tags/Segmentation/"/>
     
   </entry>
   

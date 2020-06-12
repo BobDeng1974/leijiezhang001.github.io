@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="autonomous driving,MOT,tracking,">
+  <meta name="keywords" content="Deep Learning,3D Detection,paper reading,Autonomous Driving,">
 
 
 
@@ -88,20 +88,23 @@
 
 
 
-<meta name="description" content="同一传感器的目标状态估计在卡尔曼滤波器在三维目标状态估计中的应用中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是数据前融合，特征级融合，目标状态后融合。本文关注目标状态后融合过程。 1. 问题描述 　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米">
-<meta name="keywords" content="autonomous driving,MOT,tracking">
+<meta name="description" content="俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文[1] 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。 1. Framework  　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测">
+<meta name="keywords" content="Deep Learning,3D Detection,paper reading,Autonomous Driving">
 <meta property="og:type" content="article">
-<meta property="og:title" content="MOT Multimodal Fusion">
-<meta property="og:url" content="https://leijiezhang001.github.io/MOT-Fusion/index.html">
+<meta property="og:title" content="[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;">
+<meta property="og:url" content="https://leijiezhang001.github.io/DENFIDet/index.html">
 <meta property="og:site_name" content="LeijieZhang">
-<meta property="og:description" content="同一传感器的目标状态估计在卡尔曼滤波器在三维目标状态估计中的应用中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是数据前融合，特征级融合，目标状态后融合。本文关注目标状态后融合过程。 1. 问题描述 　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米">
+<meta property="og:description" content="俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文[1] 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。 1. Framework  　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测">
 <meta property="og:locale" content="default">
-<meta property="og:image" content="https://leijiezhang001.github.io/MOT-Fusion/affinity.png">
-<meta property="og:updated_time" content="2020-02-23T09:24:02.959Z">
+<meta property="og:image" content="https://leijiezhang001.github.io/DENFIDet/framework.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/DENFIDet/DBPM.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/DENFIDet/dconv.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/DENFIDet/DSDC.png">
+<meta property="og:updated_time" content="2020-06-12T02:22:23.113Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="MOT Multimodal Fusion">
-<meta name="twitter:description" content="同一传感器的目标状态估计在卡尔曼滤波器在三维目标状态估计中的应用中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是数据前融合，特征级融合，目标状态后融合。本文关注目标状态后融合过程。 1. 问题描述 　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米">
-<meta name="twitter:image" content="https://leijiezhang001.github.io/MOT-Fusion/affinity.png">
+<meta name="twitter:title" content="[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;">
+<meta name="twitter:description" content="俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文[1] 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。 1. Framework  　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测">
+<meta name="twitter:image" content="https://leijiezhang001.github.io/DENFIDet/framework.png">
 
 
 
@@ -131,13 +134,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/MOT-Fusion/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/DENFIDet/">
 
 
 
 
 
-  <title>MOT Multimodal Fusion | LeijieZhang</title>
+  <title>[paper_reading]-"Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds" | LeijieZhang</title>
   
 
 
@@ -353,7 +356,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/MOT-Fusion/">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/DENFIDet/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Leijie">
@@ -370,7 +373,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">MOT Multimodal Fusion</h1>
+          <h1 class="post-title" itemprop="name headline">[paper_reading]-"Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds"</h1>
         
 
         <div class="post-meta">
@@ -383,15 +386,15 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-02-19T12:35:40+08:00">
-                2020-02-19
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-05-22T11:27:38+08:00">
+                2020-05-22
               </time>
             
             
               <span class="post-updated">
                 &nbsp; | &nbsp; Updated on
-                <time itemprop="dateUpdated" datetime="2020-02-23T17:24:02+08:00" content="2020-02-23">
-                  2020-02-23
+                <time itemprop="dateUpdated" datetime="2020-06-12T10:22:23+08:00" content="2020-06-12">
+                  2020-06-12
                 </time>
               </span>
             
@@ -414,8 +417,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MOT/" itemprop="url" rel="index">
-                    <span itemprop="name">MOT</span>
+                  <a href="/categories/3D-Detection/" itemprop="url" rel="index">
+                    <span itemprop="name">3D Detection</span>
                   </a>
                 </span>
 
@@ -450,7 +453,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  1.4k 字
+                  801 字
                 </span>
               
 
@@ -466,7 +469,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  6 分钟
+                  3 分钟
                 </span>
               
             </div>
@@ -487,41 +490,25 @@
       
 
       
-        <p>　　同一传感器的目标状态估计在<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是<strong>数据前融合，特征级融合，目标状态后融合</strong>。本文关注目标状态后融合过程。</p>
-<h2 id="问题描述">1. 问题描述</h2>
-<p>　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米波雷达等)检测输出的(也可以是经过滤波的)多目标分别为：\(A=\{A _ i\in\mathbb{R}^D|i=1,...,M\}\)，\(B=\{B _ i\in\mathbb{R}^D|i=1,...,N\}\)，其中 \(\mathbb{R}^D\) 表示目标状态的维数，如位置，速度，朝向，类别等。MOT 的多模态后融合问题即由此求解融合后结果 \(C=\{C _ i\in\mathbb{R}^D|i=1,...,L\}\)，该过程主要有三步：</p>
-<ol type="1">
-<li>目标匹配/数据关联：从 \(A,B\) 中找出同一目标的两个多模态观测量，设匹配数为 \(K\)；</li>
-<li>目标状态的多模态融合：对匹配上的同一目标的两个多模态观测进行融合；</li>
-<li>整合目标，经过滤波输出最终结果，目标数目为 \(L=M+N-K\)；</li>
-</ol>
-<h2 id="目标匹配">2. 目标匹配</h2>
-<p>　　本质上与单传感器下目标状态估计中前后帧的数据关联问题一致，这里的关键步骤是：</p>
-<ol type="1">
-<li>提取每个目标的特征向量：可以是位置，速度，角度，CNN特征层等；</li>
-<li>构建 cost function：对两个目标集合建立 Cost 矩阵；</li>
-<li>匈牙利算法找出最优匹配；</li>
-</ol>
-<p>　　传统的 cost function 基本是向量的 Euclidean 距离或是 cosine 距离，<a href="#1" id="1ref">[1]</a> 提出了一种 Deep Affinity Network 来一次性解决两个目标集合的匹配问题。 <img src="/MOT-Fusion/affinity.png" width="70%" height="70%" title="图 1. Affinity Network"> 　　如图 1. 所示，两个目标集 \(A\in\mathbb{R}^{M\times D}\)，\(B\in\mathbb{R}^{N\times D}\)，扩展到维度 \(\mathbb{R}^{M\times N\times D}\)，相减后输入到网络中，预测出 affinity matrix，\(C\in\mathbb{R}^{M\times N}\)，其中 \(C _ {ij}=1\) 表示匹配上同一目标，否则认为是两个目标。这里关键是 Loss 的设计，最简单的 Loss 为： <span class="math display">\[L(A,B)=\frac{1}{MN}\sum _ {i=1} ^ {M}\sum _ {j=1}^N |C _ {ij}-G _ {ij}| \tag{1}\]</span> 其中 \(G\) 为亲和度矩阵的 groundtruth。实际对亲和度矩阵并没有 0-1 要求，最终是通过匈牙利算法找出匹配的，所以只要将同一目标的分数增大，不同目标的分数减小，最终即可选出匹配。由此设计 Loss： <span class="math display">\[L(A,B)=\sum _ {i,\,j;\,G _ {ij}=1} \left(\sum _ {k;\,G _ {ik}\neq 1}\mathrm{max}(0,C _ {ik}-C _ {ij}+m)+\sum _ {p;\,G _ {pj}\neq 1}\mathrm{max}(0,C _ {pj}-C _ {ij}+m)\right)\tag{2}\]</span> 其中 \(m\) 控制正负样本的相对大小。式(2)更容易使网络收敛。</p>
-<h2 id="多模态融合">3. 多模态融合</h2>
-<p>　　当多传感器检测的同一目标匹配上后，需要融合出一个最终的观测。可以采用卡尔曼滤波的方法，<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中的式(1)~(6)是时序下状态估计的迭代过程。对于多模态融合，虽然是同时获取的观测，但是融合过程类似，令测量矩阵 \(H _ k\) 为单位阵，所以可得卡尔曼增益： <span class="math display">\[K _ k=\frac{\bar{P} _ k}{\bar{P} _ k+R _ k} \tag{3}\]</span> 由此计算后验概率<a href="#2" id="2ref"><sup>[2]</sup></a>： <span class="math display">\[\begin{align}
-\hat{x} _ k &amp;=\bar{x} _ k+K(z_k-\bar{x}) = \frac{\bar{P} _ kz _ k + \bar{x} _ kR _ k}{\bar{P} _ k+R _ k} \tag{4}\\
-\hat{P} _ k &amp;=(I-KH _ k)\bar{P} _ k =\frac{\bar{P} _ kR _ k}{\bar{P} _ k+R _ k}\tag{5}
-\end{align}\]</span> 对于多模态输入 \(A,B\)，令 \(A = \bar{x} _ k,\sigma _ A^2 = \bar{P} _ k\)，\(B=z _ k,\sigma _ B^2 =R _ k\)，可得多模态融合结果为： <span class="math display">\[\begin{align}
-C &amp;= \frac{\sigma _ A^2B+\sigma _ B^2A}{\sigma _ A^2+\sigma _ B^2}\\
-\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\
-\tag{6}\end{align}\]</span> 式(6)等价于： <span class="math display">\[\begin{align}
-\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\
-C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\\
-\tag{7}\end{align}\]</span> 这是 BCM<a href="#3" id="3ref"><sup>[3]</sup></a>！卡尔曼滤波器也是在贝叶斯概率模型下导出来的，可见两个高斯分布的同一状态的观测量，均可通过 BCM 进行融合。<br>
-　　得到当前时刻多模态融合后的目标状态后，即可进一步作时序卡尔曼平滑获得最终估计的目标状态。<br>
-　　另一种融合方法是在 JPDAF(Joint Probabilistic Data Association Filter)<a href="#4" id="4ref"><sup>[4]</sup></a>框架下作两次 PDA 融合<a href="#5" id="5ref"><sup>[5]</sup></a>，JPDAF 是另一种数据关联(目标匹配)的方法，这里不作展开。</p>
-<h2 id="reference">4. Reference</h2>
-<p><a id="1" href="#1ref">[1]</a> Kuang, Hongwu, et al. &quot;Multi-Modality Cascaded Fusion Technology for Autonomous Driving.&quot; arXiv preprint arXiv:2002.03138 (2020).<br>
-<a id="2" href="#2ref">[2]</a> Fankhauser, Péter, et al. &quot;Robot-centric elevation mapping with uncertainty estimates.&quot; Mobile Service Robotics. 2014. 433-440.<br>
-<a id="3" href="#3ref">[3]</a> Tresp, Volker. &quot;A Bayesian committee machine.&quot; Neural computation 12.11 (2000): 2719-2741.<br>
-<a id="4" href="#4ref">[4]</a> Arya Senna Abdul Rachman, Arya. &quot;3D-LIDAR Multi Object Tracking for Autonomous Driving: Multi-target Detection and Tracking under Urban Road Uncertainties.&quot; (2017).<br>
-<a id="5" href="#5ref">[5]</a> JRMOT: A Real-Time 3D Multi-Object Tracker and a New Large-Scale Dataset</p>
+        <p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p>
+<h2 id="framework">1. Framework</h2>
+<p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p>
+<h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2>
+<h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3>
+<p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p>
+<ul>
+<li>分类分支<br>
+分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li>
+<li>回归分支<br>
+回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li>
+</ul>
+<p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>
+　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>
+　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p>
+<h3 id="denficonv">2.2. DENFIConv</h3>
+<p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p>
+<h2 id="reference">3. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>
 
       
     </div>
@@ -576,7 +563,7 @@ C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://leijiezhang001.github.io/MOT-Fusion/" title="MOT Multimodal Fusion">https://leijiezhang001.github.io/MOT-Fusion/</a>
+    <a href="https://leijiezhang001.github.io/DENFIDet/" title="[paper_reading]-" boundary-aware dense feature indicator for single-stage 3d object detection from point clouds"">https://leijiezhang001.github.io/DENFIDet/</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -592,11 +579,13 @@ C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\
       
         <div class="post-tags">
           
-            <a href="/tags/autonomous-driving/" rel="tag"><i class="fa fa-tag"></i> autonomous driving</a>
+            <a href="/tags/Deep-Learning/" rel="tag"><i class="fa fa-tag"></i> Deep Learning</a>
           
-            <a href="/tags/MOT/" rel="tag"><i class="fa fa-tag"></i> MOT</a>
+            <a href="/tags/3D-Detection/" rel="tag"><i class="fa fa-tag"></i> 3D Detection</a>
           
-            <a href="/tags/tracking/" rel="tag"><i class="fa fa-tag"></i> tracking</a>
+            <a href="/tags/paper-reading/" rel="tag"><i class="fa fa-tag"></i> paper reading</a>
+          
+            <a href="/tags/Autonomous-Driving/" rel="tag"><i class="fa fa-tag"></i> Autonomous Driving</a>
           
         </div>
       
@@ -609,8 +598,8 @@ C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Quantization/" rel="next" title="Model Compression - 'Quantization'">
-                <i class="fa fa-chevron-left"></i> Model Compression - 'Quantization'
+              <a href="/SA-SSD/" rel="next" title="[paper_reading]-" sa-ssd: structure aware single-stage 3d object detection from point cloud"">
+                <i class="fa fa-chevron-left"></i> [paper_reading]-"SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud"
               </a>
             
           </div>
@@ -618,10 +607,6 @@ C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/Point-based-3D-Det/" rel="prev" title="Point-based 3D Detetection">
-                Point-based 3D Detetection <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -793,7 +778,7 @@ C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\
               
 
               
-                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题描述"><span class="nav-text">1. 问题描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#目标匹配"><span class="nav-text">2. 目标匹配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多模态融合"><span class="nav-text">3. 多模态融合</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">4. Reference</span></a></li></ol></div>
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#framework"><span class="nav-text">1. Framework</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#denfidense-feature-indicator"><span class="nav-text">2. DENFI(Dense Feature Indicator)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#dbpmdense-boundary-proposal-module"><span class="nav-text">2.1. DBPM(Dense Boundary Proposal Module)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#denficonv"><span class="nav-text">2.2. DENFIConv</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">3. Reference</span></a></li></ol></div>
               
 
             </div>
