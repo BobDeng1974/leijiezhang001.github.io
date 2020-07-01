@@ -17,6 +17,35 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Rethinking of Sparse 3D Convolution</title>
+    <link href="https://leijiezhang001.github.io/Rethinking-of-Sparse-3D-Convolution/"/>
+    <id>https://leijiezhang001.github.io/Rethinking-of-Sparse-3D-Convolution/</id>
+    <published>2020-06-23T09:37:12.000Z</published>
+    <updated>2020-06-25T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　Sparse 3D Convolution 最早在<a href="#1" id="1ref">[1]</a>中提出，然后该作者又提出了 Submanifold Sparse Convolution<a href="#2" id="2ref"><sup>[2]</sup></a>，并将其应用于 3D 语义分割中<a href="#3" id="3ref"><sup>[3]</sup></a>。<a href="#4" id="4ref">[4]</a>则改进了 Sparse 3D Convolution 的实现方式，并应用于 3D 目标检测中。之前一直没仔细看 Sparse 3D Convolution 原理，以为只是基于稀疏矩阵的矩阵相乘加速，最近的一些实验发现 Sparse 3D Convolution 在点云相关的任务中不仅仅是加速，还能提升网络特征提取的性能，所以回过头来重新思考 Sparse 3D Convolution 原理及作用。</p><h2 id="sparse-convolution">1. Sparse Convolution</h2><p><img src="/Rethinking-of-Sparse-3D-Convolution/spconv.png" width="85%" height="85%" title="图 1. sparse VS. submanifold sparse"> 　　如图 1. 左图所示，对于稀疏的特征输入，传统的 Sparse Convolution 与 Convolution 一致，只是对于卷积核覆盖的输入特征为零的区域不做计算，直接置为零。这种方式下，随着卷积层的增加，特征层会变得不那么稀疏，这样不仅使得计算量上升，而且会使得提取的信息变得不那么准确。</p><h2 id="submanifold-sparse-convolution">2. Submanifold Sparse Convolution</h2><p>　　如图 1. 右图所示，Submanifold Sparse Convolution 解决了 Sparse Convolution 存在的问题。原理也很直观：只计算输出特征层映射到输入特征层不为零的位置区域。这种方式下，随着卷积层的增加，不仅能保持稀疏性，而且能保证原始信息的准确性。 <img src="/Rethinking-of-Sparse-3D-Convolution/flops.png" width="85%" height="85%" title="图 2. Flops"> 　　如图 2. 所示，Sparse Convolution 相比传统的 Convolution 已经能减少较多的计算量，而 Submanifold Sparse Convolution 则能减少更多的计算量。特征输入越稀疏，减少的计算量就越多，这对点云的三维特征提取，或者是俯视图下的二维特征提取有很大的帮助。</p><h2 id="implementation">3. Implementation</h2><p><img src="/Rethinking-of-Sparse-3D-Convolution/speed.png" width="85%" height="85%" title="图 3. Speed"> 　　<a href="#2" id="2ref">[2]</a> 中实现了 Submanifold Sparse Convolution，其中的卷积运算是手写的矩阵相乘，所以速度较慢；<a href="#4" id="4ref">[4]</a> 则基于 GEMM 实现了更高效的 Submanifold Sparse Convolution。如图 3. 所示，其有将近一倍的速度提升。 <img src="/Rethinking-of-Sparse-3D-Convolution/imple.png" width="90%" height="90%" title="图 4. Implementation"> 　　图 4. 描述了<a href="#4" id="4ref">[4]</a>实现的 Submanifold Sparse Convolution 原理。其首先通过 gather 操作将非零的元素进行矩阵相乘，然后通过 scatter 操作将结果映射回原位置。为了加速，前后元素的映射矩阵计算比较关键，这里实现了一种 GPU 计算方法，这里不做展开。</p><h2 id="application">4. Application</h2><p><img src="/Rethinking-of-Sparse-3D-Convolution/second.png" width="90%" height="90%" title="图 5. SECOND Framework"> 　　Submanifold Sparse Convolution 可应用于点云的分类，分割，检测等任务的特征提取中，SECOND<a href="#4" id="4ref"><sup>[4]</sup></a>是一种点云检测方法，如图 5. 所示，其检测框架与传统的一致，只是将体素化后的点云特征信息，进一步用 Sparse Convolution 来作特征提取。该方法不仅速度较快，而且性能也有不少提升。所以 Submanifold Sparse Convolution 是非常高效的，可作为点云特征提取的基本操作。但是传统的 Convolution，在 GPU 平台下，已经有较多的硬件级优化(cudnn)，在 CPU 平台下也有很多的指令集优化，所以最终在特定硬件下作 Inference 时，到底 Submanifold Sparse Convolution 速度能提升多少，还得看 Submanifold Sparse Convolution 实现的好不好。不过可以猜测，在目前的实现下，Submanifold Sparse Convolution 在 GPU 平台下应该能有不少的速度提升。<br>　　此外，传统的卷积量化操作也比较成熟，cudnn 已经有基本的操作引擎，而 Submanifold Sparse Convolution 的 INT8 引擎则目前还没有。所以 float32/float16 的 Submanifold Sparse Convolution 与 INT8 的 Convolution，孰快孰慢？这两条路大概就是部署的思路了，当然 INT8 的 Submanifold Sparse Convolution 会更好，但是开发成本会比较高。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> Graham, Ben. &quot;Sparse 3D convolutional neural networks.&quot; arXiv preprint arXiv:1505.02890 (2015).<br><a id="2" href="#2ref">[2]</a> Graham, Benjamin, and Laurens van der Maaten. &quot;Submanifold sparse convolutional networks.&quot; arXiv preprint arXiv:1706.01307 (2017).<br><a id="3" href="#3ref">[3]</a> Graham, Benjamin, Martin Engelcke, and Laurens Van Der Maaten. &quot;3d semantic segmentation with submanifold sparse convolutional networks.&quot; Proceedings of the IEEE conference on computer vision and pattern recognition. 2018.<br><a id="4" href="#4ref">[4]</a> Yan, Yan, Yuxing Mao, and Bo Li. &quot;Second: Sparsely embedded convolutional detection.&quot; Sensors 18.10 (2018): 3337.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　Sparse 3D Convolution 最早在&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;[1]&lt;/a&gt;中提出，然后该作者又提出了 Submanifold Sparse Convolution&lt;a href=&quot;#2&quot; id=&quot;2ref&quot;&gt;&lt;sup&gt;[2]&lt;/sup
+      
+    
+    </summary>
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/categories/Deep-Learning/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;End-to-End Pseudo-LiDAR for Image-Based 3D Object Detection&quot;</title>
     <link href="https://leijiezhang001.github.io/End-to-End-Pseudo-LiDAR-for-3D-Det/"/>
     <id>https://leijiezhang001.github.io/End-to-End-Pseudo-LiDAR-for-3D-Det/</id>
@@ -66,37 +95,6 @@
       
       
         &lt;p&gt;　　相机能很好的捕捉场景的语义信息，激光雷达则能很好的捕捉场景的三维信息，所以图像与点云的融合，对检测，分割等任务有非常大的帮助。融合可分为，&lt;strong&gt;数据级或特征级的前融合&lt;/strong&gt;，以及&lt;strong&gt;任务级的后融合&lt;/strong&gt;。本文&lt;a href=
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
       
     
     </summary>
@@ -175,6 +173,37 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -591,35 +620,6 @@
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MOT Multimodal Fusion</title>
-    <link href="https://leijiezhang001.github.io/MOT-Fusion/"/>
-    <id>https://leijiezhang001.github.io/MOT-Fusion/</id>
-    <published>2020-02-19T04:35:40.000Z</published>
-    <updated>2020-02-23T09:24:02.959Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　同一传感器的目标状态估计在<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相机在低光照下可靠性较差，而激光雷达能弥补这个缺陷。所以在目标状态估计中，多传感器融合非常重要，可以是<strong>数据前融合，特征级融合，目标状态后融合</strong>。本文关注目标状态后融合过程。</p><h2 id="问题描述">1. 问题描述</h2><p>　　考虑两个传感器 \(A,B\) (传感器可为相机，激光雷达，毫米波雷达等)检测输出的(也可以是经过滤波的)多目标分别为：\(A=\{A _ i\in\mathbb{R}^D|i=1,...,M\}\)，\(B=\{B _ i\in\mathbb{R}^D|i=1,...,N\}\)，其中 \(\mathbb{R}^D\) 表示目标状态的维数，如位置，速度，朝向，类别等。MOT 的多模态后融合问题即由此求解融合后结果 \(C=\{C _ i\in\mathbb{R}^D|i=1,...,L\}\)，该过程主要有三步：</p><ol type="1"><li>目标匹配/数据关联：从 \(A,B\) 中找出同一目标的两个多模态观测量，设匹配数为 \(K\)；</li><li>目标状态的多模态融合：对匹配上的同一目标的两个多模态观测进行融合；</li><li>整合目标，经过滤波输出最终结果，目标数目为 \(L=M+N-K\)；</li></ol><h2 id="目标匹配">2. 目标匹配</h2><p>　　本质上与单传感器下目标状态估计中前后帧的数据关联问题一致，这里的关键步骤是：</p><ol type="1"><li>提取每个目标的特征向量：可以是位置，速度，角度，CNN特征层等；</li><li>构建 cost function：对两个目标集合建立 Cost 矩阵；</li><li>匈牙利算法找出最优匹配；</li></ol><p>　　传统的 cost function 基本是向量的 Euclidean 距离或是 cosine 距离，<a href="#1" id="1ref">[1]</a> 提出了一种 Deep Affinity Network 来一次性解决两个目标集合的匹配问题。 <img src="/MOT-Fusion/affinity.png" width="70%" height="70%" title="图 1. Affinity Network"> 　　如图 1. 所示，两个目标集 \(A\in\mathbb{R}^{M\times D}\)，\(B\in\mathbb{R}^{N\times D}\)，扩展到维度 \(\mathbb{R}^{M\times N\times D}\)，相减后输入到网络中，预测出 affinity matrix，\(C\in\mathbb{R}^{M\times N}\)，其中 \(C _ {ij}=1\) 表示匹配上同一目标，否则认为是两个目标。这里关键是 Loss 的设计，最简单的 Loss 为： <span class="math display">\[L(A,B)=\frac{1}{MN}\sum _ {i=1} ^ {M}\sum _ {j=1}^N |C _ {ij}-G _ {ij}| \tag{1}\]</span> 其中 \(G\) 为亲和度矩阵的 groundtruth。实际对亲和度矩阵并没有 0-1 要求，最终是通过匈牙利算法找出匹配的，所以只要将同一目标的分数增大，不同目标的分数减小，最终即可选出匹配。由此设计 Loss： <span class="math display">\[L(A,B)=\sum _ {i,\,j;\,G _ {ij}=1} \left(\sum _ {k;\,G _ {ik}\neq 1}\mathrm{max}(0,C _ {ik}-C _ {ij}+m)+\sum _ {p;\,G _ {pj}\neq 1}\mathrm{max}(0,C _ {pj}-C _ {ij}+m)\right)\tag{2}\]</span> 其中 \(m\) 控制正负样本的相对大小。式(2)更容易使网络收敛。</p><h2 id="多模态融合">3. 多模态融合</h2><p>　　当多传感器检测的同一目标匹配上后，需要融合出一个最终的观测。可以采用卡尔曼滤波的方法，<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中的式(1)~(6)是时序下状态估计的迭代过程。对于多模态融合，虽然是同时获取的观测，但是融合过程类似，令测量矩阵 \(H _ k\) 为单位阵，所以可得卡尔曼增益： <span class="math display">\[K _ k=\frac{\bar{P} _ k}{\bar{P} _ k+R _ k} \tag{3}\]</span> 由此计算后验概率<a href="#2" id="2ref"><sup>[2]</sup></a>： <span class="math display">\[\begin{align}\hat{x} _ k &amp;=\bar{x} _ k+K(z_k-\bar{x}) = \frac{\bar{P} _ kz _ k + \bar{x} _ kR _ k}{\bar{P} _ k+R _ k} \tag{4}\\\hat{P} _ k &amp;=(I-KH _ k)\bar{P} _ k =\frac{\bar{P} _ kR _ k}{\bar{P} _ k+R _ k}\tag{5}\end{align}\]</span> 对于多模态输入 \(A,B\)，令 \(A = \bar{x} _ k,\sigma _ A^2 = \bar{P} _ k\)，\(B=z _ k,\sigma _ B^2 =R _ k\)，可得多模态融合结果为： <span class="math display">\[\begin{align}C &amp;= \frac{\sigma _ A^2B+\sigma _ B^2A}{\sigma _ A^2+\sigma _ B^2}\\\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\\tag{6}\end{align}\]</span> 式(6)等价于： <span class="math display">\[\begin{align}\sigma _ C^2 &amp;= \frac{\sigma _ A^2\sigma _ B^2}{\sigma _ A^2+\sigma _ B^2}\\C &amp;= \sigma _ C^2\left(\frac{A}{\sigma _ A^2}+\frac{B}{\sigma _ B^2}\right)\\\tag{7}\end{align}\]</span> 这是 BCM<a href="#3" id="3ref"><sup>[3]</sup></a>！卡尔曼滤波器也是在贝叶斯概率模型下导出来的，可见两个高斯分布的同一状态的观测量，均可通过 BCM 进行融合。<br>　　得到当前时刻多模态融合后的目标状态后，即可进一步作时序卡尔曼平滑获得最终估计的目标状态。<br>　　另一种融合方法是在 JPDAF(Joint Probabilistic Data Association Filter)<a href="#4" id="4ref"><sup>[4]</sup></a>框架下作两次 PDA 融合<a href="#5" id="5ref"><sup>[5]</sup></a>，JPDAF 是另一种数据关联(目标匹配)的方法，这里不作展开。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Kuang, Hongwu, et al. &quot;Multi-Modality Cascaded Fusion Technology for Autonomous Driving.&quot; arXiv preprint arXiv:2002.03138 (2020).<br><a id="2" href="#2ref">[2]</a> Fankhauser, Péter, et al. &quot;Robot-centric elevation mapping with uncertainty estimates.&quot; Mobile Service Robotics. 2014. 433-440.<br><a id="3" href="#3ref">[3]</a> Tresp, Volker. &quot;A Bayesian committee machine.&quot; Neural computation 12.11 (2000): 2719-2741.<br><a id="4" href="#4ref">[4]</a> Arya Senna Abdul Rachman, Arya. &quot;3D-LIDAR Multi Object Tracking for Autonomous Driving: Multi-target Detection and Tracking under Urban Road Uncertainties.&quot; (2017).<br><a id="5" href="#5ref">[5]</a> JRMOT: A Real-Time 3D Multi-Object Tracker and a New Large-Scale Dataset</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　同一传感器的目标状态估计在&lt;a href=&quot;/卡尔曼滤波器在三维目标状态估计中的应用/&quot; title=&quot;卡尔曼滤波器在三维目标状态估计中的应用&quot;&gt;卡尔曼滤波器在三维目标状态估计中的应用&lt;/a&gt;中已经有较详细的介绍。不同传感器在不同光照不同天气情况下，有不同的表现，比如相
-      
-    
-    </summary>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
-    
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
-    
-      <category term="tracking" scheme="https://leijiezhang001.github.io/tags/tracking/"/>
     
   </entry>
   
