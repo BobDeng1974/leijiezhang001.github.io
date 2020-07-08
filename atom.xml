@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-06-25T01:19:12.000Z</updated>
+  <updated>2020-07-03T01:19:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>CenterTrack</title>
+    <link href="https://leijiezhang001.github.io/CenterTrack/"/>
+    <id>https://leijiezhang001.github.io/CenterTrack/</id>
+    <published>2020-07-02T01:16:36.000Z</published>
+    <updated>2020-07-03T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　障碍物感知由目标检测，目标跟踪(MOT)，目标状态估计等三个模块构成。目标状态估计一般是指将位置，速度等观测量作卡尔曼滤波平滑；广义的目标跟踪也包含了状态估计过程，这里采用狭义的目标跟踪定义方式，主要指出目标 ID 的过程。传统的做法，目标检测与目标跟踪是分开进行的，检测模块分别对前后帧作目标检测，目标跟踪模块则接收前后帧检测结果，然后用 Motion Model 将上一帧的检测结果预测到这一帧，最后与这一帧的检测结果作数据关联(Data Association)出目标 ID。这里的 Motion Model 可以是 3D 下目标的物理运动模型，也可以是图像下的单目标跟踪结果，如 KCF 算法。详细介绍可参考 <a href="/MOT-综述-Multiple-Object-Tracking-A-Literature-Review/" title="Multiple Object Tracking: A Literature Review">Multiple Object Tracking: A Literature Review</a>。<br>　　随着检测技术的发展，检测与跟踪的整合成为了趋势。<a href="#1" id="1ref">[1]</a> 是较早将跟踪的 “Motion Model” 用 Anchor-based Two-stage 网络来预测的方法，其网络输入为前后帧图像，其中一个分支输出当前帧的检测框，另一个分支用上一帧的检测结果作为 proposal，输出这一帧的跟踪框，最后用传统的数据关联方法得到目标的 ID。随着检测技术往 Anchor-Free One-stage 方向发展，在此基础上整合目标检测与跟踪也就顺理成章。<br>　　<a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a> 中详细描述了 Anchor-Free 的目标检测方法，相比于 Anchor-Based 的目标检测，其有很多优势，这里不做赘述。本文基于 CenterNet<a href="#2" id="2ref"><sup>[2]</sup></a>，总结了 CenterTrack<a href="#3" id="3ref"><sup>[3]</sup></a>，以及 CenterPoint(3D CenterTrack)<a href="#4" id="4ref"><sup>[4]</sup></a>方法。</p><h2 id="centernet">1. CenterNet</h2><p>　　CenterNet 在 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a> 中已经较为详细得阐述了。需要补充的是，中心点的正负样本设计为：正样本只有中心点像素，负样本则为其它区域，并加入以中心点为中心的高斯权重，越靠近中心点，负样本权重越小。其 Loss 基于 Focal Loss，数学描述为： <span class="math display">\[L _ k = \frac{1}{N}\sum _ {xyc}\left\{\begin{array}{l}(1-\hat{Y} _ {xyc})^{\alpha}\mathrm{log}(\hat{Y} _ {xyc}) &amp; \mathrm{if}\; Y _ {xyc} = 1\\(1- Y _ {xyc})^{\beta}(\hat{Y} _ {xyc})^{\alpha}\mathrm{log}(1-\hat{Y} _ {xyc}) &amp; \mathrm{otherwise}\end{array}\tag{1}\right.\]</span> 其中 \(Y _ {xyc}\) 为高斯权重后的正负样本分布值。<br>　　具体的，设图像 \(I\in \mathbb{R}^{W\times H\times 3}\)，CenterNet 输出的每个类别 \(c\in\{0,...,C-1\}\) 的目标为 \(\{(\mathbf{p} _ i, \mathbf{s} _ i)\} _ {i=0} ^ {N-1}\)。其中 \(\mathbf{p}\in \mathbb{R} ^ 2\)，\(\mathbf{s}\in\mathbb{R} ^ 2\) 为目标框的尺寸。对应的，最终输出的 heatmap 位置和尺寸图为：\(\hat{Y}\in [0,1]^{\frac{W}{R}\times\frac{H}{R}\times C}\)，\(\hat{S}\in\mathbb{R}^{\frac{W}{R}\times\frac{H}{R}\times 2}\)。对 \(\hat{Y}\) 作 \(3\times 3\) 的 max pooling，即可获得目标中心点，\(\hat{S}\) 上对应的的点即为该目标的尺寸。此外还用额外的 heatmap 作位置 offset 的回归，因为 \(\hat{Y}\) 存在量化误差。最终由中心点位置 loss，位置 offset loss，尺寸 loss 三部分组成。</p><h2 id="centertrack">2. CenterTrack</h2><h3 id="framework">2.1. Framework</h3><p><img src="/CenterTrack/centertrack.png" width="85%" height="85%" title="图 1. CenterTrack"> 　　如图 1. 所示，CenterTrack 基于 CenterNet，框架也较为简单：输入前后帧图像，以及上一帧跟踪到的目标中心点所渲染的 heatmap，经过网络后输出为当前帧的检测 heatmap，size map，以及这一帧相对上一帧跟踪的 offset map。最后通过最近距离匹配即可作数据关联获得目标的 ID。算法得到的目标属性有 \(b = (\mathbf{p,s},w,id)\)，分别为目标的 location，size，confidence，identity。<br>　　相比于 CenterNet，CenterTrack 还预测了这一帧相对上一帧，目标的 2D displacement：\(\hat{D}\in\mathbb{R}^{\frac{W}{R}\times\frac{H}{R}\times 2}\)。这相当于 Tracking 中 Motion Model 的结果，分别计算上一帧目标经过该 displacement 变换到这一帧后的目标位置与当前帧检测的目标位置的距离误差，用最小距离的贪心法即可将目标作数据关联，得到目标的 ID。</p><h3 id="experiments">2.2. Experiments</h3><p>　　网络结构相比于 CenterNet 只是增加了输入的四个通道特征，输出的两个通道特征。网络可在视频流图像或者单帧图像上训练，对于单帧图像，可对图像中的目标作伸缩平移变换来模拟目标运动，实验表明，也非常有效。 <img src="/CenterTrack/motion_models2d.png" width="85%" height="85%" title="图 2. Motion Models"> 　　如图 2. 所示，本文比较了 displacement 与 kalman filter，optical flow 等 Motion Model，显示本文效果是最好的，我猜测是因为 displacement 回归的直接是物体级别的像素运动，抗噪性更强。</p><h2 id="center-based-3d-object-detection-and-tracking">3. Center-based 3D Object Detection and Tracking</h2><h3 id="framework-1">3.1. Framework</h3><p><img src="/CenterTrack/centertrack3d.png" width="85%" height="85%" title="图 3. 3D CenterTrack"> 　　如图 3. 所示，CenterPoint 将点云在俯视图下栅格化，然后采用 CenterTrack 一样的网络结构，只是输出为目标的 3D location，size，orientation，velocity。<br>　　点云俯视图下的栅格化，如果对栅格不做点云的精细化估计，那么会影响到目标位置及速度估计的精度，所以理论上 PointPillars 这种栅格点云特征学习方式能更有效的提取点云的信息，保留特征的连续化信息(但是论文的实验表明 VoxelNet 比 PointPillars 效果更好)。否则，虽然目标位置等信息的监督项是连续量，但是栅格化的特征是离散量，这会降低预测精度。<br>　　具体的，网络输出为：\(K\) 个类别的 \(K\)-channel heatmap 表示目标中心点，目标的尺寸 \(\mathbf{s}=(w,l,h)\) heatmap，目标的中心点 offset \(\mathbf{o}=(o _ x,o _ y,o _ z)\) heatmap，朝向角 \(\mathbf{e} = (\mathrm{sin}(\alpha),\mathrm{cos}(\alpha))\) heatmap，目标速度 \(\mathbf{v}=(v _ x,v _ y)\) heatmap。与 CenterTrack 非常相似，只不过这里的速度就是真实的物理速度。</p><h3 id="experiments-1">3.2. Experiments</h3><p><img src="/CenterTrack/detmap.png" width="85%" height="85%" title="图 4. 3D Detection Benchmark"> 　　如图 4. 所示，引入 Velocity 预测，能有效提升检测的性能，这应该是网络输入前一帧信息的结果，对半遮挡情况能有较好效果。 <img src="/CenterTrack/experiment3d.png" width="85%" height="85%" title="图 5. 3D MOT Benchmark"> 　　如图 5. 所示，跟踪性能也是有很大提升，而且数据关联等后处理相对比较简单。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> Feichtenhofer, Christoph, Axel Pinz, and Andrew Zisserman. &quot;Detect to track and track to detect.&quot; Proceedings of the IEEE International Conference on Computer Vision. 2017.<br><a id="2" href="#2ref">[2]</a> Zhou, Xingyi, Dequan Wang, and Philipp Krähenbühl. &quot;Objects as points.&quot; arXiv preprint arXiv:1904.07850 (2019).<br><a id="3" href="#3ref">[3]</a> Zhou, Xingyi, Vladlen Koltun, and Philipp Krähenbühl. &quot;Tracking Objects as Points.&quot; arXiv preprint arXiv:2004.01177 (2020).<br><a id="4" href="#4ref">[4]</a> Yin, Tianwei, Xingyi Zhou, and Philipp Krähenbühl. &quot;Center-based 3D Object Detection and Tracking.&quot; arXiv preprint arXiv:2006.11275 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　障碍物感知由目标检测，目标跟踪(MOT)，目标状态估计等三个模块构成。目标状态估计一般是指将位置，速度等观测量作卡尔曼滤波平滑；广义的目标跟踪也包含了状态估计过程，这里采用狭义的目标跟踪定义方式，主要指出目标 ID 的过程。传统的做法，目标检测与目标跟踪是分开进行的，检
+      
+    
+    </summary>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
+    
+      <category term="Tracking" scheme="https://leijiezhang001.github.io/tags/Tracking/"/>
+    
+  </entry>
   
   <entry>
     <title>Rethinking of Sparse 3D Convolution</title>
@@ -113,6 +144,37 @@
   </entry>
   
   <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
     <link href="https://leijiezhang001.github.io/SA-SSD/"/>
     <id>https://leijiezhang001.github.io/SA-SSD/</id>
@@ -173,37 +235,6 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
@@ -589,37 +620,6 @@
     
     
       <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Point-based 3D Detetection</title>
-    <link href="https://leijiezhang001.github.io/Point-based-3D-Det/"/>
-    <id>https://leijiezhang001.github.io/Point-based-3D-Det/</id>
-    <published>2020-02-29T04:30:15.000Z</published>
-    <updated>2020-03-01T07:42:25.374Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　基于激光点云的 3D 目标检测是自动驾驶系统中的核心感知模块。由于点云的稀疏性以及空间结构的无序性，一系列 Voxel-based 3D 检测方法得以发展：<a href="/paperreading-PointPillars/" title="PointPillars">PointPillars</a>，<a href="/paperreading-Fast-and-Furious/" title="FaF">FaF</a>，<a href="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/" title="MVF">MVF</a> 等。然而 Voxel-based 方法需要预定义空间栅格的分辨率，其特征提取的有效性依赖于空间分辨率。同时在点云语义分割领域，对点云的点级别特征提取方法研究较为广泛，<a href="/PointCloud-Feature-Extraction/" title="PointCloud Feature Extraction">PointCloud Feature Extraction</a> 中已经较详细的介绍了针对点云的点级别特征提取方法，<a href="/paper-reading-Grid-GCN-for-Fast-and-Scalable-Point-Cloud-Learning/" title="Grid-GCN">Grid-GCN</a> 提出了几种策略来加速特征提取。<br>　　由此高效的 Point-based 3D 检测方法成为可能，这种方法首先提取点级别的特征(相比 Voxel-based，理论上没有信息损失)，然后用点级别的 Anchor-based 或 Anchor-free 方法作 3D 检测。</p><h2 id="anchor-based">1. Anchor-based</h2><h3 id="ipod1">1.1. IPOD<a href="#1" id="1ref"><sup>[1]</sup></a></h3><p><img src="/Point-based-3D-Det/ipod.png" width="90%" height="90%" title="图 1. IPOD Framework"> 　　如图 1. 所示， IPOD 与 F-PointNet 类似，只不过 IPOD 在俯视图下生成 Proposal 取点，而 F-PointNet 是直接在锥形视野的点云中作分割。IPOD 由三部分组成：</p><ol type="1"><li><strong>Semantic Segmentation</strong><br>目的是将点云中的背景点过滤掉，只生成前景点的 Anchor。作者采用图像语义分割的方法，这里也可直接用点云分割来做；</li><li><strong>Point-based Proposal Generation</strong><br>生成点级别的候选框，去掉冗余的候选框；</li><li><strong>Head for Classification and Regression</strong><br>根据候选框，提取特征，作分类和回归；</li></ol><p>这里的前两步是要得到少量但又能保证召回率的 Proposal，其中 Anchor 是根据每个点来设置的，然后作 NMS 操作，这里不做展开。 <img src="/Point-based-3D-Det/proposal_feat.png" width="80%" height="80%" title="图 2. Proposal Feature Generation"> 　　如图 2. 所示，每个 Proposal 提取出点云信息，然后通过 PointNet++ 直接来预测该 Proposal 的 3D 属性。这里用到了 T-Net(Spatial Transformation Network 的一种) 将点云变换到规范坐标系(Canonical coordinates)，这个套路用的也比较多。其它细节就是正常的 3D 属性回归策略，不作展开。</p><h3 id="std2">1.2. STD<a href="#2" id="2ref"><sup>[2]</sup></a></h3><p><img src="/Point-based-3D-Det/STD.png" width="80%" height="80%" title="图 3. STD Framework"> 　　如图 3. 所示，STD 模块有：</p><ol type="1"><li><strong>Backbone</strong><br>用 PointNet++ 提取点级别特征以及作点级别的 Classification；</li><li><strong>PGM(Proposal Generation Module)</strong><br>根据点级别的分类结果，对目标点设计球状 Spherical Anchor；不同类别设计不同的球状 Anchor 半径。将球状 Anchor 里面的点收集起来，作坐标规范化并且 concate 点级别特征，然后用 PointNet 来预测实际的矩形 proposal：包括中心 Offsets 以及 size offsets。同时对角度进行预测，角度预测通过分类加预测 Offsets 实现。</li><li><strong>Proposal Feature Generation</strong><br>有了 proposal 后，其实可以直接通过 PointNet 作进一步的预测及分类，但是作者为了加速，这时候采用了 Voxel Feature Encoding。将 proposal 里面的点都转换到中心点坐标系，然后栅格化提取特征；</li><li><strong>Box Prediction</strong><br>除了通常的类别预测以及 3D Box 相关属性的 Offsets 预测，作者还加入了与真值的 IoU 预测，该 IoU 值与类别分数相乘作为最终的该预测分数(这个在 2D Detection 中已经有应用)。</li></ol><h2 id="anchor-free">2. Anchor-free</h2><h3 id="pointrcnn3">2.1. PointRCNN<a href="#3" id="3ref"><sup>[3]</sup></a></h3><p><img src="/Point-based-3D-Det/PointRCNN.png" width="80%" height="80%" title="图 4. PointRCNN Framework"> 　　如图 4. 所示，PointRCNN 是一个 two-stage 3D 检测方法，类似 Faster-RCNN，其由 Bottom-up 3D Proposal Generation 和 Canonical 3D Box Refinement 两个模块组成。</p><h4 id="bottom-up-3d-proposal-generation">2.1.1 Bottom-up 3D Proposal Generation</h4><p>　　Proposal 的生成要求是，数量少，召回率高。3D Anchor 由于要覆盖 3D 空间，所以数量会很大(如 AVOD)，本文采用目标点生成 Proposal 的方法。与 IPOD，STD 类似，首先对点云进行点级别的特征提取并作前景分割(或语义分割)，对前景的每个点用 Bin-based 方法生成 3D proposal。由此在生成尽量少的 Proposal 下，保证目标的高召回率。<br>　　点级别的特征提取及前景分割，可以采用任意的语义分割网络，这里前景的真值即为目标框内的点云，用 Focal Loss 来平衡正负样本。<br><img src="/Point-based-3D-Det/bin-based.png" width="60%" height="60%" title="图 5. Bin-based Localization"> 　　如图 5. 所示，对每个前景点用 Bin-based 方法生成 proposal。将平面的 \(x,z\) (与一般的雷达坐标系不同) 方向分成若干个 bin，然后对每个前景点，预测目标中心点属于哪个 bin，以及中心点与该 bin 的 Offsets(与角度处理的方式非常像)。针对尺寸，预测该类别平均尺寸的 Residual；针对角度，还是分解成分类加回归任务进行处理。最后再作 NMS 即可得到较少的 Proposal，给到下一模块作 refine。本模块的 Loss 设计为： <span class="math display">\[\begin{align}\mathcal{L} _ 1 &amp;= \mathcal{L} _ {seg} + \mathcal{L} _ {proposal} \\&amp;= \mathcal{L} _ {seg} + \frac{1}{N _ {pos}} \sum _ {p\in pos} \left(\mathcal{L} _ {bin} ^ {(p)} + \mathcal{L} _ {res} ^ {(p)}\right) \\&amp;= \mathcal{L} _ {seg} + \sum _ {u\in{\{x,z,\theta\}}} \left(\mathcal{F} _ {cls}(\widehat{bin} _ u^{(p)}, bin _ u^{(p)})+\mathcal{F} _ {reg}(\widehat{res} _ u^{(p)}, res _ u^{(p)})\right) + \sum _ {v\in\{y,h,w,l\}} \mathcal{F} _ {reg}(\widehat{res} _ v^{(p)}, res _ v^{(p)})\\\tag{1}\end{align}\]</span> 其中 \(\mathcal{F} _ {cls}, \mathcal{F} _ {reg}\) 分别为 cross-entropy Loss 和 smooth L1 Loss。</p><h4 id="canonical-3d-box-refinement">2.1.2 Canonical 3D Box Refinement</h4><p>　　有了 3D proposal 后，经过 Point Cloud Region Pooling 提取该 proposal 的点特征，步骤如下：先对 proposal 进行一定程度的扩大，然后提取内部点的 semantic features，foreground mask score，Point distance等。由此获得每个 proposal 的点及点特征，用来作 3D Box Refinement。<br><img src="/Point-based-3D-Det/canonical.png" width="60%" height="60%" title="图 6. Canonical Transformation"> 　　如图 4. 所示，为了更好的学习 proposal 的局部空间特征，增加每个 proposal 在自身 Canonical 坐标系下的空间点。Canonical 变换如图 6. 所示，因为这里每个 proposal 的位置及角度已经有了，所以直接对其内的点作变换。如果没有，那就需要 STN(T-Net) 来学习这个变换。<br>　　Loss 也是在 Canonical 坐标系下计算的，假设 proposal：\(\mathrm{b _ i} = (x _ i,y _ i,z _ i,h _ i,w _ i,l _ i,\theta _ i)\)，真值: \(\mathrm{b} _ i^{gt} = (x _ i^{gt}, y _ i^{gt},z _ i^{gt},h _ i^{gt},w _ i^{gt},l _ i^{gt},\theta _ i^{gt})\)。那么两者变换到 Canonical 坐标系后： <span class="math display">\[\begin{align}\mathrm{\tilde{b}} _ i &amp;=(0,0,0,h _ i,w _ i,l _ i,0) \\\mathrm{\tilde{b}} _ i^{gt} &amp;= (x _ i^{gt}-x _ i, y _ i^{gt}-y _ i,z _ i^{gt}-z _ i,h _ i^{gt},w _ i^{gt},l _ i^{gt},\theta _ i^{gt}-\theta _ i)\tag{2}\end{align}\]</span> 对于中心点，还是 bin 分类加 Residual 回归，但是可以减少 bin 的尺度；对于尺寸，还是回归 Residual；对于角度，由于限定 positive 与 gt 的 IoU&gt;0.55，所以可以将回归的角度限定为 \((-\frac{\pi}{4},\frac{\pi}{4})\) 的范围，由此进行 bin 分类及 Residual 回归。最终本阶段的 Loss 为： <span class="math display">\[ \mathcal{L} _ 2= \frac{1}{N _ {pos}+ N _ {neg}} \sum _ {p\in all} \mathcal{L} _ {label} ^{(p)}+ \frac{1}{N _ {pos}} \sum _ {p\in pos} \left(\mathcal{\tilde{L}} _ {bin} ^ {(p)} + \mathcal{\tilde{L}} _ {res} ^ {(p)}\right) \tag{3}\]</span></p><h3 id="dssd4">2.2. 3DSSD<a href="#4" id="4ref"><sup>[4]</sup></a></h3><p><img src="/Point-based-3D-Det/3DSSD.png" width="100%" height="100%" title="图 7. 3DSSD Framework"> 　　如图 7. 所示，3DSSD 是 one-stage 网络，由 Backbone，Candidate Generation Layer，Head 构成。Backbone 作者提出了 Fusion Sampling 以提升前景点在采样时候的召回率。Candidate Generation Layer 中根据前景点，生成 3D box 预测的 Candidate 锚点。最后 Head 根据锚点，作 Anchor-free 的 3D Box 预测。</p><h4 id="fusion-sampling">2.2.1 Fusion Sampling</h4><p>　　为了扩大感受野提取局部特征，点云通常需要作下采样处理，一般采用 D-FPS 方法(点空间距离作为采样度量)，但是这样会使前景点大量丢失。前面几种方法不管是用图像分割还是点云分割，都会去除背景点云，保留前景点云以提高生成 Proposal 的召回率。<br>　　这里作者提出了 Feature-FPS，加入特征间的距离作为采样的度量方式。对于地面等背景，其特征基本类似，所以很容易就去除了；而对于目标区域，其点特征都不太一样，又得以保留。如果只保留同一目标的点，也会产生冗余，所以融合点特征距离及空间距离，设计采样度量方式为： <span class="math display">\[ C(A,B) = \lambda L _ d(A,B) + L _ f(A,B) \tag{4}\]</span> 　　因为 F-FPS 去除了大量的背景点，虽然有利于回归，但是不利于分类，所以设计了融合 D-FPS 和 F-FPS 的 Fusion Sampling 方法。如图 7. 所示，最终分别输出 F-FPS 与 D-FPS 的特征点。</p><h4 id="candidate-generation-layer">2.2.2 Candidate Generation Layer</h4><p><img src="/Point-based-3D-Det/candidate_pts.png" width="60%" height="60%" title="图 8. Candidate Generation"> 　　如图 8. 所示，根据 F-FPS 采样的点，在真值框中心点的监督下，用一个 T-Net 去学习采样点与中心点的变换。变换后的点即作为 Candidate 锚点。对每个 Candidate 点提取周围一定距离的 F-FPS 与 D-FPS(大量背景点利于分类)中点集的特征(空间坐标作归一化或变换到 Candidate 坐标系，类似 Canonical 坐标系)，然后作 MaxPool 提取该 Candidate 对应区域的特征。</p><h4 id="prediction-head">2.2.3 Prediction Head</h4><p>　　对于每个 Candidate 特征，作 3D Box 属性的回归。本文采用 Anchor-free 的方法。对于中心点，直接回归 Candidate 坐标点与真值框中心点的 Offsets；对于尺寸，直接回归与该类别平均尺寸的 Residual；对于角度，还是采用 bin 分类加 Residual 回归的策略。<br>　　这里期望的是 Candidate 点能接近目标框中心点，所以作者借鉴 FCOS(详见 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>)中的 Center-ness Loss 来选取靠近中心点的 Candidate，真值 Label 为: <span class="math display">\[l _ {ctrness}=\sqrt[3]{\frac{\mathrm{min}(f,b)}{\mathrm{max}(f,b)}+\frac{\mathrm{min}(l,r)}{\mathrm{max}(l,r)}+\frac{\mathrm{min}(t,d)}{\mathrm{max}(t,d)}} \tag{5}\]</span> 其中 \(f,b,l,r,t,d\) 分别表示前后左右上下与中心点的距离。FCOS 中，加了一个与分类平行的分支来预测 Center-ness，最终的预测 Score 是分类 Score 乘以 Center-ness 得到(与预测 IoU 套路一样，本质上都是引入与真值的距离度量)，该预测 Score 用于之后的 NMS 等处理。本文则没有显示的预测 Center-ness，其直接将真值 Center-ness 与真值类别相乘，作为类别真值，所以一个类别分支即得到最终的预测 Score。<br>　　最终的 Loss 为： <span class="math display">\[L = \frac{1}{N _ c}\sum _ iL _ c(s _ i, u _ i) + \lambda _ 1\frac{1}{N _ p}\sum _ i[u _ i&gt;0]L _ r + \lambda _ 2\frac{1}{N _ p}L _ s \tag{5}\]</span> 其中 \(s _ i\) 为预测的类别 Score，\(u _ i\) 为经过 Center-ness 处理后的类别真值；\(L _ c\) 表示类别预测 Loss；\(L _ r\) 表示 3D Box Loss，包括中心点距离，尺寸，角度，8个角点位置；\(L _ s\) 表示生成 Candidate 点的 shift 变换 Loss。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Yang, Zetong, et al. &quot;Ipod: Intensive point-based object detector for point cloud.&quot; arXiv preprint arXiv:1812.05276 (2018).<br><a id="2" href="#2ref">[2]</a> Yang, Zetong, et al. &quot;Std: Sparse-to-dense 3d object detector for point cloud.&quot; Proceedings of the IEEE International Conference on Computer Vision. 2019.<br><a id="3" href="#3ref">[3]</a> Shi, Shaoshuai, Xiaogang Wang, and Hongsheng Li. &quot;Pointrcnn: 3d object proposal generation and detection from point cloud.&quot; Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019.<br><a id="4" href="#4ref">[4]</a> Yang, Zetong, et al. &quot;3DSSD: Point-based 3D Single Stage Object Detector.&quot; arXiv preprint arXiv:2002.10187 (2020).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　基于激光点云的 3D 目标检测是自动驾驶系统中的核心感知模块。由于点云的稀疏性以及空间结构的无序性，一系列 Voxel-based 3D 检测方法得以发展：&lt;a href=&quot;/paperreading-PointPillars/&quot; title=&quot;PointPillars
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
   </entry>
   
