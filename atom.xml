@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-07-08T01:19:12.000Z</updated>
+  <updated>2020-07-10T01:19:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,38 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-Point-GNN/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-Point-GNN/</id>
+    <published>2020-07-10T01:22:07.000Z</published>
+    <updated>2020-07-10T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。</p><h2 id="different-point-cloud-representations">1. Different Point Cloud Representations</h2><p><img src="/paper-reading-Point-GNN/repr.png" width="65%" height="65%" title="图 1. Point Cloud Representations"> 　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最近邻查找周围点并学习的形式；Graph，将无序点集转换为图模型，特征信息通过点云顶点传递学习的形式。Grids 及 Sets 形式我们已经比较熟悉了，Graph 则查询效率比 Sets 高，特征提取能力又比 Grids 高。Graph 的建图时间复杂度为 \(\mathcal{O}(cN)\)，领域查询复杂度则为 \(\mathcal{O}(1)\)，Sets 中的 KNN 建树及查询复杂度可见 <a href="/PointCloud-Feature-Extraction/" title="PointCloud Feature Extraction">PointCloud Feature Extraction</a>。当然 KNN 式的领域查询方式可以用近似 \(\mathcal{O}(1)\) 方法实现，但是会影响特征学习的准确度。</p><h2 id="framework">2. Framework</h2><p><img src="/paper-reading-Point-GNN/framework.png" width="95%" height="95%" title="图 2. Framework of Point-GNN"> 　　如图 2. 所示，基于 Graph 的 3D 点云检测，首先对点云作 Graph Construction，然后用 GNN 来学习每个顶点的特征，接着对每个顶点预测目标框，最后作目标框的整合和 NMS。</p><h3 id="graph-construction">2.1. Graph Construction</h3><p>　　设点云集：\(P=\{p _ 1,...,p _ N\}\)，其中 \(p _ i=(x _ i, s _ i)\) 分别表示坐标 \(x _ i\in\mathbb{R} ^ 3\)，以及该点反射率，领域点相对位置等信息 \(s _ i\in\mathbb{R} ^ k\)。对该点集建图 \(G=(P,E)\)，将距离小于一定阈值的两个点进行连接，即： <span class="math display">\[E = \{(p _ i, p _ j)|\Vert x _ i-x _ j\Vert _ 2 &lt; r\} \tag{1}\]</span> 这种建图方式是 Fixed Radius Near-Neighbors 问题，可在 \(\mathcal{O}(cN)\) 时间复杂度下解决，其中 \(c\) 为最大连接数。<br>　　建图完成后，要对每个点信息状态 \(s _ i\) 作初始化。这里采用类似 Sets 的特征提取方式，即将该点的反射率，以及与领域内点的相对位置，串联成特征向量，然后用 MLP 作空间变换，最后在点维度上作 Max Pooling，即可得到初始化的该点特征状态量 \(s _ i\)。</p><h3 id="graph-neural-network-with-auto-registration">2.2. Graph Neural Network with Auto-Registration</h3><p>　　传统的图神经网络，通过边迭代每个顶点的特征。在 \((t+1) ^ {th}\) 迭代时： <span class="math display">\[\begin{align} v _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{e _ {ij} ^ t|(i,j)\in E\}\right), v _ i ^ t\right) \\e _ {ij} ^ t &amp;= f ^ t(v _ i ^ t, v _ j ^ t) \tag{2}\end{align}\]</span> 其中 \(e ^ t,v ^ t\) 分别是边和顶点特征，\(f ^ t(\cdot)\) 计算两个顶点之间边的特征，\(\rho(\cdot)\) 将与该点连接的边特征整合，得到该点特征增量，\(g ^ t(\cdot)\) 将该点特征增量与原特征进行整合得到本次迭代后该点的最终特征。<br>　　对于边特征，一种设计方式为，描述领域特征对该点位置的作用力，重写式 (2)： <span class="math display">\[s _ i ^ {t+1} = g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{3}\]</span> 这样就得到了图神经网络的迭代模型。此外，本文还指出，由于边特征对领域点的距离较为敏感，所以作者提出对相对位置作自动补偿，实验表明其实意义不大： <span class="math display">\[\begin{align}\Delta x _ i ^ t &amp;= h ^ t(s _ i^t) \\s _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i+\Delta x _ i ^ t,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{4}\end{align}\]</span> 　　具体的，\(f ^ t(\cdot),g ^ t(\cdot), h ^ t(\cdot)\) 可用 MLP 来建模，\(\rho(\cdot)\) 则采用 Max 操作： <span class="math display">\[\begin{align}\Delta x _ i ^ t &amp;= MLP _ h ^ t(s _ i^t) \\e _ {ij} ^ t &amp;= MLP _ f ^ t([x _ j - x _ i + \Delta x _ i ^ t, s _ j ^ t]) \\s _ i ^ {t+1} &amp;= MLP _ g ^ t\left(MAX(\{e _ {ij}|(i,j)\in E\})\right)+ s _ i ^ t \tag{5}\end{align}\]</span></p><h3 id="loss">2.3. Loss</h3><p>　　为了作 3D 检测的任务，网络头输出为每个顶点的类别，目标框中心的 offset，以及目标框的尺寸，朝向。这与传统的基于 Ancho-Free 的 3D 目标检测基本一致，这里不做展开。</p><h3 id="box-merging-and-scoring">2.4. Box Merging and Scoring</h3><p>　　本方法的 3D 检测需要作 NMS 后处理，由于分类的 Score 不能反应目标框的 Uncertainty，所以基于 Score 的 NMS 是不合理的。这个问题在 2D 检测中也有比较多的研究，比如采用预测 IoU 值的方式来作权重。本文则认为遮挡信息能作为 NMS 操作的指导，由此定义了遮挡值的计算方式。但是实验显示，其实提升并不明显，所以这里不做具体展开。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Shi, Weijing, and Raj Rajkumar. &quot;Point-gnn: Graph neural network for 3d object detection in a point cloud.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。&lt;/p&gt;
+&lt;h2 id=&quot;different-p
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
   
   <entry>
     <title>CenterTrack</title>
@@ -144,6 +176,37 @@
   </entry>
   
   <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
     <link href="https://leijiezhang001.github.io/SA-SSD/"/>
     <id>https://leijiezhang001.github.io/SA-SSD/</id>
@@ -204,37 +267,6 @@
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
   </entry>
   
@@ -595,31 +627,6 @@
       <category term="Low-Light Image Enhancement" scheme="https://leijiezhang001.github.io/tags/Low-Light-Image-Enhancement/"/>
     
       <category term="GAN" scheme="https://leijiezhang001.github.io/tags/GAN/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>GAN</title>
-    <link href="https://leijiezhang001.github.io/GAN/"/>
-    <id>https://leijiezhang001.github.io/GAN/</id>
-    <published>2020-03-08T08:45:51.000Z</published>
-    <updated>2020-04-03T06:15:25.726Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　Generative Adversarial Nets(GAN) 能将某个分布的数据映射到另一组数据形成的分布空间内。这在某些领域非常有用，如：图像去噪，图像去雨雾，图像去模糊，图像低光照增强等。<strong>自动驾驶中，图像去雨雾与低光照增强非常关键，GAN 能在没有模拟器的情况下，根据有限的数据，自动生成某一分布的数据，为后续感知做准备</strong>。目前还没看到针对点云的 GAN，未来 3D GAN 可能会有大进展。<br>　　本文介绍几个 GAN 的基础性工作。</p><h2 id="gan-基础网络">1. GAN 基础网络</h2><h3 id="generative-adversarial-nets1">1.1. Generative Adversarial Nets<a href="#1" id="1ref"><sup>[1]</sup></a></h3><p>　　对抗网络由生成模型和判别模型构成。生成模型输入随机噪声，输出以假乱真的图像，判别模型则对图像作分类。其优化函数为： <span class="math display">\[ \min\limits _ G \max\limits _ D V(D,G) = E _ {x\sim p _ {data}(x)}[log(D(x))] + E _ {x\sim p _ z(z)}[log(1-D(G(z)))] \tag{1}\]</span> 该优化过程有两部分组成：</p><ol type="1"><li><strong>优化判别模型</strong><br><span class="math display">\[ \max\limits _ D V(D,G) = E _ {x\sim p _ {data}(x)}[log(D(x))] + E _ {x\sim p _ z(z)}[log(1-D(G(z)))] \tag{2}\]</span> 其中第一项表示输入为真样本时，那么判别模型输出越大越好，即越接近 1；而对于已经生成的假样本 \(G(z)\)，判别模型输出越小越好，即接近 0。</li><li><strong>优化生成模型</strong><br><span class="math display">\[ \min\limits _ GV(D,G) =E _ {x\sim p _ z(z)}[log(1-D(G(z)))] \tag{3}\]</span> 优化生成模型时，希望生成的假样本接近真样本，所以生成的假样本经过判别模型后越大越好，即\(D(G(z))\)要接近 1。由此统一成上式。</li></ol><p>　　对抗网络的优化由这两步迭代组成。</p><h3 id="conditional-generative-adversarial-nets2">1.2. Conditional Generative Adversarial Nets<a href="#2" id="2ref"><sup>[2]</sup></a></h3><p>　　条件对抗网络中的生成模型输入不在是随机噪声，而是特定的数据分布，如真值标签。其优化函数为： <span class="math display">\[ \min\limits _ G \max\limits _ D V(D,G) = E _ {x\sim p _ {data}(x)}[log(D(x|y))] + E _ {x\sim p _ z(z)}[log(1-D(G(z|y)))] \tag{4}\]</span> 　　其优化过程与 GAN 类似。</p><h3 id="cycle-consistent-adversarial-nets3">1.3. Cycle-Consistent Adversarial Nets<a href="#3" id="3ref"><sup>[3]</sup></a></h3><p>　　Cycle GAN 使得高分辨率图像的 domain-transfer 成为可能。对于两个图像分布 \(X,Y\)，设计两个映射函数(生成模型): \(G:X\to Y\) 和 \(F:Y\to X\)；设计两个判别模型: \(D _ X\) 和 \(D _ Y\)，\(D _ X\) 用于判别 \(x\) 与 \(F(y)\), \(D _ Y\) 用于判别 \(y\) 与 \(G(x)\)。为了还原高分辨率图像，设计两部分 Loss：</p><ol type="1"><li><strong>Adversarial Loss</strong><br>就是传统的对抗网络 Loss: <span class="math display">\[\begin{align}\mathcal{L} _ {GAN}&amp;=\mathcal{L} _ {GAN}(G, D _ Y,X,Y)+\mathcal{L} _ {GAN}(F, D _ X,Y,X)\\&amp;= E _ {y\sim p _ {data}(y)}[log(D _ Y(y))] + E _ {x\sim p _ {data}(x)}[log(1-D _ Y(G(x)))]\\&amp;+ E _ {x\sim p _ {data}(x)}[log(D _ X(x))] + E _ {y\sim p _ {data}(y)}[log(1-D _ X(F(Y)))]\end{align} \tag{5}\]</span></li><li><strong>Cycle Consistency Loss</strong><br>为了保证映射网络的映射准确性，考虑到 \(x\to G(x)\to F(G(x))\approx x \) 以及 \(y\to F(y)\to G(F(y))\approx y \)，设计 cycle loss： <span class="math display">\[\mathcal{L} _ {cyc}(G,F)= E _ {x\sim p _ {data}(x)}\Vert F(G(x))-x\Vert + E _ {y\sim p _ {data}(y)}\Vert G(F(y))-y\Vert \tag{6}\]</span></li></ol><p>总的 Loss 为： <span class="math display">\[\mathcal{L} _ (G,F,D _ X, D _ Y)=\mathcal{L} _ {GAN}(G, D _ Y,X,Y)+\mathcal{L} _ {GAN}(F, D _ X,Y,X)+\lambda \mathcal{L} _ {cyc}(G,F) \tag{7}\]</span></p><h2 id="其它资料">2. 其它资料</h2><p>　　上面介绍了三个 GAN 基本网络，尤其是 Cycle-GAN，是高分辨率图像无监督 domain-transfer 的基础，应用相当广泛。本文介绍相对较简单，<a href="#4" id="4ref">[4]</a> 详细介绍了 GAN 的来龙去脉。代码则可以参考 <a href="#5" id="5ref">[5]</a> ，收录的 GAN 网络非常详细。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Goodfellow, Ian, et al. &quot;Generative adversarial nets.&quot; Advances in neural information processing systems. 2014.<br><a id="2" href="#2ref">[2]</a> Mirza, Mehdi, and Simon Osindero. &quot;Conditional generative adversarial nets.&quot; arXiv preprint arXiv:1411.1784 (2014).<br><a id="3" href="#3ref">[3]</a> Zhu, Jun-Yan, et al. &quot;Unpaired image-to-image translation using cycle-consistent adversarial networks.&quot; Proceedings of the IEEE international conference on computer vision. 2017.<br><a id="4" href="#4ref">[4]</a> http://www.gwylab.com/note-gans.html<br><a id="5" href="#5ref">[5]</a> https://github.com/eriklindernoren/PyTorch-GAN</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　Generative Adversarial Nets(GAN) 能将某个分布的数据映射到另一组数据形成的分布空间内。这在某些领域非常有用，如：图像去噪，图像去雨雾，图像去模糊，图像低光照增强等。&lt;strong&gt;自动驾驶中，图像去雨雾与低光照增强非常关键，GAN 能在没
-      
-    
-    </summary>
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/categories/Deep-Learning/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
     
   </entry>
   

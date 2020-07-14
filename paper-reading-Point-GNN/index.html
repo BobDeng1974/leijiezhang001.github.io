@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="Deep Learning,3D Detection,Point Cloud,Autonomous Driving,">
 
 
 
@@ -88,13 +88,21 @@
 
 
 
-<meta property="og:type" content="website">
-<meta property="og:title" content="LeijieZhang">
-<meta property="og:url" content="https://leijiezhang001.github.io/tags/ICP/index.html">
+<meta name="description" content="本文[1]提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。 1. Different Point Cloud Representations  　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最">
+<meta name="keywords" content="Deep Learning,3D Detection,Point Cloud,Autonomous Driving">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[paper_reading]-&quot;Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud&quot;">
+<meta property="og:url" content="https://leijiezhang001.github.io/paper-reading-Point-GNN/index.html">
 <meta property="og:site_name" content="LeijieZhang">
+<meta property="og:description" content="本文[1]提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。 1. Different Point Cloud Representations  　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最">
 <meta property="og:locale" content="default">
+<meta property="og:image" content="https://leijiezhang001.github.io/paper-reading-Point-GNN/repr.png">
+<meta property="og:image" content="https://leijiezhang001.github.io/paper-reading-Point-GNN/framework.png">
+<meta property="og:updated_time" content="2020-07-10T01:19:12.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="LeijieZhang">
+<meta name="twitter:title" content="[paper_reading]-&quot;Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud&quot;">
+<meta name="twitter:description" content="本文[1]提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。 1. Different Point Cloud Representations  　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最">
+<meta name="twitter:image" content="https://leijiezhang001.github.io/paper-reading-Point-GNN/repr.png">
 
 
 
@@ -124,13 +132,13 @@
 
 
 
-  <link rel="canonical" href="https://leijiezhang001.github.io/tags/ICP/">
+  <link rel="canonical" href="https://leijiezhang001.github.io/paper-reading-Point-GNN/">
 
 
 
 
 
-  <title>Tag: ICP | LeijieZhang</title>
+  <title>[paper_reading]-"Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud" | LeijieZhang</title>
   
 
 
@@ -194,7 +202,7 @@
     
   
 
-  <div class="container sidebar-position-left ">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 <a href="https://github.com/LeijieZhang001" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewbox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -332,52 +340,294 @@
           <div id="content" class="content">
             
 
-  
-  
-  
-  <div class="post-block tag">
+  <div id="posts" class="posts-expand">
+    
 
-    <div id="posts" class="posts-collapse">
-      <div class="collection-title">
-        <h1>ICP<small>Tag</small>
-        </h1>
-      </div>
+  
 
-      
-        
+  
+  
+  
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://leijiezhang001.github.io/paper-reading-Point-GNN/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Leijie">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LeijieZhang">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/Object-Registration-with-Point-Cloud/" itemprop="url">
-              
-                <span itemprop="name">Object Registration with Point Cloud</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">[paper_reading]-"Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud"</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated" datetime="2019-12-25T09:13:19+08:00" content="2019-12-25">
-          12-25
-        </time>
-      </div>
+        <div class="post-meta">
+          
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-07-10T09:22:07+08:00">
+                2020-07-10
+              </time>
+            
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/3D-Detection/" itemprop="url" rel="index">
+                    <span itemprop="name">3D Detection</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>次
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Words count in article&#58;</span>
+                
+                <span title="Words count in article">
+                  1.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Reading time &asymp;</span>
+                
+                <span title="Reading time">
+                  5 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。</p>
+<h2 id="different-point-cloud-representations">1. Different Point Cloud Representations</h2>
+<p><img src="/paper-reading-Point-GNN/repr.png" width="65%" height="65%" title="图 1. Point Cloud Representations"> 　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最近邻查找周围点并学习的形式；Graph，将无序点集转换为图模型，特征信息通过点云顶点传递学习的形式。Grids 及 Sets 形式我们已经比较熟悉了，Graph 则查询效率比 Sets 高，特征提取能力又比 Grids 高。Graph 的建图时间复杂度为 \(\mathcal{O}(cN)\)，领域查询复杂度则为 \(\mathcal{O}(1)\)，Sets 中的 KNN 建树及查询复杂度可见 <a href="/PointCloud-Feature-Extraction/" title="PointCloud Feature Extraction">PointCloud Feature Extraction</a>。当然 KNN 式的领域查询方式可以用近似 \(\mathcal{O}(1)\) 方法实现，但是会影响特征学习的准确度。</p>
+<h2 id="framework">2. Framework</h2>
+<p><img src="/paper-reading-Point-GNN/framework.png" width="95%" height="95%" title="图 2. Framework of Point-GNN"> 　　如图 2. 所示，基于 Graph 的 3D 点云检测，首先对点云作 Graph Construction，然后用 GNN 来学习每个顶点的特征，接着对每个顶点预测目标框，最后作目标框的整合和 NMS。</p>
+<h3 id="graph-construction">2.1. Graph Construction</h3>
+<p>　　设点云集：\(P=\{p _ 1,...,p _ N\}\)，其中 \(p _ i=(x _ i, s _ i)\) 分别表示坐标 \(x _ i\in\mathbb{R} ^ 3\)，以及该点反射率，领域点相对位置等信息 \(s _ i\in\mathbb{R} ^ k\)。对该点集建图 \(G=(P,E)\)，将距离小于一定阈值的两个点进行连接，即： <span class="math display">\[E = \{(p _ i, p _ j)|\Vert x _ i-x _ j\Vert _ 2 &lt; r\} \tag{1}\]</span> 这种建图方式是 Fixed Radius Near-Neighbors 问题，可在 \(\mathcal{O}(cN)\) 时间复杂度下解决，其中 \(c\) 为最大连接数。<br>
+　　建图完成后，要对每个点信息状态 \(s _ i\) 作初始化。这里采用类似 Sets 的特征提取方式，即将该点的反射率，以及与领域内点的相对位置，串联成特征向量，然后用 MLP 作空间变换，最后在点维度上作 Max Pooling，即可得到初始化的该点特征状态量 \(s _ i\)。</p>
+<h3 id="graph-neural-network-with-auto-registration">2.2. Graph Neural Network with Auto-Registration</h3>
+<p>　　传统的图神经网络，通过边迭代每个顶点的特征。在 \((t+1) ^ {th}\) 迭代时： <span class="math display">\[\begin{align}
+ v _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{e _ {ij} ^ t|(i,j)\in E\}\right), v _ i ^ t\right) \\
+e _ {ij} ^ t &amp;= f ^ t(v _ i ^ t, v _ j ^ t) \tag{2}
+\end{align}\]</span> 其中 \(e ^ t,v ^ t\) 分别是边和顶点特征，\(f ^ t(\cdot)\) 计算两个顶点之间边的特征，\(\rho(\cdot)\) 将与该点连接的边特征整合，得到该点特征增量，\(g ^ t(\cdot)\) 将该点特征增量与原特征进行整合得到本次迭代后该点的最终特征。<br>
+　　对于边特征，一种设计方式为，描述领域特征对该点位置的作用力，重写式 (2)： <span class="math display">\[s _ i ^ {t+1} = g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{3}\]</span> 这样就得到了图神经网络的迭代模型。此外，本文还指出，由于边特征对领域点的距离较为敏感，所以作者提出对相对位置作自动补偿，实验表明其实意义不大： <span class="math display">\[\begin{align}
+\Delta x _ i ^ t &amp;= h ^ t(s _ i^t) \\
+s _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i+\Delta x _ i ^ t,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{4}
+\end{align}\]</span> 　　具体的，\(f ^ t(\cdot),g ^ t(\cdot), h ^ t(\cdot)\) 可用 MLP 来建模，\(\rho(\cdot)\) 则采用 Max 操作： <span class="math display">\[\begin{align}
+\Delta x _ i ^ t &amp;= MLP _ h ^ t(s _ i^t) \\
+e _ {ij} ^ t &amp;= MLP _ f ^ t([x _ j - x _ i + \Delta x _ i ^ t, s _ j ^ t]) \\
+s _ i ^ {t+1} &amp;= MLP _ g ^ t\left(MAX(\{e _ {ij}|(i,j)\in E\})\right)+ s _ i ^ t \tag{5}
+\end{align}\]</span></p>
+<h3 id="loss">2.3. Loss</h3>
+<p>　　为了作 3D 检测的任务，网络头输出为每个顶点的类别，目标框中心的 offset，以及目标框的尺寸，朝向。这与传统的基于 Ancho-Free 的 3D 目标检测基本一致，这里不做展开。</p>
+<h3 id="box-merging-and-scoring">2.4. Box Merging and Scoring</h3>
+<p>　　本方法的 3D 检测需要作 NMS 后处理，由于分类的 Score 不能反应目标框的 Uncertainty，所以基于 Score 的 NMS 是不合理的。这个问题在 2D 检测中也有比较多的研究，比如采用预测 IoU 值的方式来作权重。本文则认为遮挡信息能作为 NMS 操作的指导，由此定义了遮挡值的计算方式。但是实验显示，其实提升并不明显，所以这里不做具体展开。</p>
+<h2 id="reference">3. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Shi, Weijing, and Raj Rajkumar. &quot;Point-gnn: Graph neural network for 3d object detection in a point cloud.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>
 
       
     </div>
+    
+    
+    
+
+    
+      <div>
+	    
+<div style="text-align:center;color: #ccc;font-size:14px;">
+----------------- END -----------------</div>
+      </div>
+    
+		
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>赞赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="Leijie WeChat Pay">
+        <p>WeChat Pay</p>
+      </div>
+    
+
+    
+
+    
 
   </div>
-  
-  
-  
+</div>
+
+      </div>
+    
+	
+	
+    
+      <div>
+        <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:</strong>
+    Leijie
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link:</strong>
+    <a href="https://leijiezhang001.github.io/paper-reading-Point-GNN/" title="[paper_reading]-" point-gnn: graph neural network for 3d object detection in a point cloud"">https://leijiezhang001.github.io/paper-reading-Point-GNN/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice: </strong>
+    All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> unless stating additionally.
+  </li>
+</ul>
+
+      </div>
+    
+
+	
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Deep-Learning/" rel="tag"><i class="fa fa-tag"></i> Deep Learning</a>
+          
+            <a href="/tags/3D-Detection/" rel="tag"><i class="fa fa-tag"></i> 3D Detection</a>
+          
+            <a href="/tags/Point-Cloud/" rel="tag"><i class="fa fa-tag"></i> Point Cloud</a>
+          
+            <a href="/tags/Autonomous-Driving/" rel="tag"><i class="fa fa-tag"></i> Autonomous Driving</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/CenterTrack/" rel="next" title="CenterTrack">
+                <i class="fa fa-chevron-left"></i> CenterTrack
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+
 
   
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -385,6 +635,15 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC81MDYxNC8yNzA5Nw=="></div>
+    </div>
+
+  
+
+
 
         </div>
         
@@ -405,9 +664,18 @@
       
        
         
+          <ul class="sidebar-nav motion-element">
+            <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+              Table of Contents
+            </li>
+            <li class="sidebar-nav-overview" data-target="site-overview">
+              Overview
+            </li>
+          </ul>
+        
       
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -499,6 +767,22 @@
       </section>
 
 
+        
+        <!--noindex-->
+          <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+            <div class="post-toc">
+
+              
+                
+              
+
+              
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#different-point-cloud-representations"><span class="nav-text">1. Different Point Cloud Representations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#framework"><span class="nav-text">2. Framework</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#graph-construction"><span class="nav-text">2.1. Graph Construction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#graph-neural-network-with-auto-registration"><span class="nav-text">2.2. Graph Neural Network with Auto-Registration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#loss"><span class="nav-text">2.3. Loss</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#box-merging-and-scoring"><span class="nav-text">2.4. Box Merging and Scoring</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">3. Reference</span></a></li></ol></div>
+              
+
+            </div>
+          </section>
+        <!--/noindex-->
         
       
 
@@ -701,6 +985,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
@@ -729,6 +1017,20 @@
 
 
 
+  
+    <script type="text/javascript">
+    window.livereOptions = {
+        refer: 'https://leijiezhang001.github.io' + location.pathname
+    };
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
   
 
 

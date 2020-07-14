@@ -26,6 +26,47 @@ U2FsdGVkX1/P1KcWMyK4YuprNixgJCWpOxS3uHCpXYb7SjrDCPrLOSuN4pU1KdoF9r/1eJhmuejFKxf0
       </tags>
   </entry>
   <entry>
+    <title>[paper_reading]-&quot;Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud&quot;</title>
+    <url>/paper-reading-Point-GNN/</url>
+    <content><![CDATA[<p>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种基于图网络来提取点云特征的方法，理论上可在不损失原始信息的情况下，高效的学习点云特征，其在点云 3D 检测任务中效果提升明显。</p>
+<h2 id="different-point-cloud-representations">1. Different Point Cloud Representations</h2>
+<p><img src="/paper-reading-Point-GNN/repr.png" width="65%" height="65%" title="图 1. Point Cloud Representations"> 　　如图 1. 所示，目前点云表示方式以及对应的特征学习方式有三种：Grids，栅格化后类似图像 2D/3D 卷积的形式；Sets，以 PointNet 为代表的最近邻查找周围点并学习的形式；Graph，将无序点集转换为图模型，特征信息通过点云顶点传递学习的形式。Grids 及 Sets 形式我们已经比较熟悉了，Graph 则查询效率比 Sets 高，特征提取能力又比 Grids 高。Graph 的建图时间复杂度为 \(\mathcal{O}(cN)\)，领域查询复杂度则为 \(\mathcal{O}(1)\)，Sets 中的 KNN 建树及查询复杂度可见 <a href="/PointCloud-Feature-Extraction/" title="PointCloud Feature Extraction">PointCloud Feature Extraction</a>。当然 KNN 式的领域查询方式可以用近似 \(\mathcal{O}(1)\) 方法实现，但是会影响特征学习的准确度。</p>
+<h2 id="framework">2. Framework</h2>
+<p><img src="/paper-reading-Point-GNN/framework.png" width="95%" height="95%" title="图 2. Framework of Point-GNN"> 　　如图 2. 所示，基于 Graph 的 3D 点云检测，首先对点云作 Graph Construction，然后用 GNN 来学习每个顶点的特征，接着对每个顶点预测目标框，最后作目标框的整合和 NMS。</p>
+<h3 id="graph-construction">2.1. Graph Construction</h3>
+<p>　　设点云集：\(P=\{p _ 1,...,p _ N\}\)，其中 \(p _ i=(x _ i, s _ i)\) 分别表示坐标 \(x _ i\in\mathbb{R} ^ 3\)，以及该点反射率，领域点相对位置等信息 \(s _ i\in\mathbb{R} ^ k\)。对该点集建图 \(G=(P,E)\)，将距离小于一定阈值的两个点进行连接，即： <span class="math display">\[E = \{(p _ i, p _ j)|\Vert x _ i-x _ j\Vert _ 2 &lt; r\} \tag{1}\]</span> 这种建图方式是 Fixed Radius Near-Neighbors 问题，可在 \(\mathcal{O}(cN)\) 时间复杂度下解决，其中 \(c\) 为最大连接数。<br>
+　　建图完成后，要对每个点信息状态 \(s _ i\) 作初始化。这里采用类似 Sets 的特征提取方式，即将该点的反射率，以及与领域内点的相对位置，串联成特征向量，然后用 MLP 作空间变换，最后在点维度上作 Max Pooling，即可得到初始化的该点特征状态量 \(s _ i\)。</p>
+<h3 id="graph-neural-network-with-auto-registration">2.2. Graph Neural Network with Auto-Registration</h3>
+<p>　　传统的图神经网络，通过边迭代每个顶点的特征。在 \((t+1) ^ {th}\) 迭代时： <span class="math display">\[\begin{align}
+ v _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{e _ {ij} ^ t|(i,j)\in E\}\right), v _ i ^ t\right) \\
+e _ {ij} ^ t &amp;= f ^ t(v _ i ^ t, v _ j ^ t) \tag{2}
+\end{align}\]</span> 其中 \(e ^ t,v ^ t\) 分别是边和顶点特征，\(f ^ t(\cdot)\) 计算两个顶点之间边的特征，\(\rho(\cdot)\) 将与该点连接的边特征整合，得到该点特征增量，\(g ^ t(\cdot)\) 将该点特征增量与原特征进行整合得到本次迭代后该点的最终特征。<br>
+　　对于边特征，一种设计方式为，描述领域特征对该点位置的作用力，重写式 (2)： <span class="math display">\[s _ i ^ {t+1} = g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{3}\]</span> 这样就得到了图神经网络的迭代模型。此外，本文还指出，由于边特征对领域点的距离较为敏感，所以作者提出对相对位置作自动补偿，实验表明其实意义不大： <span class="math display">\[\begin{align}
+\Delta x _ i ^ t &amp;= h ^ t(s _ i^t) \\
+s _ i ^ {t+1} &amp;= g ^ t\left(\rho\left(\{f ^ t(x _ j-x _ i+\Delta x _ i ^ t,s _ j^t)|(i,j)\in E\}\right), s _ i ^ t\right) \tag{4}
+\end{align}\]</span> 　　具体的，\(f ^ t(\cdot),g ^ t(\cdot), h ^ t(\cdot)\) 可用 MLP 来建模，\(\rho(\cdot)\) 则采用 Max 操作： <span class="math display">\[\begin{align}
+\Delta x _ i ^ t &amp;= MLP _ h ^ t(s _ i^t) \\
+e _ {ij} ^ t &amp;= MLP _ f ^ t([x _ j - x _ i + \Delta x _ i ^ t, s _ j ^ t]) \\
+s _ i ^ {t+1} &amp;= MLP _ g ^ t\left(MAX(\{e _ {ij}|(i,j)\in E\})\right)+ s _ i ^ t \tag{5}
+\end{align}\]</span></p>
+<h3 id="loss">2.3. Loss</h3>
+<p>　　为了作 3D 检测的任务，网络头输出为每个顶点的类别，目标框中心的 offset，以及目标框的尺寸，朝向。这与传统的基于 Ancho-Free 的 3D 目标检测基本一致，这里不做展开。</p>
+<h3 id="box-merging-and-scoring">2.4. Box Merging and Scoring</h3>
+<p>　　本方法的 3D 检测需要作 NMS 后处理，由于分类的 Score 不能反应目标框的 Uncertainty，所以基于 Score 的 NMS 是不合理的。这个问题在 2D 检测中也有比较多的研究，比如采用预测 IoU 值的方式来作权重。本文则认为遮挡信息能作为 NMS 操作的指导，由此定义了遮挡值的计算方式。但是实验显示，其实提升并不明显，所以这里不做具体展开。</p>
+<h2 id="reference">3. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Shi, Weijing, and Raj Rajkumar. &quot;Point-gnn: Graph neural network for 3d object detection in a point cloud.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>
+]]></content>
+      <categories>
+        <category>3D Detection</category>
+      </categories>
+      <tags>
+        <tag>Deep Learning</tag>
+        <tag>3D Detection</tag>
+        <tag>Point Cloud</tag>
+        <tag>Autonomous Driving</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>CenterTrack</title>
     <url>/CenterTrack/</url>
     <content><![CDATA[<p>　　障碍物感知由目标检测，目标跟踪(MOT)，目标状态估计等三个模块构成。目标状态估计一般是指将位置，速度等观测量作卡尔曼滤波平滑；广义的目标跟踪也包含了状态估计过程，这里采用狭义的目标跟踪定义方式，主要指出目标 ID 的过程。传统的做法，目标检测与目标跟踪是分开进行的，检测模块分别对前后帧作目标检测，目标跟踪模块则接收前后帧检测结果，然后用 Motion Model 将上一帧的检测结果预测到这一帧，最后与这一帧的检测结果作数据关联(Data Association)出目标 ID。这里的 Motion Model 可以是 3D 下目标的物理运动模型，也可以是图像下的单目标跟踪结果，如 KCF 算法。详细介绍可参考 <a href="/MOT-综述-Multiple-Object-Tracking-A-Literature-Review/" title="Multiple Object Tracking: A Literature Review">Multiple Object Tracking: A Literature Review</a>。<br>
@@ -163,6 +204,39 @@ U2FsdGVkX1/P1KcWMyK4YuprNixgJCWpOxS3uHCpXYb7SjrDCPrLOSuN4pU1KdoF9r/1eJhmuejFKxf0
       </tags>
   </entry>
   <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <url>/DENFIDet/</url>
+    <content><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p>
+<h2 id="framework">1. Framework</h2>
+<p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p>
+<h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2>
+<h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3>
+<p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p>
+<ul>
+<li>分类分支<br>
+分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li>
+<li>回归分支<br>
+回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li>
+</ul>
+<p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>
+　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>
+　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p>
+<h3 id="denficonv">2.2. DENFIConv</h3>
+<p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p>
+<h2 id="reference">3. Reference</h2>
+<p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>
+]]></content>
+      <categories>
+        <category>3D Detection</category>
+      </categories>
+      <tags>
+        <tag>Deep Learning</tag>
+        <tag>3D Detection</tag>
+        <tag>paper reading</tag>
+        <tag>Autonomous Driving</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
     <url>/SA-SSD/</url>
     <content><![CDATA[<p>　　Voxel-based 3D Detection 相比 <a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 的缺点是特征提取不仅在 Voxel 阶段损失了一定的点云信息，而且 Voxel 化后丢失了点云之间的拓扑关系。<a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 中详细描述了几种 Point-based 方法，这种方法目前比较棘手的地方是，即使作 Inference 时，也需要作 kd-tree 搜索与采样等运算量较大的操作。那么如何榨干 Voxel-based 的性能对工业界落地就显得比较重要了，本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种单阶段的 Voxel-based 3D 检测方法，并借助了 Point 级别特征提取的相关策略，使得检测性能有较大提升。</p>
@@ -235,39 +309,6 @@ BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L 
         <tag>paper reading</tag>
         <tag>Autonomous Driving</tag>
         <tag>Semantic Segmentation</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <url>/DENFIDet/</url>
-    <content><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p>
-<h2 id="framework">1. Framework</h2>
-<p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p>
-<h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2>
-<h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3>
-<p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p>
-<ul>
-<li>分类分支<br>
-分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li>
-<li>回归分支<br>
-回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li>
-</ul>
-<p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>
-　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>
-　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p>
-<h3 id="denficonv">2.2. DENFIConv</h3>
-<p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p>
-<h2 id="reference">3. Reference</h2>
-<p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>
-]]></content>
-      <categories>
-        <category>3D Detection</category>
-      </categories>
-      <tags>
-        <tag>Deep Learning</tag>
-        <tag>3D Detection</tag>
-        <tag>paper reading</tag>
-        <tag>Autonomous Driving</tag>
       </tags>
   </entry>
   <entry>
