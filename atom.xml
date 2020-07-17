@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-07-14T01:19:12.000Z</updated>
+  <updated>2020-07-08T01:19:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>AVP-SLAM</title>
+    <link href="https://leijiezhang001.github.io/AVP-SLAM/"/>
+    <id>https://leijiezhang001.github.io/AVP-SLAM/</id>
+    <published>2020-07-15T01:17:56.000Z</published>
+    <updated>2020-07-08T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　Visual-SLAM 一般采用特征点或像素直接法来建图定位，这种方式对光照较为敏感。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种基于语义特征的 Visual Semantic SLAM，应用于光照条件较为复杂的室内停车场环境，相比于采用特征点的 ORB-SLAM，性能较为鲁棒。</p><h2 id="framework">1. Framework</h2><p><img src="/AVP-SLAM/framework.png" width="95%" height="95%" title="图 1. AVP-SLAM Framework"> 　　如图 1. 所示，AVP-SLAM 由 Mapping，Localization 两部分组成。Mapping 阶段，将车周围的四张图通过 IPM 拼接并变换到俯视图，然后作 Guide Signs，Parking Lines，Speed Bumps 等语义信息的提取，接着通过 Odometry 将每帧的特征累积成局部地图，最后通过回环检测，全局优化出全局地图。Localization 阶段，提取出每帧的语义信息后，用 Odometry 初始化位姿，然后用 ICP 匹配求解当前帧在全局地图中的位姿，得到基于地图的位姿观测量，最后用 EKF 融合该观测量与 Odometry 信息，得到本车的最终位姿。<br>　　有了本车在全局地图下的位姿后，然后通过语义信息识别停车位，即可达到本车自动泊车的目的。</p><h2 id="mapping">2. Mapping</h2><h3 id="ipm">2.1. IPM</h3><p>　　传感器为车身四周四个鱼眼相机，相机内外参已知。IPM(Inverse Perspective Mapping) 是将图像中的像素点投影到车身物理坐标系下的俯视图中，具体的： <span class="math display">\[\frac{1}{\lambda}\;\begin{bmatrix}x ^ v \\y ^ v \\1\end{bmatrix} =[\mathbf{R} _ c \;\mathbf{t} _ c] ^ {-1} _ {col:1,2,4} \;\pi _ c ^ {-1}\begin{bmatrix}u \\v \\1\end{bmatrix}\tag{1}\]</span> 其中 \(\pi _ c(\cdot)\) 为鱼眼相机的内参矩阵，\([\mathbf{R} _ c\;\mathbf{t} _ c]\) 为每个相机到车身坐标系的外参矩阵，\([x ^ v\; y ^ v]\) 为车身坐标系下语义特征的位置。关于 IPM 更多细节可参考 <a href="/lane-det-from-BEV/" title="Apply IPM in Lane Detection from BEV">Apply IPM in Lane Detection from BEV</a>。<br>　　进一步将 IPM 图拼接成一张全景图： <span class="math display">\[\begin{bmatrix}u _ {ipm}\\v _ {ipm}\\1\end{bmatrix}=\mathbf{K} _ {ipm}\begin{bmatrix}x ^ v \\y ^ v \\1\end{bmatrix}\tag{2}\]</span> 其中 \(\mathbf{K} _ {ipm}\) 是全景图的内参。</p><h3 id="feature-detection">2.2. Feature Detection</h3><p><img src="/AVP-SLAM/segment.png" width="65%" height="65%" title="图 2. Segmentation in IPM Image"> 　　将每张 IPM 图拼接成一张大全景图，然后用基于深度学习的语义分割方法，对全景图作像素级别作 lane，parking line，guide sign，speed bump，free space，obstacle，wall 等类别的语义分割。如图 4. 所示，parking line，guide sign，speed bump 是稳定的特征，用于定位；parking line 用于车位的识别；free space 与 obstacle 用于路径规划。</p><h3 id="local-mapping">2.3. Local Mapping</h3><p>　　全景图语义分割得到的用于定位的特征(parking line，guide sign，speed bump)需要反投影回车身物理坐标系： <span class="math display">\[\begin{bmatrix}x ^ v \\y ^ v \\1\end{bmatrix}=\mathbf{K} _ {ipm} ^ {-1}\begin{bmatrix}u _ {ipm}\\v _ {ipm}\\1\end{bmatrix}\tag{3}\]</span> 然后基于 Odometry 的相对位姿，将当前的语义特征点转换到世界坐标系下： <span class="math display">\[\begin{bmatrix}x ^ w \\y ^ w \\z ^ w\end{bmatrix}=\mathbf{R _ o}\begin{bmatrix}x ^ v \\y ^ v \\0\end{bmatrix} + \mathbf{t _ o}\tag{4}\]</span> 由此得到局部地图，本文保持车身周边 30m 内的局部地图。</p><h3 id="loop-detection">2.4. Loop Detection</h3><p><img src="/AVP-SLAM/loop_det.png" width="65%" height="65%" title="图 3. Loop Detection"> 　　因为 Odometry 有累计误差，所以这里对局部地图作一个闭环检测。如图 3. 所示，通过 ICP 对两个局部地图作匹配，一旦匹配成功，就说明检测到了闭环，ICP 匹配的相对位姿用于之后的全局位子图优化，以消除里程计累计误差。</p><h3 id="global-optimization">2.5. Global Optimization</h3><p>　　检测到闭环后，需进行全局位姿图优化。位姿图中，节点(node)为每个局部地图的位姿：\((\mathbf{r, t})\)；边(edge)有两种：odometry 相对位姿以及闭环检测中 ICP 匹配位姿。由此位姿图优化的损失函数为： <span class="math display">\[\chi ^ * = \mathop{\arg\min}\limits _ \chi \sum _ t\Vert f(\mathbf{r} _ {t+1},\mathbf{t} _ {t+1}, \mathbf{r} _ t, \mathbf{t} _ t) - \mathbf{z} ^ o _ {t,t+1}\Vert ^ 2 + \sum _ {i,j\in\mathcal{L}}\Vert f(\mathbf{r} _ i,\mathbf{t} _ i,\mathbf{r} _ j, \mathbf{t} _ j)-\mathbf{z} ^ l _ {i,j}\Vert ^ 2 \tag{5}\]</span> 其中 \(\chi = [\mathbf{r} _ 0,\mathbf{t} _ 0,...,\mathbf{r} _ t,\mathbf{t} _ t] ^ T\) 是所有局部地图的位姿，也是待优化的参数。\(\mathbf{z} ^ 0 _ {t,t+1}\) 为 Odometry 得到的位姿。\(\mathbf{z} ^ l _ {i,j}\) 为闭环检测 ICP 得到的位姿。\(f(\cdot)\) 为计算两个局部地图相对位姿的方程。该优化问题可通过 Gauss-Newton 法求解。<br>　　用优化后的位姿将局部地图叠加起来，就获得了整个场景的全局地图。</p><h2 id="localization">3. Localization</h2><p><img src="/AVP-SLAM/loc.png" width="65%" height="65%" title="图 4. Localization"> 　　有了全局地图后，基于全局地图的定位观测量可通过当前帧与全局地图的匹配得到。如图 4. 所示，绿色为当前帧检测到的语义特征，与全局地图匹配后即可得到当前的绝对位置。匹配通过 ICP 算法实现： <span class="math display">\[ \mathbf{r ^ * ,t ^ * } =  \mathop{\arg\min}\limits _ {\mathbf{r,t}}\sum _ {k\in\mathcal{S}}\Vert\mathbf{R(r)}\begin{bmatrix}x ^ v  _ k\\y ^ v  _ k\\0\end{bmatrix} + \mathbf{t} - \begin{bmatrix}x ^ w _ k \\y ^ w _ k\\z ^ w _ k\end{bmatrix}\Vert ^ 2 \tag{6}\]</span> 其中 \(\mathcal{S}\) 为当前帧语义特征点集，\([x _ k ^ w\; y _ k ^ w\; z _ k ^ w]\) 分别为对应的全局地图中最近的特征点集。<br>　　ICP 的初始化非常重要，本文提出了两种初始化方法：1. 直接在地图上标记车库入口作为全局坐标点；2. 室外 GPS 信号初始化，然后用 Odometry 累积到车库。</p><h2 id="extended-kalman-filter">4. Extended Kalman Filter</h2><p>　　Visual Localization 在语义特征较少的情况下，比如车辆停满了，定位会不稳定，所以这里采用 EKF 对 Visual Localization 与 Odometry 中的轮速计和 IMU 作扩展卡尔曼融合，这里不做展开。</p><h2 id="thinkings">5. Thinkings</h2><p>　　Semantic SLAM 相比基于几何特征点的 SLAM 更加鲁棒。但是在车库场景下，一旦车子停满后，停车线等语义信息会急剧减少，所以实际商业应用中，AVP-SLAM 能满足室内自动泊车的需求吗？<br>　　对此我持怀疑态度。我认为，对于车库自动泊车的商业落地，可能最有效且低成本的方法还是得基于室内 UWB 定位技术。至少 UWB 可作为辅助。当然要将 UWB 应用于车载装置，目前好像还没有，不过随着车载软硬件系统的完善，手机上能做的事，车载平台问题也不大。</p><h2 id="reference">6. Reference</h2><p><a id="1" href="#1ref">[1]</a> Qin, Tong, et al. &quot;AVP-SLAM: Semantic Visual Mapping and Localization for Autonomous Vehicles in the Parking Lot.&quot; arXiv preprint arXiv:2007.01813 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　Visual-SLAM 一般采用特征点或像素直接法来建图定位，这种方式对光照较为敏感。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt; 提出了一种基于语义特征的 Visual Semantic SLAM，应用于光照条件较为复杂的室内
+      
+    
+    </summary>
+    
+      <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="Tracking" scheme="https://leijiezhang001.github.io/tags/Tracking/"/>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;Point-GNN: Graph Neural Network for 3D Object Detection in a Point Cloud&quot;</title>
@@ -176,37 +207,6 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-  </entry>
-  
-  <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
     <link href="https://leijiezhang001.github.io/SA-SSD/"/>
     <id>https://leijiezhang001.github.io/SA-SSD/</id>
@@ -267,6 +267,37 @@
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
   </entry>
   
@@ -598,35 +629,6 @@
       <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
     
       <category term="Low-Light Image Enhancement" scheme="https://leijiezhang001.github.io/tags/Low-Light-Image-Enhancement/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Unsupervised Low-Light Image Enhancement</title>
-    <link href="https://leijiezhang001.github.io/Unsupervised-Low-Light-Image-Enhancement/"/>
-    <id>https://leijiezhang001.github.io/Unsupervised-Low-Light-Image-Enhancement/</id>
-    <published>2020-03-28T04:21:55.000Z</published>
-    <updated>2020-04-03T06:02:16.620Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　在自动驾驶中，相机能捕捉丰富的纹理信息，是不可或缺的传感器。但是受限于相机 Sensor 及 ISP 性能，其动态范围有限，往往会出现过曝或欠曝的情况。过曝的情况还能通过 3A(AE, AF, AW) 中的 AE 调节，而欠曝的情况，AE 中要么提高增益或 ISO 但是会增加噪声，要么增加曝光时间但是撑死 50ms(按照 20Hz)，光圈则一般是固定的，不会调节。所以在低光照自动驾驶场景下，对欠曝的图像进行亮度增强则显得尤其重要（当然也可用夜视相机如红外相机等辅助)。<br>　　基于学习的图像增强方法，由于很难获得大量的欠爆图像与对应的增强图像。所以无监督的图像增强方法就更有应用价值，本文介绍几种无监督图像增强方法。</p><h2 id="zero-dce1">1. Zero-DCE<a href="#1" id="1ref"><sup>[1]</sup></a></h2><p>　　无监督图像增强方法主要是指基于 GAN 的方法，基于 GAN 的方法还是需要选择欠爆图像及正常图像两个分布的数据集，选择不当也会导致性能下降。而 Zero-DCE 则无需选择正常图像数据集，消除了数据分布下过拟合或欠拟合的风险。<br>　　Zero-DCE 基本思想是对每个像素作亮度变换，每个像素的变换方程为： <span class="math display">\[LE(I(\mathrm{x});\alpha) = I(\mathrm{x}) + \alpha I(\mathrm{x})(1-I(\mathrm{x})) \tag{1}\]</span> 其中 \(\alpha\in[-1,1]\) 是变换系数。对图像的每个通道每个像素分别作不同系数的迭代变换，可得： <span class="math display">\[LE _ n(\mathrm{x}) = LE _ {n-1}(\mathrm{x}) + \mathcal{A} _ n LE _ {n-1}(\mathrm{x})(1-LE _ {n-1}(\mathrm{x})) \tag{2}\]</span> 其中 \(\mathcal{A} _ n\) 是变换系数集，与图像大小一致。 <img src="/Unsupervised-Low-Light-Image-Enhancement/Zero-DCE.png" width="90%" height="90%" title="图 1. Zero-DCE Framework"> 　　如图 1. 所示，Zero-DCE 框架中，一个基本网络预测几组 \(\mathcal{A} _ n\) 集合，然后对原图每个通道进行迭代的亮度变换。LE-curves 不仅能增强暗处的曝光量，还能减弱过曝处的亮度值。<br>　　该方法最重要的是 Loss 函数的设计，一共有以下 Loss 组成：</p><ol type="1"><li><strong>Spatial Consisiency Loss</strong><br>增强后的图像要求其与原图具有空间一致性： <span class="math display">\[ L _ {spa} = \frac{1}{K}\sum _ {i=1}^K\sum _ {j\in\Omega (i)}\left(\Vert Y _ i-Y _ j\Vert-\Vert I _ i-I _ j\Vert\right)^2 \tag{3}\]</span> 其中 \(\Omega\) 为某像素的领域集，可为四领域；\(K\) 为局部区域数量，可设定为 \(4\times 4\) 大小；\(Y,I\) 分别为增强后与原始的像素亮度值。</li><li><strong>Exposure Control Loss</strong><br>曝光控制 Loss 相当于设定曝光量去监督训练每个像素亮度，实现“无监督”的效果： <span class="math display">\[ L _ {exp} = \frac{1}{M}\sum _ {k=1}^M\Vert Y _ k-E\Vert \tag{4}\]</span> 其中 \(M\) 为无重合的局部区域数量，可设定为 \(16\times 16\) 大小；\(Y _ k\) 为局部区域的平均亮度值。作者实验中，设定 \(E\in[0.4,0.7]\) 均能获得相似的较好的结果。</li><li><strong>Color Constancy Loss</strong><br>根据 Gray-World color constancy 假设：rgb 每个通道的平均亮度值与 gray 灰度值一致。所以为了保证颜色不失真，构造： <span class="math display">\[ L _ {col}=\sum _ {\forall (p,q)\in \epsilon}(J^p-J^q), \epsilon=\{R,G,B\} \tag{5}\]</span> 其中 \(p,q\) 表示一对不同的颜色通道，\(J\) 表示该通道的平均亮度值。</li><li><strong>Illumination Smoothness Loss</strong><br>增强的过程要求相邻亮度值是平滑的，对增强变换系数作约束： <span class="math display">\[ L _ {tv _ {\mathcal{A}}} = \frac{1}{N}\sum _ {n=1}^N\sum _ {c\in\epsilon}(\nabla _ x\mathcal{A} _ n^c+\nabla _ y\mathcal{A} _ n^c)^2, \epsilon = \{R,G,B\}\tag{6}\]</span> 其中 \(N\) 为增强迭代数；\(\nabla _ x,\nabla _ y\) 分别表示水平与垂直方向的求导操作。</li></ol><p>最终 Loss 构成为： <span class="math display">\[ L _ {total} = L _ {spa} + L _ {exp} + W _ {col}L _ {col} + W _ {tv _ {\mathcal{A}}}L _ {tv _ {\mathcal{A}}} \tag{7}\]</span></p><h2 id="enlightengan2">2. EnlightenGAN<a href="#2" id="2ref"><sup>[2]</sup></a></h2><p>　　图像增强本质上是作 domain transfer，所以能用 GAN 处理，实现无监督训练。 <img src="/Unsupervised-Low-Light-Image-Enhancement/EnlightenGAN.png" width="90%" height="90%" title="图 2. EnlightenGAN Framework"> 　　如图 2. 所示，EnlightenGAN 由 Generator 和 Discriminator 构成。Generator 是一个 attention-guided U-Net，因为我们期望欠曝的区域能增强，所以将亮度值归一化后，用 1 减去亮度值作为注意力图，与原图一起输入网络。Discriminator 由 Global Discriminator 与 Local Discriminator 组成，因为经常只需要局部区域的亮度，所以设计 Local Discriminator 就很有必要。<br>　　Loss 的设计非常关键，EnlightenGAN 一共有以下 Loss 组成：</p><ol type="1"><li><strong>Adversarial Loss</strong><br>用于直接训练 Generator 以及 Discriminator 的 Loss，与传统的 GAN Loss 类似；</li><li><strong>Self Feature Preserving Loss</strong><br>注意到，调整输入图像值的范围，对最终的高层任务影响不是很大，所以引入网络特征 Loss 来保证增强后图像的准确性。对原始图像与生成的图像，分别输入到在 ImageNet 上预训练的 VGG-16 模型，提取特征集合，将对应的特征对作 L1 Loss。</li></ol><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Guo, Chunle, et al. &quot;Zero-Reference Deep Curve Estimation for Low-Light Image Enhancement.&quot; arXiv preprint arXiv:2001.06826 (2020).<br><a id="2" href="#2ref">[2]</a> Jiang, Yifan, et al. &quot;Enlightengan: Deep light enhancement without paired supervision.&quot; arXiv preprint arXiv:1906.06972 (2019).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　在自动驾驶中，相机能捕捉丰富的纹理信息，是不可或缺的传感器。但是受限于相机 Sensor 及 ISP 性能，其动态范围有限，往往会出现过曝或欠曝的情况。过曝的情况还能通过 3A(AE, AF, AW) 中的 AE 调节，而欠曝的情况，AE 中要么提高增益或 ISO 但是
-      
-    
-    </summary>
-    
-      <category term="Low-Light Image Enhancement" scheme="https://leijiezhang001.github.io/categories/Low-Light-Image-Enhancement/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Low-Light Image Enhancement" scheme="https://leijiezhang001.github.io/tags/Low-Light-Image-Enhancement/"/>
-    
-      <category term="GAN" scheme="https://leijiezhang001.github.io/tags/GAN/"/>
     
   </entry>
   
