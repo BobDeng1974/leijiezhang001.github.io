@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-08-04T01:19:12.000Z</updated>
+  <updated>2020-08-06T01:19:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Pillar-based Object Detection&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/</id>
+    <published>2020-08-04T03:42:08.000Z</published>
+    <updated>2020-08-06T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　<a href="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/" title="MVF">MVF</a> 在俯视图点云特征的基础上，融合了点云的前视图特征，由此解决点云在远处比较稀疏，以及行人等狭长型目标特征信息较少的问题。本文<a href="#1" id="1ref"><sup>[1]</sup></a>基于 <a href="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/" title="MVF">MVF</a> 作了三部分的改进：</p><ol type="1"><li>检测头改为 Anchor-Free 的形式，本文称之为 Pillar-based，其实就是图像中对应的像素点；</li><li>前视图用 Cylindrical View 代替 Spherical View，解决目标高度失真的问题；</li><li>两个视图的栅格特征反投影回点特征作融合时，采用双线性插值的形式，避免量化误差的影响。</li></ol><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-Pillar-based-Object-Detection/framework.png" width="90%" height="90%" title="图 1. Framework"> 　　如图 1. 所示，点云分别投影到 BEV(Brids-Eye)，CYV(Cylindrical) 视角，然后作类似图像卷积的 2D 卷积操作以提取特征，并将特征反投影回点作融合(与 <a href="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/" title="MVF">MVF</a> 一致)，接着将点云特征再次投影到 BEV 下，最后作 Anchor-Free 的分类与回归任务。<br>　　具体的，设 \(N\) 个点的点云 \(P=\{p _ i\} _ {i=0} ^ {N-1}\subseteq\mathbb{R} ^ 3\)，对应的特征向量为 \(F = \{f _ i\} _ {i=0} ^ {N-1}\subseteq\mathbb{R} ^ K\)。令 \(F _ V(p _ i)\) 返回点 \(p _ i\) 对应的栅格柱子 \(v _ j\) 的索引 \(j\)；\(F _ P(v _ j)\) 则返回栅格柱子 \(v _ j\) 对应的点集。对每个柱子进行特征整合，一般采用类似 PointNet(PN) 的方法： <span class="math display">\[f _ j ^{pillar} = \mathrm{PN} (\{f _ i|\forall p _ i\in F _ P(v _ j)\}) \tag{1}\]</span> pillar 级别的特征经过 CNN \(\phi\) 后得到进一步的 pillar 级别特征：\(\varphi=\phi(f ^ {pillar})\)。然后分别对 BEV，CYV 作 pillar-to-point 的特征投影变换： <span class="math display">\[f _ i^{point}=f _ j^{pillar}\;\mathrm{and}\;\varphi _ i^{point} = \varphi _ j^{pillar},\;\mathrm{where}\; j = F _ V(p _ i) \tag{2}\]</span> 最后的检测头是应用已经较为广泛的 Anchor-Free 形式。</p><h2 id="cylindrical-view">2. Cylindrical View</h2><p><img src="/paper-reading-Pillar-based-Object-Detection/proj.png" width="60%" height="60%" title="图 2. Projection"> 　　<a href="/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/" title="MVF">MVF</a> 采用 Spherical 投影方式，对于点 \(p _ i=(x _ i, y _ i, z _ i)\)，其球坐标 \(\varphi _ i,\theta _ i,d _ i\) 为： <span class="math display">\[\left\{\begin{array}{l}\varphi _ i &amp;= \mathrm{arctan}\frac{y _ i}{x _ i}\\\theta _ i &amp;= \mathrm{arccos}\frac{z _ i}{d _ i}\\d _ i &amp;= \sqrt{x _ i ^ 2+y _ i ^ 2+z _ i^2}\end{array}\tag{3}\right.\]</span> 如图 2. 所示，球坐标系下目标高度的形变比较严重，本文采用柱坐标系，其柱坐标 \(\rho _ i,\varphi _ i,z _ i\) 表示为： <span class="math display">\[\left\{\begin{array}{l}\rho _ i &amp;=\sqrt{x _ i ^ 2+y _ i^2}\\\varphi _ i &amp;= \mathrm{arctan}\frac{y _ i}{x _ i}\\z _ i &amp;= z _ i\end{array}\tag{4}\right.\]</span> 　　在此视角下作 pillar-level 的特征提取，与俯视图视角一样，只不过作卷积的时候，是环状卷积。具体实现方式是，将柱坐标系下的 pillar 展开，然后边缘补对应展开处另一边的 pillar 值，最后作传统的 2D 卷积即可。</p><h2 id="pillar-based-prediction">3. Pillar-based Prediction</h2><p>　　这里所谓的 Pillar-based 预测，本质上就是图像中常说的 Anchor-Free 的 Pixel-Level 的检测方法。最后特征图上的每个点预测类别概率，以及 3D 框属性 \(\Delta _ x,\Delta _ y,\Delta _ z,\Delta _ l,\Delta _ w,\Delta _ h,\theta ^ p\)。这里不作展开。</p><h2 id="bilinear-interpolation">4. Bilinear Interpolation</h2><p><img src="/paper-reading-Pillar-based-Object-Detection/bilinear.png" width="60%" height="60%" title="图 3. Bilinear"> 　　将 Pillar-Level 提取的特征反投影到 Point-Level 的特征时，需要进行插值处理。如图 3. 所示，传统的方式是最近邻插值，这种方式会引入量化误差，使得点投影反投影后的空间坐标不一致，产生的影响是同一 Pillar 内的点特征都是一样了。本文采用双线性插值的方法，使得 Point-Pillar-Point 的空间坐标一致，这样保证了 Pillar 内点特征的原始精度。该思想还是非常有借鉴意义的，实验效果提升也比较明显。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> Wang, Yue, et al. &quot;Pillar-based Object Detection for Autonomous Driving.&quot; arXiv preprint arXiv:2007.10323 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　&lt;a href=&quot;/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/&quot; title=&quot;MVF&quot;&gt;MVF&lt;/a&gt; 在俯视图点云特征的基础上，融合
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+  </entry>
   
   <entry>
     <title>VLOAM(Visual-lidar Odometry and Mapping)</title>
@@ -261,37 +294,6 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
-    <link href="https://leijiezhang001.github.io/SA-SSD/"/>
-    <id>https://leijiezhang001.github.io/SA-SSD/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-05-22T10:04:17.044Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　Voxel-based 3D Detection 相比 <a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 的缺点是特征提取不仅在 Voxel 阶段损失了一定的点云信息，而且 Voxel 化后丢失了点云之间的拓扑关系。<a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 中详细描述了几种 Point-based 方法，这种方法目前比较棘手的地方是，即使作 Inference 时，也需要作 kd-tree 搜索与采样等运算量较大的操作。那么如何榨干 Voxel-based 的性能对工业界落地就显得比较重要了，本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种单阶段的 Voxel-based 3D 检测方法，并借助了 Point 级别特征提取的相关策略，使得检测性能有较大提升。</p><h2 id="framework">1. Framework</h2><p><img src="/SA-SSD/framework.png" width="100%" height="100%" title="图 1. Framework of SA-SSD"> 　　如图 1. 所示，SA-SSD 由三部分组成：Backbone，Detection Head，Auxiliary Network。<br>　　Backbone 的输入是栅格化后的点云表示方式，文中栅格大小设定为 \(0.05m,0.05m,0.1m\)。Backbone 由一系列的 3D convolution 组成，因为需要保留空间三维位置信息，作 Voxel-to-Point 的映射。这里如果用 2D convolution 代替，那么 Auxiliary Network 估计也只能作 BridView 的分割了。<br>　　Detection Head 主体就是传统 Anchor-Free 结构，一个分支用于预测每个特征层像素点的 Confidence，另一个分支用于预测基于每个特征层像素点的 BBox 属性，如，以该点为 &quot;Anchor&quot; 的四个顶点坐标。此外，为了消除 One-Stage 方法中目标框与置信度不对齐的问题，本文引入 Part-sensitive Warping 来实现与 PSRoiAlign 类似的作用，实现两者的对齐。<br>　　Auxiliary Network 只在训练的阶段起作用，Inference 阶段不需要计算。该模块的作用是训练时通过 Voxel-to-Point 特征映射来反向传播监督 Backbone 中的 Voxel 特征学习 Point 级别的特征，包括点云的空间拓扑关系。<strong>当然 Inference 时也可以保留该分割模块，那么还可以增加点级别的特征反映射到 Voxel 的模块(Point-to-Voxel)，进一步作特征增强。</strong></p><h2 id="detachable-auxiliary-network">2. Detachable Auxiliary Network</h2><p><img src="/SA-SSD/sa.png" width="60%" height="60%" title="图 2. Structured Aware Feature Learning"> 　　如图 2. 所示，随着 Backbone 特征提取的感受野增大(特征分辨率下降)，背景点会接近目标的边缘，使得目标框大小不容易预测准确。本文提出的 Auxiliary Network，通过增加点级别分割及目标中心坐标预测任务，来监督 Backbone 特征层捕捉这种结构信息，从而达到更准确的目标检测的目的。<br>　　Auxiliary Network 的输入来自 Backbone 各个分辨率的特征层。将特征层上不为零的特征点，通过 Voxel-to-Point 反栅格化映射到三维空间，设该特征点表示为 \(\{(f _ j,p _ j):j=1,...,M\}\)，其中 \(f\) 为特征向量，\(p\) 为坐标向量。有了栅格对应的伪三维坐标点下的特征表示后，即可插值出实际点云中每个点的特征向量。设点云中点的插值特征为：\(\{(\hat{f} _ i,p _ i):i=1,...,N\}\)，采用 Inverse Distance Weighted 方法进行插值： <span class="math display">\[ \hat{f} _ i = \frac{\sum _ {j=1}^Mw _ j(p _ i)f _ j}{\sum _ {j=1}^Mw _ j(p _ i)} \tag{1}\]</span> 其中： <span class="math display">\[w _ j(p _ i)=\left\{\begin{array}{l}\frac{1}{\Vert p _ i-p _ j\Vert _ 2} &amp; \mathrm{if} p _ j\in\mathcal{N}(p _ i)\\0 &amp; \mathrm{otherwise}\end{array}\tag{2}\right.\]</span> \(\mathcal{N}(p _ i)\) 为球状区域，本文在四个分辨率下分别设定为：0.05m，0.1m，0.2m，0.4m。然后通过 cross-stage link 对各个分辨率下的点特征进行 concatenate 融合。最后通过感知机进行点云分割及目标中心点预测任务的构建。<br>　　对于点级别前景分割的任务，经过 sigmoid 函数后，应用二分类的 Focal Loss： <span class="math display">\[ \mathcal{L} _ {seg} = \frac{1}{N _ {pos}}\sum _ i^N -\alpha(1-\hat{s} _ i)^{\gamma}\mathrm{log}(\hat{s} _ i) \tag{3}\]</span> 该分割任务使得目标检测的框更加准确，如图 2.c 所示。但是还得优化其尺度与形状。<br>　　中心点的预测任务则能有效约束目标框的尺度与形状，具体的，预测的是每个属于目标的点云与中心点的相对位置(残差)。可用 Smooth-l1 来构建预测的中心点与实际中心点的 Loss。</p><h2 id="part-sensitive-warping">3. Part-sensitive Warping</h2><p><img src="/SA-SSD/psw.png" width="60%" height="60%" title="图 3. Part-sensitive Warping"> 　　One-Stage 方法都会有 Confidence 和 BBox 错位的现象，本文提出一种类似 PSROIAlign 但更有高效的 PSW 方法，具体步骤为：</p><ol type="1"><li>对于分类分支，修改为 \(K\) 个 Part-sensitive 的 cls maps，每个 map 包含目标的部分信息，比如当 \(K=4\) 时，可以理解为将目标切分为 \(2\times 2\) 部分；</li><li>对于回归分支，将每个目标框的 Feature map 划分为 \(K\) 个子区域，每个区域的中心点作为采样点；</li><li>如图 3. 所示，通过采样得到最终 cls map 的平均值。</li></ol><h2 id="experiment">4. Experiment</h2><p><img src="/SA-SSD/ablation.png" width="60%" height="60%" title="图 4. Ablation Study"> 　　如图 4. 所示，Auxiliary Network 能有效提升网络的定位精度，PSWarp 也能有效消除 Confidence 与 BBox 的错位影响。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> henhang, et al. &quot;Structure Aware Single-stage 3D Object Detection from Point Cloud.&quot;</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　Voxel-based 3D Detection 相比 &lt;a href=&quot;/Point-based-3D-Det/&quot; title=&quot;Point-based 3D Detection&quot;&gt;Point-based 3D Detection&lt;/a&gt; 的缺点是特征提取不仅在 Vo
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-  </entry>
-  
-  <entry>
     <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
     <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
     <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
@@ -321,6 +323,37 @@
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
+    <link href="https://leijiezhang001.github.io/SA-SSD/"/>
+    <id>https://leijiezhang001.github.io/SA-SSD/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-05-22T10:04:17.044Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　Voxel-based 3D Detection 相比 <a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 的缺点是特征提取不仅在 Voxel 阶段损失了一定的点云信息，而且 Voxel 化后丢失了点云之间的拓扑关系。<a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 中详细描述了几种 Point-based 方法，这种方法目前比较棘手的地方是，即使作 Inference 时，也需要作 kd-tree 搜索与采样等运算量较大的操作。那么如何榨干 Voxel-based 的性能对工业界落地就显得比较重要了，本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种单阶段的 Voxel-based 3D 检测方法，并借助了 Point 级别特征提取的相关策略，使得检测性能有较大提升。</p><h2 id="framework">1. Framework</h2><p><img src="/SA-SSD/framework.png" width="100%" height="100%" title="图 1. Framework of SA-SSD"> 　　如图 1. 所示，SA-SSD 由三部分组成：Backbone，Detection Head，Auxiliary Network。<br>　　Backbone 的输入是栅格化后的点云表示方式，文中栅格大小设定为 \(0.05m,0.05m,0.1m\)。Backbone 由一系列的 3D convolution 组成，因为需要保留空间三维位置信息，作 Voxel-to-Point 的映射。这里如果用 2D convolution 代替，那么 Auxiliary Network 估计也只能作 BridView 的分割了。<br>　　Detection Head 主体就是传统 Anchor-Free 结构，一个分支用于预测每个特征层像素点的 Confidence，另一个分支用于预测基于每个特征层像素点的 BBox 属性，如，以该点为 &quot;Anchor&quot; 的四个顶点坐标。此外，为了消除 One-Stage 方法中目标框与置信度不对齐的问题，本文引入 Part-sensitive Warping 来实现与 PSRoiAlign 类似的作用，实现两者的对齐。<br>　　Auxiliary Network 只在训练的阶段起作用，Inference 阶段不需要计算。该模块的作用是训练时通过 Voxel-to-Point 特征映射来反向传播监督 Backbone 中的 Voxel 特征学习 Point 级别的特征，包括点云的空间拓扑关系。<strong>当然 Inference 时也可以保留该分割模块，那么还可以增加点级别的特征反映射到 Voxel 的模块(Point-to-Voxel)，进一步作特征增强。</strong></p><h2 id="detachable-auxiliary-network">2. Detachable Auxiliary Network</h2><p><img src="/SA-SSD/sa.png" width="60%" height="60%" title="图 2. Structured Aware Feature Learning"> 　　如图 2. 所示，随着 Backbone 特征提取的感受野增大(特征分辨率下降)，背景点会接近目标的边缘，使得目标框大小不容易预测准确。本文提出的 Auxiliary Network，通过增加点级别分割及目标中心坐标预测任务，来监督 Backbone 特征层捕捉这种结构信息，从而达到更准确的目标检测的目的。<br>　　Auxiliary Network 的输入来自 Backbone 各个分辨率的特征层。将特征层上不为零的特征点，通过 Voxel-to-Point 反栅格化映射到三维空间，设该特征点表示为 \(\{(f _ j,p _ j):j=1,...,M\}\)，其中 \(f\) 为特征向量，\(p\) 为坐标向量。有了栅格对应的伪三维坐标点下的特征表示后，即可插值出实际点云中每个点的特征向量。设点云中点的插值特征为：\(\{(\hat{f} _ i,p _ i):i=1,...,N\}\)，采用 Inverse Distance Weighted 方法进行插值： <span class="math display">\[ \hat{f} _ i = \frac{\sum _ {j=1}^Mw _ j(p _ i)f _ j}{\sum _ {j=1}^Mw _ j(p _ i)} \tag{1}\]</span> 其中： <span class="math display">\[w _ j(p _ i)=\left\{\begin{array}{l}\frac{1}{\Vert p _ i-p _ j\Vert _ 2} &amp; \mathrm{if} p _ j\in\mathcal{N}(p _ i)\\0 &amp; \mathrm{otherwise}\end{array}\tag{2}\right.\]</span> \(\mathcal{N}(p _ i)\) 为球状区域，本文在四个分辨率下分别设定为：0.05m，0.1m，0.2m，0.4m。然后通过 cross-stage link 对各个分辨率下的点特征进行 concatenate 融合。最后通过感知机进行点云分割及目标中心点预测任务的构建。<br>　　对于点级别前景分割的任务，经过 sigmoid 函数后，应用二分类的 Focal Loss： <span class="math display">\[ \mathcal{L} _ {seg} = \frac{1}{N _ {pos}}\sum _ i^N -\alpha(1-\hat{s} _ i)^{\gamma}\mathrm{log}(\hat{s} _ i) \tag{3}\]</span> 该分割任务使得目标检测的框更加准确，如图 2.c 所示。但是还得优化其尺度与形状。<br>　　中心点的预测任务则能有效约束目标框的尺度与形状，具体的，预测的是每个属于目标的点云与中心点的相对位置(残差)。可用 Smooth-l1 来构建预测的中心点与实际中心点的 Loss。</p><h2 id="part-sensitive-warping">3. Part-sensitive Warping</h2><p><img src="/SA-SSD/psw.png" width="60%" height="60%" title="图 3. Part-sensitive Warping"> 　　One-Stage 方法都会有 Confidence 和 BBox 错位的现象，本文提出一种类似 PSROIAlign 但更有高效的 PSW 方法，具体步骤为：</p><ol type="1"><li>对于分类分支，修改为 \(K\) 个 Part-sensitive 的 cls maps，每个 map 包含目标的部分信息，比如当 \(K=4\) 时，可以理解为将目标切分为 \(2\times 2\) 部分；</li><li>对于回归分支，将每个目标框的 Feature map 划分为 \(K\) 个子区域，每个区域的中心点作为采样点；</li><li>如图 3. 所示，通过采样得到最终 cls map 的平均值。</li></ol><h2 id="experiment">4. Experiment</h2><p><img src="/SA-SSD/ablation.png" width="60%" height="60%" title="图 4. Ablation Study"> 　　如图 4. 所示，Auxiliary Network 能有效提升网络的定位精度，PSWarp 也能有效消除 Confidence 与 BBox 的错位影响。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> henhang, et al. &quot;Structure Aware Single-stage 3D Object Detection from Point Cloud.&quot;</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　Voxel-based 3D Detection 相比 &lt;a href=&quot;/Point-based-3D-Det/&quot; title=&quot;Point-based 3D Detection&quot;&gt;Point-based 3D Detection&lt;/a&gt; 的缺点是特征提取不仅在 Vo
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
   </entry>
   
@@ -592,37 +625,6 @@
       <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
     
       <category term="Localization" scheme="https://leijiezhang001.github.io/tags/Localization/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Probabilistic 3D Multi-Object Tracking for Autonomous Driving&quot;</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-Probabilistic-3D-Multi-Object-Tracking-for-Autonomous-Driving/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-Probabilistic-3D-Multi-Object-Tracking-for-Autonomous-Driving/</id>
-    <published>2020-04-07T09:28:57.000Z</published>
-    <updated>2020-05-06T06:32:45.376Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中已经较详细得阐述了 3D MOT 状态估计过程，文章末提到观测过程的协方差矩阵初始化问题可以用观测的不确定性解决，<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 就是通过贝叶斯深度神经网络来建模该不确定性。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提供了另一种简化的观测不确定性计算方法，同时估计运动模型与观测模型的不确定性，即过程噪声与测量噪声。</p><h2 id="kalman-filter">1. Kalman Filter</h2><p><img src="/paper-reading-Probabilistic-3D-Multi-Object-Tracking-for-Autonomous-Driving/framework.png" width="80%" height="80%" title="图 1. MOT Framework"> 　　如图 1. 所示，本文采用的卡尔曼滤波框架与传统的一样，分为预测与更新。预测阶段，根据上一时刻结果通过 Motion Model(Process Model) 预测当前时刻的状态(先验)；数据关联阶段，将预测的状态与观测的状态作目标数据关联，出 ID；更新阶段，融合预测与观测的状态，得到状态的后验估计。</p><h3 id="predict-step">1.1. Predict Step</h3><p>　　本文采用 CTRV(Constant Turn Rate and Velocity) 运动模型。不同与<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>中描述的 CTRV，本文作了<strong>线性简化</strong>，其运动方程为： <span class="math display">\[\begin{align}&amp;\begin{bmatrix}\hat{x}\\\hat{y}\\\hat{z}\\\hat{a}\\\hat{l}\\\hat{w}\\\hat{h}\\\hat{d} _ x\\\hat{d} _ y\\\hat{d} _ z\\\hat{d} _ a\\\end{bmatrix} _ {t+1}=\begin{bmatrix}1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0\\0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0\\0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0\\0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1\\0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1 &amp;0\\0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;0 &amp;1\\\end{bmatrix}\begin{bmatrix}x\\y\\z\\a\\l\\w\\h\\d _ x\\d _ y\\d _ z\\d _ a\\\end{bmatrix} _ {t}  +\begin{bmatrix}q _ x\\q _ y\\q _ z\\q _ a\\0\\0\\0\\q _ {d _ x}\\q _ {d _ y}\\q _ {d _ z}\\q _ {d _ a}\\\end{bmatrix} _ {t}\\\Longleftrightarrow &amp; \\&amp;\hat{\mu} _ {t+1} = \mathbf{A}\mu _ t \\\end{align}\tag{1}\]</span> 其中未知的线加速度与角加速度 \((q _ x, q _ y, q _ z, q _ a)\)，\((q _ {d _ x},q _ {d _ y},q _ {d _ z},q _ {d _ a})\) 符合\((0,\mathbf{Q})\)高斯分布。<br>　　根据 Motion Model，卡尔曼的预测过程计算状态量的先验： <span class="math display">\[\begin{align}\hat{\mu} _ {t+1} &amp;= \mathbf{A}\mu _ t \\\hat{\Sigma} _ {t+1} &amp;= \mathbf{A}\Sigma _ t\mathbf{A}^T + \mathbf{Q}\\\end{align}\tag{2}\]</span> 　　观测模型为每一时刻检测的结果，包括位置，朝向，目标框尺寸，即观测矩阵 \(\mathbf{H} _ {7\times 11} = [\mathbf{I}, \mathbf{0}]\)。观测噪声也符合高斯分布，由此得到预测的观测量： <span class="math display">\[\begin{align}\hat{o} _ {t+1} &amp;= \mathbf{H}\hat{\mu} _ {t+1} \\\mathbf{S} _ {t+1} &amp;= \mathbf{H}\hat{\Sigma} _ {t+1}\mathbf{H}^T + \mathbf{R}\\\end{align}\tag{3}\]</span></p><h3 id="update-step">1.2. Update Step</h3><p>　　首先将预测的观测量与实际的观测量作数据关联。基本思想是将预测目标与观测目标作 Cost Matrix，然后用匈牙利/贪心算法求解最优匹配对。本文采用 Mahalanobis distance： <span class="math display">\[ m = \sqrt{(o _ {t+1}- \mathbf{H}\hat{\mu} _ {t+1})^T\mathbf{S} _ {t+1} ^{-1}(o _ {t+1}-\mathbf{H}\hat{\mu} _ {t+1})} \tag{4}\]</span> 需要注意的是，计算距离前先做角度矫正，如果两个目标框角度相差大于 90 度，那么作 180 度旋转。<br>　　得到预测与观测的匹配对后，计算后验概率更新该目标的状态： <span class="math display">\[\begin{align}\mathbf{K} _ {t+1} &amp;= \hat{\Sigma} _ {t+1}\mathbf{H} ^T\mathbf{S} _ {t+1}^{-1}\\\mu _ {t+1} &amp;= \hat{\mu} _ {t+1} + \mathbf{K} _ {t+1}(o _ {t+1}-\mathbf{H}\hat{\mu} _ {t+1})\\\Sigma _ {t+1} &amp;=(\mathbf{I}-\mathbf{K} _ {t+1}\mathbf{H})\hat{\Sigma} _ {t+1}\\\end{align}\tag{5}\]</span> 　　以上卡尔曼过程与<a href="/卡尔曼滤波器在三维目标状态估计中的应用/" title="卡尔曼滤波器在三维目标状态估计中的应用">卡尔曼滤波器在三维目标状态估计中的应用</a>，以及<a href="/卡尔曼滤波详解/" title="卡尔曼滤波详解">卡尔曼滤波详解</a>完全一致。</p><h2 id="covariance-matrices-estimation">2. Covariance Matrices Estimation</h2><p>　　如何确定卡尔曼滤波过程中的 \(\Sigma _ 0, \mathbf{Q, R}\)？传统方法是直接用一个确定的经验矩阵赋值；理想的是用<a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 建模处理，但是会相对较复杂；本文用更简单的基于统计方法来确定协方差矩阵。<br>　　<strong>观测量的方差(不确定性)与目标的属性有关</strong>，如距离，遮挡，类别等。本文没有区分这些属性，只统计了一种观测量的方差，<strong>更好的处理方式是按照不同属性，统计不同的方差</strong>。而 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 是 Instance 级别的方差预测。<strong>这种统计出来的方差虽然细粒度差一点，但是非常合理，因为只要模型训练好后，模型预测的分布是与训练集分布相似的(理想情况)</strong>，所以用训练集的方差来直接代替模型预测的方差也较为合理。<br>　　<span style="color:red"><strong>更准确的来说，不确定性与物体的属性以及标注误差有关，这里只统计了标注误差(标注误差在大多数情况下都是同分布的)，而实际上遮挡大的目标，是更难学习的(目标学习有难易之分，即预测分布与训练集分布会有偏差)，即预测结果会有额外量的不确定性，所以这种离线统计方法也有很大的局限性</strong>。</span><br>　　设训练集的真值标签：\(\left\{\left\{x _ t^m, y _ t^m, z _ t^m, a _ t^m\right\} _ {m=1}^M\right\} _ {t = 1}^T\)。</p><h2 id="motionprocess-noise-model">2.1. Motion/Process Noise Model</h2><p>　　假设各状态量的噪声独立同分布，那么对于位置与朝向噪声，有： <span class="math display">\[\begin{align}Q _ {xx} &amp;= \mathbf{Var}\left(\left(x _ {t+1}^m-x _ t^m\right)-\left(x _ t^m-x _ {t-1}^m\right)\right)\\Q _ {yy} &amp;= \mathbf{Var}\left(\left(y _ {t+1}^m-y _ t^m\right)-\left(y _ t^m-y _ {t-1}^m\right)\right)\\Q _ {zz} &amp;= \mathbf{Var}\left(\left(z _ {t+1}^m-z _ t^m\right)-\left(z _ t^m-z _ {t-1}^m\right)\right)\\Q _ {aa} &amp;= \mathbf{Var}\left(\left(a _ {t+1}^m-a _ t^m\right)-\left(a _ t^m-a _ {t-1}^m\right)\right)\\\end{align}\tag{6}\]</span> 　　对于线速度与角速度，因为： <span class="math display">\[\begin{align}q _ {x _ t} &amp;\approx x _ {x+1} - x _ t - d _ {x _ t}\\&amp; \approx (x _ {t+1}-x _ t) - (x _ t-x _ {t-1})\\q _ {d _ {x _ t}} &amp;\approx d _ {x _ {t+1}} - d _ {x _ t}\\&amp; \approx (x _ {t+1}-x _ t) - (x _ t-x _ {t-1})\\\end{align}\tag{7}\]</span> 所以： <span class="math display">\[ (Q _ {d _ xd _ x}, Q _ {d _ yd _ y}, Q _ {d _ zd _ z}, Q _ {d _ ad _ a}) = (Q _ {xx}, Q _ {yy}, Q _ {zz}, Q _ {aa})\tag{8}\]</span></p><h2 id="observation-noise-model">2.2. Observation Noise Model</h2><p>　　在训练集上，找到检测与真值的匹配对 \(\left\{\left\{(D _ t^k, G _ t^k)\right\} _ {k=1}^K\right\} _ {t=1}^T\)，从而计算观测噪声： <span class="math display">\[\begin{align}&amp;R _ {xx} = \mathbf{Var}\left(D _ {x _ t}^k-G _ {x _ t}^k\right)\\&amp;R _ {yy} = \mathbf{Var}\left(D _ {y _ t}^k-G _ {y _ t}^k\right)\\&amp;R _ {zz} = \mathbf{Var}\left(D _ {z _ t}^k-G _ {z _ t}^k\right)\\&amp;R _ {aa} = \mathbf{Var}\left(D _ {a _ t}^k-G _ {a _ t}^k\right)\\&amp;R _ {ll} = \mathbf{Var}\left(D _ {l _ t}^k-G _ {l _ t}^k\right)\\&amp;R _ {ww} = \mathbf{Var}\left(D _ {w _ t}^k-G _ {w _ t}^k\right)\\&amp;R _ {hh} = \mathbf{Var}\left(D _ {h _ t}^k-G _ {h _ t}^k\right)\\\end{align}\tag{8}\]</span> 初始的状态协方差 \(\Sigma _ 0 = \mathbf{R}\)。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Chiu, Hsu-kuang, et al. &quot;Probabilistic 3D Multi-Object Tracking for Autonomous Driving.&quot; arXiv preprint arXiv:2001.05673 (2020).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　&lt;a href=&quot;/卡尔曼滤波器在三维目标状态估计中的应用/&quot; title=&quot;卡尔曼滤波器在三维目标状态估计中的应用&quot;&gt;卡尔曼滤波器在三维目标状态估计中的应用&lt;/a&gt;中已经较详细得阐述了 3D MOT 状态估计过程，文章末提到观测过程的协方差矩阵初始化问题可以用观测的不
-      
-    
-    </summary>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
-    
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
-    
-      <category term="Uncertainty" scheme="https://leijiezhang001.github.io/tags/Uncertainty/"/>
     
   </entry>
   

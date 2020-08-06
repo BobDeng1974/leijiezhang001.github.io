@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</loc>
+    <lastmod>2020-08-06</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/</loc>
+    <lastmod>2020-08-06</lastmod>
+  </url>  <url>
     <loc>https://leijiezhang001.github.io/VLOAM/</loc>
     <lastmod>2020-08-04</lastmod>
   </url>  <url>
@@ -161,9 +167,6 @@
     <lastmod>2019-11-07</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/paperreading-Fast-and-Furious/</loc>
-    <lastmod>2019-11-07</lastmod>
-  </url>  <url>
-    <loc>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</loc>
     <lastmod>2019-11-07</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/MOT-%E7%BB%BC%E8%BF%B0-Multiple-Object-Tracking-A-Literature-Review/</loc>
