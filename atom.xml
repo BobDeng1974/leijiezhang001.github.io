@@ -17,6 +17,39 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>[paper_reading]-&quot;RadarNet&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-RadarNet/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-RadarNet/</id>
+    <published>2020-08-07T01:25:41.000Z</published>
+    <updated>2020-08-06T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　Radar 相比 LiDAR/Camera，对天气影响鲁棒性较强，而且能直接测量目标速度，所以是多传感器融合感知里比较重要的一个输入。其在 ADAS 领域应用已经较为广泛。但是 Radar 的测量噪声较大，这给有效的多传感器融合带来了难度。本文提出了 RadarNet<a href="#1" id="1ref"><sup>[1]</sup></a>，利用 Radar 的几何数据以及动态数据，同时做特征级别的前融合以及注意力机制下的后融合，达到了较好的效果。</p><h2 id="comparison-between-lidar-and-radar">1. Comparison between LiDAR and Radar</h2><p><img src="/paper-reading-RadarNet/compare.png" width="90%" height="90%" title="图 1. Comparison"> 　　LiDAR 可分为三种类型：Spinning，Solid State，Flash。目前主要采用的是 Spinning 旋转式的激光雷达。激光雷达的缺点有：</p><ul><li>对雨雾雪，车尾气等比较敏感；</li><li>对玻璃等物体没有反射;</li><li>点云密度随着距离增加而下降，远距离探测能力较弱。</li></ul><p>毫米波雷达则能克服以上缺点，并且能直接测量速度；但是缺点也比较明显：</p><ul><li>分辨率低，对小目标探测能力较弱；</li><li>误检较多；</li><li>测量的速度只是径向速度。</li></ul><p>毫米波雷达可输出三种形式的数据：1. 原始点运数据；2. 经过 DBSCAN 等聚类算法获得的聚类点集数据；3. 对点集作跟踪的数据。三种数据越来越高层，但是噪音越来越大。本文考虑输出点集的数据，设探测到的点集目标为 \(Q = (q, v _ {||},m,t)\)，其中 \(q = (x,y)\) 是俯视图下的位置，\(v _ {||}\) 是径向速度，\(m\) 代表目标是否运动，\(t\) 则为时间戳。我们需要进一步估计出目标的 2D 速度，由此在毫米波雷达的辅助下，能获得更长的检测距离，以及更准确的速度。 <img src="/paper-reading-RadarNet/fusion.png" width="90%" height="90%" title="图 2. Fusion"> 　　激光雷达数据与毫米波雷达数据融合示意图如图 2. 所示。</p><h2 id="radarnet">2. RadarNet</h2><p><img src="/paper-reading-RadarNet/framework.png" width="90%" height="90%" title="图 3. Framework"> 　　如图 3. 所示，RadarNet 主要由 Voxel-Based Early Fusion，Detection Network 以及 Attention-Based Late Fusion 来做融合检测。前融合将各传感器数据通过俯视图形式进行表示并融合；后融合则通过基于注意力的数据关联及整合机制来对目标速度进行精细估计。检测网络是在传统的分类＋回归基础上，多了速度预测的分支。具体的，所有回归的预测量为 \((x-p _ x,y - p _ y,w,l,\mathrm{cos}(\theta),\mathrm{sin}(\theta),m,v _ x, v _ y)\)，其中 \(p _ x,p _ y\) 为体素/栅格的中心点，\(m\) 为目标是运动的概率，如果 \(m &lt; 0.5\)，则将速度置为 0。</p><h3 id="early-fusion">2.1. Early Fusion</h3><p>　　对于激光雷达数据，类似 <a href="/paperreading-Fast-and-Furious/" title="FAF">FAF</a>，将时序多帧(0.5s)的点云数据在本车坐标系下打成俯视图体素表示，然后在通道维度进行串联。如果体素内没有点，那么该体素值为 0；如果体素内有点 \(\{(x _ i,y _ i,z _ i),i=1,...,N\}\)，那么体素值为 \(\sum _ i\left( 1- \frac{|x _ i-a|}{dx / 2}\right)\left( 1- \frac{|y _ i-b|}{dy / 2}\right)\left( 1- \frac{|z _ i-c|}{dz / 2}\right)\)，其中 \((a,b,c)\) 为体素中心坐标，\(dx,dy,dz\) 为体素尺寸。<br>　　对于毫米波雷达数据，将其转到激光雷达坐标系后，也进行 BEV 时序串联，并将每一帧中不同线束的数据在 BEV 下体素化，然后串联。具体的，如果体素(本文丢掉了高度信息，所以退化为栅格)中没有毫米波探测到的目标，那么置为 0，如果探测到动态目标，则置为 1，如果探测到静态目标，则置为 -1。<br>　　分别得到激光雷达与毫米波雷达的 BEV 表示后，将二者在通道维度串联起来，就完成了前融合。</p><h3 id="late-fusion">2.2. Late Fusion</h3><p>　　<strong>前融合关注毫米波雷达探测到的目标的位置和密度，后融合则使用毫米波雷达探测到的目标径向速度信息</strong>。检测网络输出的目标状态为 \(D = (c,x,y,w,l,\theta,\mathbf{v})\)，毫米波雷达输出的目标状态为 \(Q=(q,v _ {||},m,t)\)。两者的目标级别的后融合通过 Association 和 Aggregation 两步骤组成。 <img src="/paper-reading-RadarNet/late-fusion.png" width="90%" height="90%" title="图 4. Late-Fusion"> 　　本文将 Association 和 Aggregation 用 End-to-End 的网络来处理。如图 4. 所示，首先进行检测目标与毫米波目标的成对特征提取，然后经过 MLP/Softmax 作匹配分数估计，最后根据分数作速度的加权优化。</p><h4 id="pairwise-detection-radar-association">2.2.1. Pairwise Detection-Radar Association</h4><p>　　定义 Pairwise Feature 为： <span class="math display">\[\begin{align}f(D,Q) &amp;= \left(f ^ {det}(D),f ^ {det-radar}(D,Q)\right) \tag{1}\\f ^ {det}(D) &amp;= \left(w,l,||\mathbf{v}||,\frac{v _ x}{||\mathbf{v}||},\frac{v _ y}{||\mathbf{v}||},\mathrm{cos}(\gamma)\right) \tag{2}\\f ^ {det-radar}(D,Q) &amp;= \left(dx,dy,dt,v ^ {bp}\right) \tag{3}\\v ^ {bp} &amp;= \mathrm{min}\left(50,\frac{v _ {||}}{\mathrm{cos}(\phi)}\right) \tag{4}\end{align}\]</span> 其中 \((\cdot,\cdot)\) 是 Concatenation 操作；\(\gamma\) 是网络检测 \(D\) 的运动方向与径向方向的夹角；\(\phi\) 是 \(D\) 运动方向与雷达探测目标 \(Q\) 的径向方向的夹角；\(v ^ {bp}\) 是径向速度反投影到运动方向(朝向)的速度值；\((dx,dy,dt)\) 为俯视图下 \(D,Q\) 的相对位置和时间。由此，通过 MLP 学习匹配分数： <span class="math display">\[s _ {i,j}=\mathrm{MLP} _ {match}\left(f(D _ i,Q _ j)\right)\tag{5}\]</span></p><h4 id="velocity-aggregation">2.2.2. Velocity Aggregation</h4><p>　　根据 \(D,Q\) 间的匹配分数，优化<strong>目标的绝对速度值</strong>。为了解决没有匹配的情况，分数 Concate 1，然后计算归一化的匹配分数： <span class="math display">\[s _ i ^ {norm}=\mathrm{softmax}((1,s _ {i,:})) \tag{6}\]</span> 然后优化每个检测目标 \(i\) 的绝对速度值： <span class="math display">\[v _ i&#39; = s _ i ^ {norm}\cdot\begin{bmatrix}||\mathbf{v} _ i|| \\v _ {i,:} ^ {bp}\end{bmatrix}\tag{7}\]</span> 最终可得到目标的 2D 速度： <span class="math display">\[\mathbf{v}&#39; _ i = v&#39; _ i\cdot\left(\frac{v _ x}{||\mathbf{v}||},\frac{v _ y}{||\mathbf{v}||}\right) \tag{8}\]</span> 　　<strong>由此可知，该后融合优化的只是目标的绝对速度(毫米波雷达也没办法探测目标的朝向或运动方向)，目标的朝向准确度还是由检测网络决定。</strong></p><h2 id="experiments">3. Experiments</h2><p>　　根据式(2,3)提取的特征，作者设计了基于 Heuristic 的关联方法，毫米波雷达探测的目标与网络检测的目标关联的条件为： <span class="math display">\[\left\{\begin{array}{rl}\sqrt{(dx) ^ 2+(dy) ^ 2} &amp;&lt; 3m \\\gamma &amp;&lt; 40°\\||\mathbf{v}|| &amp;&gt; 1m/s\\v ^ {bp} &amp;&lt; 30m/s \\\end{array}\tag{9}\right.\]</span> 一旦关联上后，去毫米波雷达速度的中位数作目标速度的进一步优化。这种传统的 Heuristic 与本文的 Attention 方法对比如下，优势明显。 <img src="/paper-reading-RadarNet/exp.png" width="80%" height="80%" title="图 5. Heuristic VS. Attention"></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Yang, Bin, et al. &quot;RadarNet: Exploiting Radar for Robust Perception of Dynamic Objects.&quot; arXiv preprint arXiv:2007.14366 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　Radar 相比 LiDAR/Camera，对天气影响鲁棒性较强，而且能直接测量目标速度，所以是多传感器融合感知里比较重要的一个输入。其在 ADAS 领域应用已经较为广泛。但是 Radar 的测量噪声较大，这给有效的多传感器融合带来了难度。本文提出了 RadarNet&lt;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;Pillar-based Object Detection&quot;</title>
     <link href="https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/"/>
     <id>https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/</id>
@@ -294,39 +327,6 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
-    <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
-    <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-17T02:16:44.008Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处理来得到目标框属性。越密集的检测方案，因为样本较多(一定程度增大了样本空间)，所以学习越困难，但是理论上有极高的召回率。随着一系列技术的发展，如 Focal-loss 等，密集检测性能得以超过二阶段的 Anchor-based 方案，具体描述可参考 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>。<br>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>借鉴 2D Instance Segmentation 思路，提出了一种同时作 3D Instance Segmentation 与 Detection 的方法。百度 Apollo 中的点云分割方法就是俯视图下 Instance Segmentation 然后后处理得到目标 Polygon 与 BBox 的思路，这种方法虽然后处理较为复杂，但是有超参数较少且召回率高的特点。本文算是该方法的 3D 版本(想法很自然，被人捷足先登。。)。</p><h2 id="framework">1. Framework</h2><p><img src="/Instance-Seg-and-Obj-Det/framework.png" width="100%" height="100%" title="图 1. Framework"> 　　如图 1. 所示，本方法由三部分构成：点级别的分类及回归，候选目标聚类，目标框优化。</p><ul><li><strong>点级别的分类与回归</strong><br>原始点云经过 Backbone 网络提取局部及全局特征，这里的 Backbone 网络可以是任意能提取点级别特征的网络。基于 Backbone 网络提取的特征，可进行点级别的 Semantic Segmentation 以及 Instance-aware SE(Spatial Embedding)。SE 回归的是每个点距离目标中心点的 offset，该目标的 size，以及该目标的朝向。</li><li><strong>候选目标聚类</strong><br>基于预测的 SE，将每个点的位置加上距离目标中心点的 offset，然后可通过简单的聚类算法(如 K-means)即可得到各个目标的点云集合，取 top k 个该点云集合回归的目标框属性，作下一步的目标框进一步优化。</li><li><strong>目标框优化</strong><br>基于候选目标聚类得到的目标框，提取目标点集，将其转换到该目标 Local 坐标系下，作进一步的目标框优化。</li></ul><h2 id="instance-aware-se">2. Instance-aware SE</h2><p>　　该框架的关键是 Instance-aware SE 的回归，回归量有：距离目标中心点的 offset，目标 size，目标 orientation。传统的 Instance Segmentation 做法是 Feature Embedding，将相同 Instance 的特征拉近，不同的 Instance 的特征推远，这种方法很难构造有效的 Loss 函数，而且同为车的不同 Instance，其特征已经非常接近。而本文 Spatial Embedding 中 offset 的回归量，经过聚类后处理，可以很容易的得到 Instance Segmentation 结果。<br>　　Apollo 点云分割的方案中，是在俯视图的 2D 栅格下做的，主要回归量也是这三种，不同的是，2D 栅格是离散的，所以根据 offset 找某一点的中心点时，可以迭代的进行，然后投票出中心点位置，后处理可以做的更细致。这里不做展开，有机会以后写一篇详解。</p><h2 id="loss">3. Loss</h2><p>　　Loss 项由 Semantic Segmentation，SE，3D BBox regression 组成： <span class="math display">\[ L = L _ {seg-cls}+L _ {SE}+L _ {reg} \tag{1}\]</span> Semantic Segmentation Loss 为： <span class="math display">\[ L _ {seg-cls}=-\sum _ {i=1}^C (y _ i\mathrm{log}(p _ i)(1-p _ i)^{\gamma}\alpha _ i+(1- y _ i)\mathrm{log}(1-p _ i)(p _ i)^{\gamma}(1-\alpha _ i)) \tag{2}\]</span> 其中 \(C\) 表示类别数；如果某点属于某类，那么 \(y _ i=1\)；\(p _ i\) 表示预测为第 \(i\) 类的概率；\(\gamma,\alpha\) 为超参数。<br>SE Loss 为： <span class="math display">\[ L _ {SE} = \frac{1}{N}\sum _ {i=1}^N\frac{1}{N _ c}\sum _ {i\in ins _ c}^{N _ c}(\mathcal{l} _ {offset}^i+\mathcal{l} _ {size}^i+\mathcal{l} _ {\theta}^i) \tag{3}\]</span> 其中 \(N\) 为 Instance 个数，\(N _ c\) 为内部点数，\(\mathcal{l}\) 为 L1 Smooth Loss。<br>BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L _ {reg} = 1-\mathbf{IoU}(B _ g,B _ d)\tag{4}\]</span></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Dingfu, et al. &quot;Joint 3D Instance Segmentation and Object Detection for Autonomous Driving.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
-    
-  </entry>
-  
-  <entry>
     <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
     <link href="https://leijiezhang001.github.io/SA-SSD/"/>
     <id>https://leijiezhang001.github.io/SA-SSD/</id>
@@ -385,6 +385,39 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
+    <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
+    <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-17T02:16:44.008Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处理来得到目标框属性。越密集的检测方案，因为样本较多(一定程度增大了样本空间)，所以学习越困难，但是理论上有极高的召回率。随着一系列技术的发展，如 Focal-loss 等，密集检测性能得以超过二阶段的 Anchor-based 方案，具体描述可参考 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>。<br>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>借鉴 2D Instance Segmentation 思路，提出了一种同时作 3D Instance Segmentation 与 Detection 的方法。百度 Apollo 中的点云分割方法就是俯视图下 Instance Segmentation 然后后处理得到目标 Polygon 与 BBox 的思路，这种方法虽然后处理较为复杂，但是有超参数较少且召回率高的特点。本文算是该方法的 3D 版本(想法很自然，被人捷足先登。。)。</p><h2 id="framework">1. Framework</h2><p><img src="/Instance-Seg-and-Obj-Det/framework.png" width="100%" height="100%" title="图 1. Framework"> 　　如图 1. 所示，本方法由三部分构成：点级别的分类及回归，候选目标聚类，目标框优化。</p><ul><li><strong>点级别的分类与回归</strong><br>原始点云经过 Backbone 网络提取局部及全局特征，这里的 Backbone 网络可以是任意能提取点级别特征的网络。基于 Backbone 网络提取的特征，可进行点级别的 Semantic Segmentation 以及 Instance-aware SE(Spatial Embedding)。SE 回归的是每个点距离目标中心点的 offset，该目标的 size，以及该目标的朝向。</li><li><strong>候选目标聚类</strong><br>基于预测的 SE，将每个点的位置加上距离目标中心点的 offset，然后可通过简单的聚类算法(如 K-means)即可得到各个目标的点云集合，取 top k 个该点云集合回归的目标框属性，作下一步的目标框进一步优化。</li><li><strong>目标框优化</strong><br>基于候选目标聚类得到的目标框，提取目标点集，将其转换到该目标 Local 坐标系下，作进一步的目标框优化。</li></ul><h2 id="instance-aware-se">2. Instance-aware SE</h2><p>　　该框架的关键是 Instance-aware SE 的回归，回归量有：距离目标中心点的 offset，目标 size，目标 orientation。传统的 Instance Segmentation 做法是 Feature Embedding，将相同 Instance 的特征拉近，不同的 Instance 的特征推远，这种方法很难构造有效的 Loss 函数，而且同为车的不同 Instance，其特征已经非常接近。而本文 Spatial Embedding 中 offset 的回归量，经过聚类后处理，可以很容易的得到 Instance Segmentation 结果。<br>　　Apollo 点云分割的方案中，是在俯视图的 2D 栅格下做的，主要回归量也是这三种，不同的是，2D 栅格是离散的，所以根据 offset 找某一点的中心点时，可以迭代的进行，然后投票出中心点位置，后处理可以做的更细致。这里不做展开，有机会以后写一篇详解。</p><h2 id="loss">3. Loss</h2><p>　　Loss 项由 Semantic Segmentation，SE，3D BBox regression 组成： <span class="math display">\[ L = L _ {seg-cls}+L _ {SE}+L _ {reg} \tag{1}\]</span> Semantic Segmentation Loss 为： <span class="math display">\[ L _ {seg-cls}=-\sum _ {i=1}^C (y _ i\mathrm{log}(p _ i)(1-p _ i)^{\gamma}\alpha _ i+(1- y _ i)\mathrm{log}(1-p _ i)(p _ i)^{\gamma}(1-\alpha _ i)) \tag{2}\]</span> 其中 \(C\) 表示类别数；如果某点属于某类，那么 \(y _ i=1\)；\(p _ i\) 表示预测为第 \(i\) 类的概率；\(\gamma,\alpha\) 为超参数。<br>SE Loss 为： <span class="math display">\[ L _ {SE} = \frac{1}{N}\sum _ {i=1}^N\frac{1}{N _ c}\sum _ {i\in ins _ c}^{N _ c}(\mathcal{l} _ {offset}^i+\mathcal{l} _ {size}^i+\mathcal{l} _ {\theta}^i) \tag{3}\]</span> 其中 \(N\) 为 Instance 个数，\(N _ c\) 为内部点数，\(\mathcal{l}\) 为 L1 Smooth Loss。<br>BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L _ {reg} = 1-\mathbf{IoU}(B _ g,B _ d)\tag{4}\]</span></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Dingfu, et al. &quot;Joint 3D Instance Segmentation and Object Detection for Autonomous Driving.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
     
   </entry>
   
@@ -595,36 +628,6 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Scene Flow" scheme="https://leijiezhang001.github.io/tags/Scene-Flow/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The Normal Distributions Transform for Laser Scan Matching</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-The-Normal-Distributions-Transform/</id>
-    <published>2020-04-10T01:39:54.000Z</published>
-    <updated>2020-04-11T11:29:19.873Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。<br>　　<a href="/LOAM/" title="LOAM">LOAM</a> 是一种基于点云的实时建图与定位方法，其中当前帧点云与前序建立的地图点云配准的方法，采用了提取线、面特征并建立点-线，点-面特征匹配误差函数，从而最小二乘非线性优化求解位姿。这种方案如果特征点噪声较大无匹配对，那么就会有较大的误差。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 将地图点云栅格化，每个栅格又统计点云的高斯分布，匹配的时候计算该帧点云在每个栅格的概率，从而迭代至最优匹配位姿。<br>　　<strong>有闭环检测</strong>的 SLAM 建立的地图即可作为离线定位地图，定位的过程就是当前时刻点云与地图配准的过程，当然后续可以融合其它传感器(GPS，IMU)输出最终的绝对位姿。<strong>点云与地图配准的过程与建图时点云与局部地图或上一时刻点云配准的过程非常相似</strong>。本文介绍一种区别于 <a href="/LOAM/" title="LOAM">LOAM</a> 特征匹配的基于概率统计优化的 NDT 配准方法。</p><h2 id="点云配准算法过程">1. 点云配准算法过程</h2><p>　　考虑二维情况，本文点云配准算法过程为：</p><ol type="1"><li>建立 \(t-1\) 帧点云的 NDT；</li><li>初始化待优化的相对位姿参数 \(T\);</li><li>用 \(T\) 将 \(t\) 帧点云变换到 \(t-1\) 坐标系；</li><li>找到变换每个变换点对应的 \(t-1\) 帧栅格的高斯分布；</li><li>该变换 \(T\) 的度量分数为变换点在高斯分布下的概率和；</li><li>用 Newton 法迭代优化 \(T\);</li><li>重复 3. 直到收敛；</li></ol><p>　　这里主要涉及 NDT，目标函数构建(即 \(T\) 的度量分数)，Newton 法优化三个内容。</p><h3 id="ndt">1.1. NDT</h3><p>　　NDT 是点云栅格化后一系列高斯分布的表示，其过程为：</p><ol type="1"><li>将点云进行栅格化；</li><li>统计每个栅格的点 \(\mathbf{x} _ {i=1..n}\)；</li><li>计算每个栅格高斯分布的 Mean: \(\mathbf{q} = \frac{1}{n}\sum _ i\mathbf{x} _ i\);</li><li>计算 Covariance Matrix: \(\Sigma = \frac{1}{n}\sum _ i(\mathbf{x} _ i -\mathbf{q})(\mathbf{x} _ i-\mathbf{q})^t\)；</li></ol><p>　　由此，<strong>NDT 描述了栅格内每个位置出现点的概率</strong>，即 \(\mathbf{x}\) 有点的概率为： <span class="math display">\[ p(\mathbf{x}) \sim \mathrm{exp}\left(-\frac{(\mathbf{x-q})^t\sum ^ {-1}(\mathbf{x-q})}{2}\right) \tag{1}\]</span> 需要注意的是 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 描述的是每个栅格有点的概率，NDT 描述的是每个栅格点云的概率分布。为了更准确的建模，采用重叠栅格化的设计以消除离散化的影响，以及限定 Covariance 矩阵的最小奇异值。</p><h3 id="目标函数构建">1.2. 目标函数构建</h3><p>　　考虑二维情况，需要优化的位姿参数为 \(\mathbf{p}=(t _ x, t _ y, \varphi)^t\)，第2个点云(待配准点云)中的点为 \(\mathbf{x} _ i\)，其变换到第1个点云坐标系后的表示为 \(\mathbf{x}' _ i\)，对应的第1个点云栅格的 NDT 表示为 \(\mathbf{\Sigma} _ i, \mathbf{q} _ i\)。由此可计算该变换位姿下，其度量分数为： <span class="math display">\[\mathrm{score}(\mathbf{p})=\sum _ i\mathrm{exp}\left(-\frac{(\mathbf{x}&#39; _ i-\mathbf{q} _ i)^t\sum _ i ^ {-1}(\mathbf{x}&#39; _ i-\mathbf{q} _ i)}{2}\right) \tag{2}\]</span> 最大化度量函数即可求解最优的位姿，优化过程一般都是最小化目标函数，所以设定目标函数为 \(-\mathrm{score}\)。</p><h3 id="newton-法优化迭代">1.3. Newton 法优化迭代</h3><p>　　设 \(\mathbf{q}=\mathbf{x}' _ i-\mathbf{q} _ i\)，那么目标函数为： <span class="math display">\[ s = -\mathrm{exp}\frac{-\mathbf{q^t\sum ^ {-1}q}}{2} \tag{3}\]</span> 每次迭代过程为： <span class="math display">\[\mathbf{p\gets p+\Delta p} \tag{4}\]</span> 而 \(\mathbf{\Delta p}\) 来自： <span class="math display">\[\mathbf{H\Delta p} = \mathbf{-g} \tag{5}\]</span> 其中 \(\mathbf{g}\) 是目标函数对优化参数的导数，\(\mathbf{H}\) 为目标函数的 Hessian 矩阵： <span class="math display">\[\left\{\begin{array}{l}g _ i=\frac{\partial s}{\partial p _ i}\\H _ {ij} = \frac{\partial s}{\partial p _ i\partial p _ j}\end{array}\tag{6}\right.\]</span></p><h2 id="建图与定位">2. 建图与定位</h2><p>　　本文的建图是通过<strong>关键帧集合与关键帧之间的位姿变化实现的</strong>，定位的时候去找重合度最高的关键帧作点云配准。此外，当找不到重合度较高的关键帧时，可以实时更新当前帧作为关键帧添加到地图中，还可以对地图作进一步的全局，半全局优化。</p><h2 id="一些思考">3. 一些思考</h2><p>　　本文建图是关键帧的形式，更鲁棒的做法是将点云配准到一起，在世界坐标系下获得场景的稠密点云，然后再 NDT 化，这样能更准确的建模点云分布。<br>　　<a href="/LOAM/" title="LOAM">LOAM</a> 维护的是栅格化的地图，每个栅格限制特征点的数量，所以本质上存储的是原始点云图(被选出是特征点的点云)。为了更好的描述栅格内的特征分布，可以对其作类似 NDT 近似，同时加入能描述该分布的特征，比如对于面特征，加入法向量。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Biber, Peter &amp; Straßer, Wolfgang. (2003). The Normal Distributions Transform: A New Approach to Laser Scan Matching. IEEE International Conference on Intelligent Robots and Systems. 3. 2743 - 2748 vol.3. 10.1109/IROS.2003.1249285.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　机器人系统中，定位是非常重要的模块。基于 SLAM/VO/VIO 技术的算法能实时作机器人的自定位，但是这种开环下的里程计方案很容易累积绝对误差，使得定位漂移。而离线建立的地图因为有闭环检测，精度很高，所以基于地图的定位方法有很高的绝对定位精度。&lt;br&gt;
-　　&lt;a hr
-      
-    
-    </summary>
-    
-      <category term="SLAM" scheme="https://leijiezhang001.github.io/categories/SLAM/"/>
-    
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
-    
-      <category term="Localization" scheme="https://leijiezhang001.github.io/tags/Localization/"/>
     
   </entry>
   
