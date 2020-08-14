@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</loc>
-    <lastmod>2020-08-06</lastmod>
+    <loc>https://leijiezhang001.github.io/paper-reading-Cylinder3D/</loc>
+    <lastmod>2020-08-17</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/paper-reading-RadarNet/</loc>
+    <lastmod>2020-08-12</lastmod>
+  </url>  <url>
+    <loc>https://leijiezhang001.github.io/paperreading-End-to-End-Multi-View-Fusion-for-3D-Object-Detection-in-LiDAR-Point-Clouds/</loc>
     <lastmod>2020-08-06</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/paper-reading-Pillar-based-Object-Detection/</loc>
@@ -25,10 +28,10 @@
     <loc>https://leijiezhang001.github.io/CenterTrack/</loc>
     <lastmod>2020-07-08</lastmod>
   </url>  <url>
-    <loc>https://leijiezhang001.github.io/End-to-End-Pseudo-LiDAR-for-3D-Det/</loc>
+    <loc>https://leijiezhang001.github.io/Rethinking-of-Sparse-3D-Convolution/</loc>
     <lastmod>2020-06-25</lastmod>
   </url>  <url>
-    <loc>https://leijiezhang001.github.io/Rethinking-of-Sparse-3D-Convolution/</loc>
+    <loc>https://leijiezhang001.github.io/End-to-End-Pseudo-LiDAR-for-3D-Det/</loc>
     <lastmod>2020-06-25</lastmod>
   </url>  <url>
     <loc>https://leijiezhang001.github.io/How-to-Build-An-ADAS/</loc>
