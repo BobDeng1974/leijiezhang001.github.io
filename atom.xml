@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-08-17T01:19:12.000Z</updated>
+  <updated>2020-08-18T02:13:25.152Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;MotionNet&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-MotionNet/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-MotionNet/</id>
+    <published>2020-08-17T01:23:18.000Z</published>
+    <updated>2020-08-18T02:13:25.152Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　基于点云的 3D 感知一般通过 3D 目标框实现，但是如果直接网络出 3D 目标框属性，那么召回率很难达到非常高的水平(所以之前提到检测的任务可以分解为分割+后处理聚类来作，这样召回率会比较高)。本文提出的 MotionNet<a href="#1" id="1ref"><sup>[1]</sup></a> 用于检测俯视图下每个栅格的类别及轨迹，可作为检测的辅助，能召回更小的目标，以及没有标注的动态障碍物目标。这种栅格级别或点级别的目标探测能力相比直接出目标框的优势有：</p><ol type="1"><li>目标框形式一般依赖于目标框区域的特征，不同目标类别之间的特征很难泛化，所以无法检测未见过的类别；</li><li>目标框形式一般会作 NMS 等处理去掉不确定性较大的框，而栅格级别的会保留；</li></ol><p><img src="/paper-reading-MotionNet/compare.png" width="40%" height="40%" title="图 1. Detection VS. Motion Prediction"> 　　如图 1. 所示，对于轮椅这种非正常类别(或预定义类别)的目标，检测任务可能会失效，此时 MotionNet 则会根据时序信息输出该区域的目标速度(未来运动轨迹)，这可作为 Motion Planning 阶段的另一重要线索。</p><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-MotionNet/framework.png" width="80%" height="80%" title="图 2. Framework"> 　　如图 2. 所示，MotionNet 输入为连续帧点云在当前坐标系下的俯视图表示，然后经过 Spatio-temporal Pyramid 网络作特征提取，最后三个分支网络输出三个信息：</p><ul><li>Cell Classification，每个 cell 的类别；</li><li>Motion Prediction，每个 cell 的未来轨迹；</li><li>State Estimation，每个 cell 是否静止的判断；</li></ul><h2 id="spatio-temporal-pyramid-network">2. Spatio-temporal Pyramid Network</h2><p><img src="/paper-reading-MotionNet/stpn.png" width="50%" height="50%" title="图 3. STPN"> 　　 将时序点云组织成多层的俯视图表达后，面临两个问题：1. 如何整合时序信息；2. 如何提取多尺度的空间及时序特征。本文设计了 STPN 网络，如图 3. 所示，STC 模块由 2D Convolution 以及 \(k\times 1\times 1\) 的 3D Convolution (本质上退化成 1D Convolution)组成；此外设计了金字塔式的特征提取结构，最终输出 \(1\times C\times H\times W\) 大小的特征图。相比于直接 3D 卷积形式，这种方式 2D + 1D 卷积方式极大提高了网络计算效率(很多地方用到这种方式，如 <a href="/paperreading-Fast-and-Furious/" title="FaF">FaF</a>)。</p><h2 id="output-heads">3. Output Heads</h2><p>　　三个分支输出的细节为：</p><ol type="1"><li>Cell Classification，输出尺寸为 \(H\times W\times C\)，其中 \(C\) 为类别；</li><li>Motion Prediction，输出尺寸为 \(N\times H\times W\times 2\)，表示时间 \(\tau\in (t,t+N)\) 内 cell 的位置 \(\{X ^ {(\tau)}\} _ {\tau =t} ^ {t + N}\)，其中 \(X ^ {(\tau)}\in\mathbb{R} ^ {H\times W\times 2}\) 只估计平面 2D 的位置。</li><li>State Estimation，输出尺寸为 \(H\times W\)，表示 cell 静止的概率。</li></ol><p>　　直接对静止 Cell 的 Motion Prediction 回归，会引入运动的微小跳变。这里采用两种策略来抑制这种跳变：1. 根据类别分支，如果是背景的类别，则将其 Motion 置 0；2. 根据静止判断分支，如果是静止的，则将其 Motion 也置为 0。这样就能较好的解决静态 cell 出速度轨迹的情况。</p><h2 id="loss-function">4. Loss Function</h2><p>　　Classification 和 State Estimation 用 Cross-Entropy Loss，Motion Prediction 用 Smooth L1 Loss。此外为了保证空域与时域的一致性，引入另外三种 Loss：</p><ul><li><strong>Spatial Consistency Loss</strong><br>属于同一物体的 Cell 的 Motion 应该是一致的(这里其实不太准确，考虑到转向情况，目标区域内 Cell 轨迹其实是不一样的，所以一般有两种思路，一种认为都一样，即每个 Cell 都建模成目标的运动；另一种则基于刚体假设，作类似 Flow 的建模，稍复杂些)。由此设计空间一致性损失函数： <span class="math display">\[L _ s = \sum _ {k}\sum _ {(i,j),(i&#39;,j&#39;)\in o _ k}\left\Vert X _ {i,j}^{(\tau)}-X _ {i&#39;,j&#39;} ^ {(\tau)}\right\Vert \tag{1}\]</span> 其中 \(||\cdot||\) 为 Smooth L1 Loss，\(o _ k\) 为第 \(k\) 个目标，\(X _ {i,j} ^ {(\tau)}\in\mathbb{R} ^ 2\) 为时间 \(\tau\) 时 Cell \((i,j)\) 的 motion。为了减少计算量，这里只是采样一些相邻的 \(X _ {i,j} ^ {(\tau)},X _ {i',j'} ^ {(\tau)}\) 匹配对。</li><li><strong>Foreground Temporal Consistency Loss</strong><br>类似的，属于同一物体的 Motion 在时域上也应该是一致的，所以设计损失函数： <span class="math display">\[L _ {ft} = \sum _ k\left\Vert X _ {o _ k} ^ {(\tau)} - X _ {o _ k} ^ {(\tau+\Delta t)}\right\Vert\tag{2}\]</span> 其中 \(X _ {o _ k} ^ {(\tau)}\in\mathbb{R} ^ 2\) 为第 \(k\) 个目标的 Motion，计算方式为 \(X _ {o _ k} ^ {(\tau)}=\sum _ {(i,j)\in o _ k}X _ {i,j} ^ {(\tau)}/M\)，其中 \(M\) 为目标中 Cell 的个数。</li><li><strong>Background Temporal Consistency Loss</strong><br>对静止的背景区域，其时域上 Motion 应该也是一致的(均为 0)。设计损失函数： <span class="math display">\[L _ {bt} = \sum _ {(i,j)\;\in\; X ^ {(\tau)}\;\cap\; T\left(\tilde{X} ^ {(\tau-\Delta t)}\right)}\left\Vert X _ {i,j} ^ {(\tau)}-T _ {i,j}\left(\tilde{X} ^ {(\tau-\Delta t)}\right)\right\Vert\tag{3}\]</span> 其中 \(T\in SE(3)\) 是 \(\tau-\Delta t\) 到 \(\tau\) 的位姿变换。将 \(\tilde{X} ^ {\tau-\Delta t}\) 变换到当前时刻后，与 \(X ^ {(\tau)}\) 会有一定的重合，将重合部分的背景区域的 Motion 约束为一致。有点 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 的味道。</li></ul><p>综上，所有的 Loss 为： <span class="math display">\[ L = L _ {cls} + L _ {motion} + L _ {state} + \alpha L _ s+ \beta L _ {ft} + \gamma L _ {bt} \tag{4}\]</span></p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> Wu, Pengxiang, Siheng Chen, and Dimitris N. Metaxas. &quot;MotionNet: Joint Perception and Motion Prediction for Autonomous Driving Based on Bird's Eye View Maps.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　基于点云的 3D 感知一般通过 3D 目标框实现，但是如果直接网络出 3D 目标框属性，那么召回率很难达到非常高的水平(所以之前提到检测的任务可以分解为分割+后处理聚类来作，这样召回率会比较高)。本文提出的 MotionNet&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/categories/Deep-Learning/"/>
+    
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Deep Learning&quot;" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;Cylinder3D&quot;</title>
@@ -366,19 +397,19 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
+    <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
+    <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
     <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
+    <updated>2020-06-17T02:16:44.008Z</updated>
     
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    <content type="html"><![CDATA[<p>　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处理来得到目标框属性。越密集的检测方案，因为样本较多(一定程度增大了样本空间)，所以学习越困难，但是理论上有极高的召回率。随着一系列技术的发展，如 Focal-loss 等，密集检测性能得以超过二阶段的 Anchor-based 方案，具体描述可参考 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>。<br>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>借鉴 2D Instance Segmentation 思路，提出了一种同时作 3D Instance Segmentation 与 Detection 的方法。百度 Apollo 中的点云分割方法就是俯视图下 Instance Segmentation 然后后处理得到目标 Polygon 与 BBox 的思路，这种方法虽然后处理较为复杂，但是有超参数较少且召回率高的特点。本文算是该方法的 3D 版本(想法很自然，被人捷足先登。。)。</p><h2 id="framework">1. Framework</h2><p><img src="/Instance-Seg-and-Obj-Det/framework.png" width="100%" height="100%" title="图 1. Framework"> 　　如图 1. 所示，本方法由三部分构成：点级别的分类及回归，候选目标聚类，目标框优化。</p><ul><li><strong>点级别的分类与回归</strong><br>原始点云经过 Backbone 网络提取局部及全局特征，这里的 Backbone 网络可以是任意能提取点级别特征的网络。基于 Backbone 网络提取的特征，可进行点级别的 Semantic Segmentation 以及 Instance-aware SE(Spatial Embedding)。SE 回归的是每个点距离目标中心点的 offset，该目标的 size，以及该目标的朝向。</li><li><strong>候选目标聚类</strong><br>基于预测的 SE，将每个点的位置加上距离目标中心点的 offset，然后可通过简单的聚类算法(如 K-means)即可得到各个目标的点云集合，取 top k 个该点云集合回归的目标框属性，作下一步的目标框进一步优化。</li><li><strong>目标框优化</strong><br>基于候选目标聚类得到的目标框，提取目标点集，将其转换到该目标 Local 坐标系下，作进一步的目标框优化。</li></ul><h2 id="instance-aware-se">2. Instance-aware SE</h2><p>　　该框架的关键是 Instance-aware SE 的回归，回归量有：距离目标中心点的 offset，目标 size，目标 orientation。传统的 Instance Segmentation 做法是 Feature Embedding，将相同 Instance 的特征拉近，不同的 Instance 的特征推远，这种方法很难构造有效的 Loss 函数，而且同为车的不同 Instance，其特征已经非常接近。而本文 Spatial Embedding 中 offset 的回归量，经过聚类后处理，可以很容易的得到 Instance Segmentation 结果。<br>　　Apollo 点云分割的方案中，是在俯视图的 2D 栅格下做的，主要回归量也是这三种，不同的是，2D 栅格是离散的，所以根据 offset 找某一点的中心点时，可以迭代的进行，然后投票出中心点位置，后处理可以做的更细致。这里不做展开，有机会以后写一篇详解。</p><h2 id="loss">3. Loss</h2><p>　　Loss 项由 Semantic Segmentation，SE，3D BBox regression 组成： <span class="math display">\[ L = L _ {seg-cls}+L _ {SE}+L _ {reg} \tag{1}\]</span> Semantic Segmentation Loss 为： <span class="math display">\[ L _ {seg-cls}=-\sum _ {i=1}^C (y _ i\mathrm{log}(p _ i)(1-p _ i)^{\gamma}\alpha _ i+(1- y _ i)\mathrm{log}(1-p _ i)(p _ i)^{\gamma}(1-\alpha _ i)) \tag{2}\]</span> 其中 \(C\) 表示类别数；如果某点属于某类，那么 \(y _ i=1\)；\(p _ i\) 表示预测为第 \(i\) 类的概率；\(\gamma,\alpha\) 为超参数。<br>SE Loss 为： <span class="math display">\[ L _ {SE} = \frac{1}{N}\sum _ {i=1}^N\frac{1}{N _ c}\sum _ {i\in ins _ c}^{N _ c}(\mathcal{l} _ {offset}^i+\mathcal{l} _ {size}^i+\mathcal{l} _ {\theta}^i) \tag{3}\]</span> 其中 \(N\) 为 Instance 个数，\(N _ c\) 为内部点数，\(\mathcal{l}\) 为 L1 Smooth Loss。<br>BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L _ {reg} = 1-\mathbf{IoU}(B _ g,B _ d)\tag{4}\]</span></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Dingfu, et al. &quot;Joint 3D Instance Segmentation and Object Detection for Autonomous Driving.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
     
     <summary type="html">
     
       
       
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+        &lt;p&gt;　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处
       
     
     </summary>
@@ -393,6 +424,8 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
     
   </entry>
   
@@ -428,19 +461,19 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
-    <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
-    <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
     <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-17T02:16:44.008Z</updated>
+    <updated>2020-06-12T02:22:23.113Z</updated>
     
-    <content type="html"><![CDATA[<p>　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处理来得到目标框属性。越密集的检测方案，因为样本较多(一定程度增大了样本空间)，所以学习越困难，但是理论上有极高的召回率。随着一系列技术的发展，如 Focal-loss 等，密集检测性能得以超过二阶段的 Anchor-based 方案，具体描述可参考 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>。<br>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>借鉴 2D Instance Segmentation 思路，提出了一种同时作 3D Instance Segmentation 与 Detection 的方法。百度 Apollo 中的点云分割方法就是俯视图下 Instance Segmentation 然后后处理得到目标 Polygon 与 BBox 的思路，这种方法虽然后处理较为复杂，但是有超参数较少且召回率高的特点。本文算是该方法的 3D 版本(想法很自然，被人捷足先登。。)。</p><h2 id="framework">1. Framework</h2><p><img src="/Instance-Seg-and-Obj-Det/framework.png" width="100%" height="100%" title="图 1. Framework"> 　　如图 1. 所示，本方法由三部分构成：点级别的分类及回归，候选目标聚类，目标框优化。</p><ul><li><strong>点级别的分类与回归</strong><br>原始点云经过 Backbone 网络提取局部及全局特征，这里的 Backbone 网络可以是任意能提取点级别特征的网络。基于 Backbone 网络提取的特征，可进行点级别的 Semantic Segmentation 以及 Instance-aware SE(Spatial Embedding)。SE 回归的是每个点距离目标中心点的 offset，该目标的 size，以及该目标的朝向。</li><li><strong>候选目标聚类</strong><br>基于预测的 SE，将每个点的位置加上距离目标中心点的 offset，然后可通过简单的聚类算法(如 K-means)即可得到各个目标的点云集合，取 top k 个该点云集合回归的目标框属性，作下一步的目标框进一步优化。</li><li><strong>目标框优化</strong><br>基于候选目标聚类得到的目标框，提取目标点集，将其转换到该目标 Local 坐标系下，作进一步的目标框优化。</li></ul><h2 id="instance-aware-se">2. Instance-aware SE</h2><p>　　该框架的关键是 Instance-aware SE 的回归，回归量有：距离目标中心点的 offset，目标 size，目标 orientation。传统的 Instance Segmentation 做法是 Feature Embedding，将相同 Instance 的特征拉近，不同的 Instance 的特征推远，这种方法很难构造有效的 Loss 函数，而且同为车的不同 Instance，其特征已经非常接近。而本文 Spatial Embedding 中 offset 的回归量，经过聚类后处理，可以很容易的得到 Instance Segmentation 结果。<br>　　Apollo 点云分割的方案中，是在俯视图的 2D 栅格下做的，主要回归量也是这三种，不同的是，2D 栅格是离散的，所以根据 offset 找某一点的中心点时，可以迭代的进行，然后投票出中心点位置，后处理可以做的更细致。这里不做展开，有机会以后写一篇详解。</p><h2 id="loss">3. Loss</h2><p>　　Loss 项由 Semantic Segmentation，SE，3D BBox regression 组成： <span class="math display">\[ L = L _ {seg-cls}+L _ {SE}+L _ {reg} \tag{1}\]</span> Semantic Segmentation Loss 为： <span class="math display">\[ L _ {seg-cls}=-\sum _ {i=1}^C (y _ i\mathrm{log}(p _ i)(1-p _ i)^{\gamma}\alpha _ i+(1- y _ i)\mathrm{log}(1-p _ i)(p _ i)^{\gamma}(1-\alpha _ i)) \tag{2}\]</span> 其中 \(C\) 表示类别数；如果某点属于某类，那么 \(y _ i=1\)；\(p _ i\) 表示预测为第 \(i\) 类的概率；\(\gamma,\alpha\) 为超参数。<br>SE Loss 为： <span class="math display">\[ L _ {SE} = \frac{1}{N}\sum _ {i=1}^N\frac{1}{N _ c}\sum _ {i\in ins _ c}^{N _ c}(\mathcal{l} _ {offset}^i+\mathcal{l} _ {size}^i+\mathcal{l} _ {\theta}^i) \tag{3}\]</span> 其中 \(N\) 为 Instance 个数，\(N _ c\) 为内部点数，\(\mathcal{l}\) 为 L1 Smooth Loss。<br>BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L _ {reg} = 1-\mathbf{IoU}(B _ g,B _ d)\tag{4}\]</span></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Dingfu, et al. &quot;Joint 3D Instance Segmentation and Object Detection for Autonomous Driving.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
     
     <summary type="html">
     
       
       
-        &lt;p&gt;　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
       
     
     </summary>
@@ -455,8 +488,6 @@
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
-    
-      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
     
   </entry>
   
@@ -601,39 +632,6 @@
       <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
     
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;PolarNet&quot;</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-PolarNet/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-PolarNet/</id>
-    <published>2020-04-16T01:19:12.000Z</published>
-    <updated>2020-04-17T02:09:42.539Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　Point-wise 特征提取在 <a href="/PointCloud-Feature-Extraction/" title="PointCloud-Feature-Extraction">PointCloud-Feature-Extraction</a> 中已经有较为详细的描述，虽然 Point-wise 提取的特征更加精细，但是一般都有 KNN 构建及索引操作，计算量较大，而且实践中发现学习收敛较慢。Voxel-based 虽然理论上损失了一定的信息，但是能直接应用 2D 卷积网络，网络学习效率很高。本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种在极坐标下栅格化后进行点云 Semantic Segmentation 的方法，相比传统的笛卡尔坐标系下栅格化有一定的优势。</p><h2 id="voxelization">1. Voxelization</h2><p><img src="/paper-reading-PolarNet/pts.png" width="98%" height="98%" title="图 1. Cartesian VS. Polar"> 　　如图 1. 所示，传统的笛卡尔坐标系下栅格化的栅格是矩形，而极坐标系下栅格是饼状的。激光雷达是在极坐标方式下获取点云的，所以由图可知，<strong>极坐标栅格化下，每个栅格拥有的点数更加均匀</strong>，有利于网络学习并减少计算量。此外，本文统计后显示，相比笛卡尔坐标栅格，极坐标的栅格内点属于同一目标的概率更大。</p><h2 id="polarnet-framework">2. PolarNet Framework</h2><p><img src="/paper-reading-PolarNet/framework.png" width="98%" height="98%" title="图 2. PolarNet"> 　　如图 2. 所示，点云经过 Polar 栅格化后，对每个栅格首先进行 PointNet 特征提取，然后对所有栅格作 ring-convolution 操作。<br>　　ring-convolution 是指卷积在环形方向进行，没有边缘截断效应。实现上，将栅格从某处展开，然后边缘处用另一边对应的栅格进行 padding，即可用普通的卷积进行运算。<br>　　网络是作 Voxel-wise 的分割，然后直接将预测的类别应用到栅格内的点云中。统计上，同一栅格内的点云属于不同类别的概率很低，所以本文并没进一步作 Point-wise 的分割。</p><h2 id="rethinking">3. Rethinking</h2><p>　　PolarNet 作 Semantic Segmentation 比其它方法提升很多。但是实际应用时，PolarNet 不能指定各个方向的范围，所以计算效率较低。比如，自动驾驶中，我们可以设定前 100m，后 60m，左右各 30m 的检测范围，笛卡尔坐标系下很容易进行栅格化，而极坐标下则没法搞。所以为了解决点云的分布不均匀问题，另一种思路是在笛卡尔坐标系下，近处打高分辨率的栅格，远处打低分辨率的栅格。具体实现，可以先用低分辨率过一遍网络，然后再对感兴趣的特定区域作高分辨率检测。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhang, Yang, et al. &quot;PolarNet: An Improved Grid Representation for Online LiDAR Point Clouds Semantic Segmentation.&quot; arXiv preprint arXiv:2003.14032 (2020).</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　Point-wise 特征提取在 &lt;a href=&quot;/PointCloud-Feature-Extraction/&quot; title=&quot;PointCloud-Feature-Extraction&quot;&gt;PointCloud-Feature-Extraction&lt;/a&gt; 中已经有
-      
-    
-    </summary>
-    
-      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/categories/Semantic-Segmentation/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Segmentation" scheme="https://leijiezhang001.github.io/tags/Segmentation/"/>
     
   </entry>
   
