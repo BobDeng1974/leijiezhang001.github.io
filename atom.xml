@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-08-20T01:19:12.000Z</updated>
+  <updated>2020-08-28T01:19:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;EPNet&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-EPNet/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-EPNet/</id>
+    <published>2020-08-24T01:38:40.000Z</published>
+    <updated>2020-08-28T01:19:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　在大多数场景下，融合激光雷达与图像数据能有效提升各种深度学习任务性能。本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种图像数据与激光雷达的前融合框架，并且考虑到分类分数与定位置信度的不一致性，提出了一种约束两者一致性的 Loss。</p><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-EPNet/framework.png" width="90%" height="90%" title="图 1. Framework"> 　　如图 1. 所示，EPNet 主要由 Image Stream，Geometric Stream，LI-Fusion Module，及 Detect Head 组成。<br>　　Image Stream 中，提取不同尺度的图像特征 \(F _ i(i = 1,2,3,4)\)，然后经过 2D Transposed Convolution 将不同尺度的特征变换到图像分辨率，得到特征 \(F _ U\)。<br>　　Geometric Stream 用 PointNet++(<a href="/PointNet-系列论文详读/" title="PointNet-系列论文详读">PointNet-系列论文详读</a>) 作特征提取，对应的 SA，FP 特征为 \(S _ i,P _ i(i =1,2,3,4)\)。\(S _ i,F _ i\) 通过 LI-Fusion 模块进行深度融合，此外 \(F _ U\) 与 \( P _ 4\) 也通过 LI-Fusion 进行融合。</p><h2 id="li-fusion-module">2. LI-Fusion Module</h2><p><img src="/paper-reading-EPNet/LI.png" width="70%" height="70%" title="图 2. LI-Fusion"> 　　LiDAR-guided Image Fusion Module 是图像点云两个数据流融合的核心模块。如图 2. 所示，LI-Fusion 由 Point-wise Correspondence Generation 和 LiDAR-guided fusion 两部分组成。Point-wise Correspondence Generation 又由 Grid Generator 和 Image Sampler 实现，对于点云中的点 \(p(x,y,z)\)，可得到不同尺度图像上的像素点 \(p'(x',y')\)： <span class="math display">\[p&#39;=M\times p\tag{1}\]</span> 其中 \(M\in\mathbb{R}^ {3\times 4}\)。\(p'\) 可能不是正好位于图像坐标像素点上，所以用双线性插值的方法取邻近像素点的特征值： <span class="math display">\[V^{(p)}=\mathcal{K}\left(F^{\mathcal{N}(p&#39;)}\right)\tag{2}\]</span> 其中 \(V^{(p)}\) 表示点 \(p\) 对应的图像点特征，\(\mathcal{K}\) 表示双线性插值，\(\left(F^{\mathcal{N}(p')}\right)\) 表示图像 \(p'\) 邻近点的特征。<br>　　LiDAR-guided Fusion 考虑到不能直接将点的图像特征与点特征进行串联融合，因为图像特征容易受光照，遮挡等因素影响，所以通过点云对图像点特征进行重要性权重融合。如图 2. 所示，重要性权重设计为： <span class="math display">\[\mathbf{w}=\sigma\left(\mathcal{W}\;\mathrm{tanh}(\mathcal{U} F _ P+\mathcal{V}F _ I)\right)\tag{3}\]</span> 其中 \(\mathcal{W,U,V}\) 为 MLP 网络，\(\sigma\) 为 sigmoid 归一化函数。<br>　　最终的融合特征为： <span class="math display">\[F _ {LI}=\mathrm{Concate}(F _ P,\mathbf{w}F _ I)\tag{4}\]</span></p><h2 id="consistency-enforcing-loss">2. Consistency Enforcing Loss</h2><p>　　NMS 操作时，一般用分类的分数，但是分类分数与定位置信度是不一致的。本文提出 Consistency Enforcing Loss，将定位与分类的分数监督成一致： <span class="math display">\[L _ {ce}=-log\left(c\times\frac{Area(D\cap G)}{Area(D\cup G)}\right)\tag{5}\]</span> 其中 \(D,G\) 分别为预测框与真值框，\(c\) 为分类分数，该 Loss 鼓励定位准的框分类分数越高。<br>　　这与 IoU Loss 作用相似！</p><h2 id="ablation-study">3. Ablation Study</h2><p><img src="/paper-reading-EPNet/ablation.png" width="90%" height="90%" title="图 3. Ablation Study"> 　　如图 3. 所示，LI-Fusion 和 CE Loss 对检测性能提升还是比较明显的。此外，本文还对比了三种 Fusion 方式，另外两种为：SC(simple concatenation)，将原始图像像素值串联到对应的点云原始数据中，没有 Image Stream；SS(single scale)，只用最后一层的图像点云特征作融合。<br>　　实验表明，SC 性能反而下降，SS 有所提升，但是 Multi-scale 的性能最好。结论就是，在一个尺度下，相对靠后的前融合可能比相对靠前的前融合效果更好(类比 <a href="/PointPainting/" title="PointPainting">PointPainting</a>，其虽然是前融合，但是直接提取的是图像的语义分割结果，所以相对靠后，效果也好)，当然多尺度的效果会是最好的。</p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Huang, Tengteng, et al. &quot;EPNet: Enhancing Point Features with Image Semantics for 3D Object Detection.&quot; arXiv preprint arXiv:2007.08856 (2020).</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　在大多数场景下，融合激光雷达与图像数据能有效提升各种深度学习任务性能。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;提出了一种图像数据与激光雷达的前融合框架，并且考虑到分类分数与定位置信度的不一致性，提出了一种约束两者一致性的 L
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+  </entry>
   
   <entry>
     <title>[paper_reading]-&quot;PV-RCNN&quot;</title>
@@ -430,6 +463,37 @@
   </entry>
   
   <entry>
+    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
+    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
+    <id>https://leijiezhang001.github.io/DENFIDet/</id>
+    <published>2020-05-22T03:27:38.000Z</published>
+    <updated>2020-06-12T02:22:23.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
+      
+    
+    </summary>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+  </entry>
+  
+  <entry>
     <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
     <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
     <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
@@ -459,37 +523,6 @@
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
       <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
   </entry>
   
@@ -601,39 +634,6 @@
       <category term="SLAM" scheme="https://leijiezhang001.github.io/tags/SLAM/"/>
     
       <category term="Mapping" scheme="https://leijiezhang001.github.io/tags/Mapping/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;What You See is What You Get, Exploiting Visibility for 3D Object Detection&quot;</title>
-    <link href="https://leijiezhang001.github.io/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/"/>
-    <id>https://leijiezhang001.github.io/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/</id>
-    <published>2020-04-22T01:19:59.000Z</published>
-    <updated>2020-04-23T02:34:12.937Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　Bird-View 3D Detection 都是将点云离散化到 Voxel，有点的 Voxel 提取区域特征，无点的 Voxel 则置为空。而 LiDAR 的测量特性其实还包含更多的信息，<a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 中较详细的阐述了 LiDAR 的测量模型，每个栅格可以标记为三个状态：UNKNOWN，FREE，OCCUPIED。传统的 Bird-View 3D Detection 没有显式得提取 UNKNOW 与 FREE 的信息(即没有提取 Visibility 信息)，而 UNKNOW 与 FREE 对数据增广及检测效果非常重要。 <img src="/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/visibility.png" width="90%" height="90%" title="图 1. Visibility or Freespace from LiDAR"> 　　如图 1. 所示，左图是传统的点云表示方式，无法区分红色区域是否有车，而右图则非常容易得区分哪个区域不可能有车，哪个区域可能有车。所以本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了显式提取点云 UNKNOWN 与 FREE 信息来辅助数据增广与提高目标检测精度的方法。</p><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/framework.png" width="90%" height="90%" title="图 2. Framework"> 　　如图 2. 所示，本文的 3D 检测框架与传统的差不多，是 Anchor-Based 方法，主要不同点是输入网络的特征，即点云栅格化后提取出的特征不一样以及融合时序信息。并且，训练过程中，对数据增广做了精心的设计。 <img src="/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/fusion.png" width="90%" height="90%" title="图 3. Frusion Strategy"> 　　如图 3. 所示，点云栅格化后提取的特征不一样是指增加了 Visibility 图层。有两种融合方式，前融合是与点云栅格化后提取的特征作 Concate，然后输入到主干网络；后融合则是二者分别通过主干网络，然后再作 Concate。实验表明前融合效果较好。</p><h3 id="object-augmentation">1.1. Object Augmentation</h3><p>　　传统的数据增广关注在全帧点云的平移，旋转，翻转变换。本文则采用目标级别的数据增广。首先生成目标的点云集合，可以用 CAD 模型，也可以直接扣实际的目标点云(扣出来的点云增广能力有限)；然后将目标点云集合随机得放到全帧点云中。在放置的过程中需要模拟 LiDAR 的测量模型，也就是 Visibility 计算过程，这在第 2. 节中详细描述。实验表面能提升 ~9 个点。</p><h3 id="temporal-aggregation">1.2. Temporal Aggregation</h3><p>　　时序点云信息的利用可以有以下几种方法：</p><ul><li>将每帧点云栅格化，然后直接在 Chanel 层作 Concate，之后作 3D 卷积，或者先在 Chanel 维度作 1D 卷积，然后作 2D 卷积；</li><li>将点云中的点增加相对时间戳属性，然后作整体的栅格化，之后直接作传统的 2D 卷积；</li></ul><p>本文采用第二种方法，实验表明能提升 ~8 个点。</p><h2 id="visibility-computing">2. Visibility Computing</h2><p>　　<a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 中已经应用了 Raycasting 来计算 Visibility/Free。对于点云中的每一个点，我们不仅能获得该点探测到障碍物的这个信息，还能知道，传感器与该点之间的连线上是 Free 的。这就要求能高效得计算该连线相交 Voxel 的集合。该计算模型也用来修正 Object Augmentation 时的点云。</p><h3 id="efficient-voxel-traversal">2.1. Efficient Voxel traversal</h3><p>　　对每个点，都需要遍历传感器原点到该点所经过的 Voxel，采用 Fast Voxel Traversal<a href="#2" id="2ref"><sup>[2]</sup></a>方法来进行高效的 Voxel 遍历。</p><h3 id="raycasting-with-augmented-objects">2.2. Raycasting with Augmented Objects</h3><p><img src="/paper-reading-What-You-See-is-What-You-Get-Exploiting-Visibility-for-3D-Object-Detection/augment.png" width="90%" height="90%" title="图 4. Rectify Object Augmentation"> 　　如图 4. 所示，本文设计了两种策略来修正物体增广：</p><ul><li>Culling，如果该物体是被遮挡的，那么直接去掉，这样会极大减少增广的物体；</li><li>Drilling，如果该物体是被遮挡的，那么将遮挡物去掉，即置为 Free；</li></ul><p>实验表明 Drilling 效果较好，在训练时采用该策略进行物体增广后的点云修正，作 Inference 时就直接计算 Freespace 即可。</p><h3 id="online-occupancy-mapping">2.3. Online Occupancy Mapping</h3><p>　　栅格内点云提取特征时融合了时序信息，Visibility 也需要融合时序信息，最直观的方式是将 3D Occupancy Map 进行时间维度的堆叠，获得 4D Map，这样对后续的计算量较大。本文采用 OctoMap<a href="#3" id="3ref"><sup>[3]</sup></a> 计算方式，作贝叶斯滤波，得到时序滤波的 3D Occupancy Map。原理与 <a href="/Grid-Mapping/" title="Grid-Mapping">Grid-Mapping</a> 一样，只不过这里是 3D 的。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Hu, Peiyun, et al. &quot;What You See is What You Get: Exploiting Visibility for 3D Object Detection.&quot; arXiv preprint arXiv:1912.04986 (2019).<br><a id="2" href="#2ref">[2]</a> Amanatides, John, and Andrew Woo. &quot;A fast voxel traversal algorithm for ray tracing.&quot; Eurographics. Vol. 87. No. 3. 1987.<br><a id="3" href="#3ref">[3]</a> Hornung, Armin, et al. &quot;OctoMap: An efficient probabilistic 3D mapping framework based on octrees.&quot; Autonomous robots 34.3 (2013): 189-206.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　Bird-View 3D Detection 都是将点云离散化到 Voxel，有点的 Voxel 提取区域特征，无点的 Voxel 则置为空。而 LiDAR 的测量特性其实还包含更多的信息，&lt;a href=&quot;/Grid-Mapping/&quot; title=&quot;Grid-Map
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
-    
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
     
   </entry>
   
