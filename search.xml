@@ -4928,4 +4928,57 @@ U2FsdGVkX1/EH27hUH+F5Rq/I4jDDcT3XZs2VZMxGaE=
         <tag>Autonomous Driving</tag>
       </tags>
   </entry>
+  <entry>
+    <title>自动驾驶系统之 Localization</title>
+    <url>/Self-Driving-Localization/</url>
+    <content><![CDATA[<div id="hbe-security">
+  <div class="hbe-input-container">
+  <input type="password" class="hbe-form-control" id="pass" placeholder="本文介绍了自动驾驶中基于多传感器融合的 Localization 模块，请输入密码查看：" />
+    <label for="pass">本文介绍了自动驾驶中基于多传感器融合的 Localization 模块，请输入密码查看：</label>
+    <div class="bottom-line"></div>
+  </div>
+</div>
+<div id="decryptionError" style="display: none;">Incorrect Password!</div>
+<div id="noContentError" style="display: none;">No content to display!</div>
+<div id="encrypt-blog" style="display:none">
+U2FsdGVkX19F5L3CXaEq80FegG7fGZVbXFX+FNboXkQ=
+</div>
+<script src="/lib/crypto-js.js"></script><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+      <categories>
+        <category>Autonomous Driving System</category>
+        <category>Localization</category>
+      </categories>
+      <tags>
+        <tag>SLAM</tag>
+        <tag>Autonomous Driving</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>自动驾驶系统之 Sensing</title>
+    <url>/Self-Driving-Sensing/</url>
+    <content><![CDATA[<div id="hbe-security">
+  <div class="hbe-input-container">
+  <input type="password" class="hbe-form-control" id="pass" placeholder="本文介绍了自动驾驶中基于多传感器融合的 Sensing 模块，请输入密码查看：" />
+    <label for="pass">本文介绍了自动驾驶中基于多传感器融合的 Sensing 模块，请输入密码查看：</label>
+    <div class="bottom-line"></div>
+  </div>
+</div>
+<div id="decryptionError" style="display: none;">Incorrect Password!</div>
+<div id="noContentError" style="display: none;">No content to display!</div>
+<div id="encrypt-blog" style="display:none">
+U2FsdGVkX1+lyG3+lBoDr34E3KaoX0p4DJVvBLxQ/i4=
+</div>
+<script src="/lib/crypto-js.js"></script><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+      <categories>
+        <category>Autonomous Driving System</category>
+        <category>Sensing</category>
+      </categories>
+      <tags>
+        <tag>Autonomous Driving</tag>
+        <tag>Tracking</tag>
+        <tag>MOT</tag>
+        <tag>Sensing</tag>
+        <tag>Detection</tag>
+      </tags>
+  </entry>
 </search>
