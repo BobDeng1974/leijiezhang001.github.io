@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://leijiezhang001.github.io/"/>
-  <updated>2020-09-10T03:19:12.000Z</updated>
+  <updated>2020-09-16T01:34:12.000Z</updated>
   <id>https://leijiezhang001.github.io/</id>
   
   <author>
@@ -15,6 +15,43 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>[paper_reading]-&quot;PnPNet&quot;</title>
+    <link href="https://leijiezhang001.github.io/paper-reading-PnPNet/"/>
+    <id>https://leijiezhang001.github.io/paper-reading-PnPNet/</id>
+    <published>2020-09-11T01:35:32.000Z</published>
+    <updated>2020-09-16T01:34:12.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>　　自动驾驶的障碍物状态估计功能模块中，包含 perception/Detection，tracking，prediction 三个环节。传统的做法这三个环节是分步进行的，Detection 出目标框检测结果；Tracking 则作前后帧目标的数据关联然后用卡尔曼平滑并估计目标状态；Prediction 预测目标未来的运动轨迹。 <img src="/paper-reading-PnPNet/diff-pipe.png" width="60%" height="60%" title="图 1. Perception and Prediction"> 　　如图 1. 所示，(a) 代表传统的做法，每个步骤都是独立优化并出结果，这种方式将功能模块解耦，容易找到具体问题的位置，但是会降低算法找到最优解的概率；(b) 则将 Detection 与 Prediction 用同一个网络预测，然后用 Tracking 来平滑估计整个运动轨迹(代表方法是 <a href="/paperreading-Fast-and-Furious/" title="Fast and Furious">Fast and Furious</a>)，这种方法下 Tracking 中丰富的时序及空域特征信息没有作用于 Detection 和 Prediction；本文提出的 PnP<a href="#1" id="1ref"><sup>[1]</sup></a>方法则将三个环节作深度的特征再利用，即整个功能模块是 End-to-End 可训练的，更容易得到目标状态及预测的全局最优解，更容易处理遮挡等问题。</p><h2 id="framework">1. Framework</h2><p><img src="/paper-reading-PnPNet/framework.png" width="90%" height="90%" title="图 2. Framework"> 　　如图 2. 所示，PnP 网络包含 Detection、Tracking，Motion Forecasting 三个模块。网络输入为点云及 HD Map。检测模块包含一个任意的 3D 目标检测网络，以及一个存储历史 BEV 特征图的 Memory；Tracking 跟踪模块包含一个存储目标历史轨迹的 Memory，首先作 Track-Detection 的数据关联，然后优化目标历史轨迹并更新存储；Motion Forecasting 模块则根据历史轨迹作目标的运动预测。</p><h2 id="object-detection">2. Object Detection</h2><p>　　网络的输入为序列点云(本文采用 0.5s)及 HD Map，分别将点云在俯视图下体素化后在特征通道维度进行串联得到 \(\mathbf{x} ^ t\)，然后输入 Backbone 网络得到俯视图下特征图： <span class="math display">\[\mathcal{F} ^ t _ {bev}(\mathbf{x} ^ t) = \mathrm{CNN} _ {bev}(\mathbf{x} ^ t) \tag{1}\]</span> 最后加入 3D 目标检测头，得到 3D 目标框属性 \((u _ i ^ t, v _ i ^ t,w _ i,l _ i,\theta _ i ^ t)\) 的预测： <span class="math display">\[\mathcal{D} ^ t=\mathrm{CNN} _ {det}(\mathcal{F} ^ t _ {bev})\tag{2}\]</span></p><h2 id="discrete-continuous-tracking">3. Discrete-Continuous Tracking</h2><p>　　<strong>Tracking 模块包括离散的数据关联问题，以及连续的目标运动轨迹(状态)估计问题。</strong>目标运动轨迹的优化估计对之后的目标运动预测非常重要。</p><h3 id="trajectory-level-object-representation">3.1. Trajectory Level Object Representation</h3><p><img src="/paper-reading-PnPNet/trajectory.png" width="90%" height="90%" title="图 3. Trajectory Level Object Representation"> 　　Tracking 需要优化历史轨迹，Prediction 需要预测未来轨迹，所以轨迹级别的目标特征提取及表达非常重要。本文采用 LSTM 网络来表征。如图 3. 所示，对于轨迹 \(\mathcal{P} _ i ^ t=\mathcal{D} _ i ^ {t _ 0...t}\)，首先提取每个时刻目标的感知特征： <span class="math display">\[f _ i^{bev,t} = \mathrm{BilinearInterp}(\mathcal{F} _ {bev} ^ t,(u _ i ^ t, v _ i ^ t)) \tag{3}\]</span> 然后提取目标运动特征： <span class="math display">\[f _ i ^ {velocity,t}=(\dot{x} _ i ^ t,\dot{x} _ {ego} ^ t, \dot{\theta} _ {ego} ^ t)\tag{4}\]</span> 其中 \(\dot{x} _ i,\dot{x} _ {ego}\) 分别是第 \(i\) 个目标及本车的二维速度，通过位置差计算得到，对于新目标，将其设定为 0。由此得到第 \(i\) 个目标的特征： <span class="math display">\[f(\mathcal{D} _ i ^ t)=\mathrm{MLP} _ {merge}\left(f _ i^{bev,t},f _ i ^ {velocity,t}\right)\tag{5}\]</span> 最后通过 LSTM 网络来提取轨迹级别目标特征： <span class="math display">\[h(\mathcal{P} _ i ^ t)=\mathrm{LSTM}(f(\mathcal{D} _ i ^ {t _ 0...t}))\tag{6}\]</span></p><h3 id="data-association">3.2. Data Association</h3><p>　　当前时刻检测的目标数量为 \(N _ t\)，上一时刻目标轨迹数量为 \(M _ {t-1}\)，将二者关联匹配就是数据关联问题。这在有新目标出现以及目标出现遮挡的时候变得较为困难。类似传统方法，这里设计检测与跟踪轨迹的相似性矩阵 \(C\in\mathbb{R} ^ {N _ t\times (M _ {t-1}+N _ t)}\)(跟踪轨迹加入\(N _ t\)个目标是为了处理新出现目标的情况)： <span class="math display">\[C _ {i,j}=\left\{\begin{array}{l}\mathrm{MLP} _ {pair}\left(f(\mathcal{D} _ i ^ t),h(\mathcal{P} _ j ^ {t-1})\right) &amp;\;\; \mathrm{if}\; 1\leq j\leq M _ {t-1},\\\mathrm{MLP} _ {unary}\left(f(\mathcal{D} _ i ^ t)\right) &amp;\;\; \mathrm{if}\; j=  M _ {t-1} + i,\\-\mathrm{inf} &amp;\;\; \mathrm{otherwise}\end{array}\tag{7}\right.\]</span> 其中 \(\mathrm{MLP} _ {pair}\) 计算检测与跟踪轨迹的相似性分数，\(\mathrm{MLP} _ {unary}\) 计算目标是新出现的概率。有了该相似性矩阵，即可通过匈牙利算法求解最佳匹配对。<br>　　对于被遮挡的物体，跟踪轨迹在当前帧容易出现没有检测的情况，本文引入单目标跟踪的思想作跟踪搜索。设未匹配的跟踪轨迹为 \(\mathcal{P} _ j ^ {t-1}\)，那么根据上一帧该轨迹目标的位置 \(u _ j ^ {t-1}, v _ j ^ {t-1}\)，进行运动补偿后为 \(\tilde{u} _ j ^ {t}, \tilde{v} _ j ^ {t}\)，在其邻域 \(\Omega _ j\) 内寻找最优的检测(跟踪)结果 \(\tilde{\mathcal{D}} _ k ^ t\)： <span class="math display">\[k = \mathop{\arg\max}\limits _ {i\in\Omega _ j} \mathrm{MLP} _ {pair}\left(f(\tilde{\mathcal{D}} _ i ^ t),h(\mathcal{P} _ j ^ {t-1})\right)\tag{8}\]</span> 其中 \(\Omega _ j\) 设计为目标的最大假设速度，如 \(110 km/h\)。<br>　　最终可得到 \(N _ t+ K _ t\) 个目标轨迹，其中 \(K _ t\) 为未匹配的目标轨迹而通过单目标跟踪方法召回的轨迹数量。</p><h3 id="trajectory-estimation">3.3. Trajectory Estimation</h3><p>　　当前帧的观测加入到目标轨迹后，可进一步对目标轨迹作优化以减少 FP 以及提高轨迹定位精度。网络预测轨迹的置信度以及最近 \(T _ 0\) 时间内目标位置的残差： <span class="math display">\[\mathrm{score} _ i,\Delta u _ i ^ {t-T _ 0+1:t},\Delta v _ i ^ {t- T _ 0+1:t}=\mathrm{MLP} _ {refine}(h(\mathcal{P} _ i^t))\tag{9}\]</span> 其中 \(T _ 0\) 小于轨迹的总时间。最后用 NMS 去掉重叠的目标轨迹以消除 FP 与重叠项。</p><h2 id="motion-forecasting">4. Motion Forecasting</h2><p>　　根据优化后的目标轨迹，通过网络预测目标的未来轨迹： <span class="math display">\[\Delta u _ i^{t:t+\Delta T}, \Delta v _ i ^ {t:t+\Delta T}=\mathrm{MLP} _ {predict}(h(\mathcal{P} _ i^t))\tag{10}\]</span></p><h2 id="end-to-end-learning">5. End-to-End Learning</h2><p>　　整个网络多任务联合训练的 Loss 为： <span class="math display">\[\begin{align}\mathcal{L} &amp;= \mathcal{L} _ {detect} + \mathcal{L} _ {track} + \mathcal{L} _ {predict}\\&amp;= \mathcal{L} _ {detect} + \mathcal{L} _ {score} ^ {affinity} + \mathcal{L} _ {score} ^ {sot} + \mathcal{L} _ {socre} ^ {refine} + \mathcal{L} _ {reg} ^ {refine} + \mathcal{L} _ {predict}\end{align}\tag{11}\]</span> 其中 \(\mathcal{L} _ {score}\) 为 \(max-margin \;loss\): <span class="math display">\[\mathcal{L} _ {score} = \frac{1}{N _ {i,j}}\sum _ {i\in pos,j\in neg} \mathrm{max}(0,m-(a _ i-a _ j))\tag{12}\]</span> 对于 \(\mathcal{L} _ {score} ^ {affinity}\) 和 \(\mathcal{L} _ {score} ^ {sot}\)，计算正样本与所有负样本的 Loss；对于 \(\mathcal{L} _ {score} ^ {refine}\)，与真值框 IoU 较高的，则 score 较高，这样作 NMS 时可以该 score 为准则。</p><h2 id="reference">6. Reference</h2><p><a id="1" href="#1ref">[1]</a> Liang, Ming, et al. &quot;PnPNet: End-to-End Perception and Prediction with Tracking in the Loop.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;　　自动驾驶的障碍物状态估计功能模块中，包含 perception/Detection，tracking，prediction 三个环节。传统的做法这三个环节是分步进行的，Detection 出目标框检测结果；Tracking 则作前后帧目标的数据关联然后用卡尔曼平滑并估计
+      
+    
+    </summary>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/categories/MOT/"/>
+    
+    
+      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
+    
+      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
+    
+      <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
+    
+      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+    
+      <category term="MOT" scheme="https://leijiezhang001.github.io/tags/MOT/"/>
+    
+      <category term="Prediction" scheme="https://leijiezhang001.github.io/tags/Prediction/"/>
+    
+  </entry>
   
   <entry>
     <title>自动驾驶系统之 Sensing</title>
@@ -127,9 +164,9 @@
     
       <category term="Point Cloud" scheme="https://leijiezhang001.github.io/tags/Point-Cloud/"/>
     
-      <category term="autonomous driving" scheme="https://leijiezhang001.github.io/tags/autonomous-driving/"/>
-    
       <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
+    
+      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
   </entry>
   
@@ -580,19 +617,19 @@
   </entry>
   
   <entry>
-    <title>[paper_reading]-&quot;SA-SSD: Structure Aware Single-stage 3D Object Detection from Point Cloud&quot;</title>
-    <link href="https://leijiezhang001.github.io/SA-SSD/"/>
-    <id>https://leijiezhang001.github.io/SA-SSD/</id>
+    <title>[paper_reading]-&quot;Joint 3D Instance Segmentation and Objection Detection for Autonomous Driving&quot;</title>
+    <link href="https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/"/>
+    <id>https://leijiezhang001.github.io/Instance-Seg-and-Obj-Det/</id>
     <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-05-22T10:04:17.044Z</updated>
+    <updated>2020-06-17T02:16:44.008Z</updated>
     
-    <content type="html"><![CDATA[<p>　　Voxel-based 3D Detection 相比 <a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 的缺点是特征提取不仅在 Voxel 阶段损失了一定的点云信息，而且 Voxel 化后丢失了点云之间的拓扑关系。<a href="/Point-based-3D-Det/" title="Point-based 3D Detection">Point-based 3D Detection</a> 中详细描述了几种 Point-based 方法，这种方法目前比较棘手的地方是，即使作 Inference 时，也需要作 kd-tree 搜索与采样等运算量较大的操作。那么如何榨干 Voxel-based 的性能对工业界落地就显得比较重要了，本文<a href="#1" id="1ref"><sup>[1]</sup></a>提出了一种单阶段的 Voxel-based 3D 检测方法，并借助了 Point 级别特征提取的相关策略，使得检测性能有较大提升。</p><h2 id="framework">1. Framework</h2><p><img src="/SA-SSD/framework.png" width="100%" height="100%" title="图 1. Framework of SA-SSD"> 　　如图 1. 所示，SA-SSD 由三部分组成：Backbone，Detection Head，Auxiliary Network。<br>　　Backbone 的输入是栅格化后的点云表示方式，文中栅格大小设定为 \(0.05m,0.05m,0.1m\)。Backbone 由一系列的 3D convolution 组成，因为需要保留空间三维位置信息，作 Voxel-to-Point 的映射。这里如果用 2D convolution 代替，那么 Auxiliary Network 估计也只能作 BridView 的分割了。<br>　　Detection Head 主体就是传统 Anchor-Free 结构，一个分支用于预测每个特征层像素点的 Confidence，另一个分支用于预测基于每个特征层像素点的 BBox 属性，如，以该点为 &quot;Anchor&quot; 的四个顶点坐标。此外，为了消除 One-Stage 方法中目标框与置信度不对齐的问题，本文引入 Part-sensitive Warping 来实现与 PSRoiAlign 类似的作用，实现两者的对齐。<br>　　Auxiliary Network 只在训练的阶段起作用，Inference 阶段不需要计算。该模块的作用是训练时通过 Voxel-to-Point 特征映射来反向传播监督 Backbone 中的 Voxel 特征学习 Point 级别的特征，包括点云的空间拓扑关系。<strong>当然 Inference 时也可以保留该分割模块，那么还可以增加点级别的特征反映射到 Voxel 的模块(Point-to-Voxel)，进一步作特征增强。</strong></p><h2 id="detachable-auxiliary-network">2. Detachable Auxiliary Network</h2><p><img src="/SA-SSD/sa.png" width="60%" height="60%" title="图 2. Structured Aware Feature Learning"> 　　如图 2. 所示，随着 Backbone 特征提取的感受野增大(特征分辨率下降)，背景点会接近目标的边缘，使得目标框大小不容易预测准确。本文提出的 Auxiliary Network，通过增加点级别分割及目标中心坐标预测任务，来监督 Backbone 特征层捕捉这种结构信息，从而达到更准确的目标检测的目的。<br>　　Auxiliary Network 的输入来自 Backbone 各个分辨率的特征层。将特征层上不为零的特征点，通过 Voxel-to-Point 反栅格化映射到三维空间，设该特征点表示为 \(\{(f _ j,p _ j):j=1,...,M\}\)，其中 \(f\) 为特征向量，\(p\) 为坐标向量。有了栅格对应的伪三维坐标点下的特征表示后，即可插值出实际点云中每个点的特征向量。设点云中点的插值特征为：\(\{(\hat{f} _ i,p _ i):i=1,...,N\}\)，采用 Inverse Distance Weighted 方法进行插值： <span class="math display">\[ \hat{f} _ i = \frac{\sum _ {j=1}^Mw _ j(p _ i)f _ j}{\sum _ {j=1}^Mw _ j(p _ i)} \tag{1}\]</span> 其中： <span class="math display">\[w _ j(p _ i)=\left\{\begin{array}{l}\frac{1}{\Vert p _ i-p _ j\Vert _ 2} &amp; \mathrm{if} p _ j\in\mathcal{N}(p _ i)\\0 &amp; \mathrm{otherwise}\end{array}\tag{2}\right.\]</span> \(\mathcal{N}(p _ i)\) 为球状区域，本文在四个分辨率下分别设定为：0.05m，0.1m，0.2m，0.4m。然后通过 cross-stage link 对各个分辨率下的点特征进行 concatenate 融合。最后通过感知机进行点云分割及目标中心点预测任务的构建。<br>　　对于点级别前景分割的任务，经过 sigmoid 函数后，应用二分类的 Focal Loss： <span class="math display">\[ \mathcal{L} _ {seg} = \frac{1}{N _ {pos}}\sum _ i^N -\alpha(1-\hat{s} _ i)^{\gamma}\mathrm{log}(\hat{s} _ i) \tag{3}\]</span> 该分割任务使得目标检测的框更加准确，如图 2.c 所示。但是还得优化其尺度与形状。<br>　　中心点的预测任务则能有效约束目标框的尺度与形状，具体的，预测的是每个属于目标的点云与中心点的相对位置(残差)。可用 Smooth-l1 来构建预测的中心点与实际中心点的 Loss。</p><h2 id="part-sensitive-warping">3. Part-sensitive Warping</h2><p><img src="/SA-SSD/psw.png" width="60%" height="60%" title="图 3. Part-sensitive Warping"> 　　One-Stage 方法都会有 Confidence 和 BBox 错位的现象，本文提出一种类似 PSROIAlign 但更有高效的 PSW 方法，具体步骤为：</p><ol type="1"><li>对于分类分支，修改为 \(K\) 个 Part-sensitive 的 cls maps，每个 map 包含目标的部分信息，比如当 \(K=4\) 时，可以理解为将目标切分为 \(2\times 2\) 部分；</li><li>对于回归分支，将每个目标框的 Feature map 划分为 \(K\) 个子区域，每个区域的中心点作为采样点；</li><li>如图 3. 所示，通过采样得到最终 cls map 的平均值。</li></ol><h2 id="experiment">4. Experiment</h2><p><img src="/SA-SSD/ablation.png" width="60%" height="60%" title="图 4. Ablation Study"> 　　如图 4. 所示，Auxiliary Network 能有效提升网络的定位精度，PSWarp 也能有效消除 Confidence 与 BBox 的错位影响。</p><h2 id="reference">5. Reference</h2><p><a id="1" href="#1ref">[1]</a> henhang, et al. &quot;Structure Aware Single-stage 3D Object Detection from Point Cloud.&quot;</p>]]></content>
+    <content type="html"><![CDATA[<p>　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处理来得到目标框属性。越密集的检测方案，因为样本较多(一定程度增大了样本空间)，所以学习越困难，但是理论上有极高的召回率。随着一系列技术的发展，如 Focal-loss 等，密集检测性能得以超过二阶段的 Anchor-based 方案，具体描述可参考 <a href="/Anchor-Free-Detection/" title="Anchor-Free Detection">Anchor-Free Detection</a>。<br>　　本文<a href="#1" id="1ref"><sup>[1]</sup></a>借鉴 2D Instance Segmentation 思路，提出了一种同时作 3D Instance Segmentation 与 Detection 的方法。百度 Apollo 中的点云分割方法就是俯视图下 Instance Segmentation 然后后处理得到目标 Polygon 与 BBox 的思路，这种方法虽然后处理较为复杂，但是有超参数较少且召回率高的特点。本文算是该方法的 3D 版本(想法很自然，被人捷足先登。。)。</p><h2 id="framework">1. Framework</h2><p><img src="/Instance-Seg-and-Obj-Det/framework.png" width="100%" height="100%" title="图 1. Framework"> 　　如图 1. 所示，本方法由三部分构成：点级别的分类及回归，候选目标聚类，目标框优化。</p><ul><li><strong>点级别的分类与回归</strong><br>原始点云经过 Backbone 网络提取局部及全局特征，这里的 Backbone 网络可以是任意能提取点级别特征的网络。基于 Backbone 网络提取的特征，可进行点级别的 Semantic Segmentation 以及 Instance-aware SE(Spatial Embedding)。SE 回归的是每个点距离目标中心点的 offset，该目标的 size，以及该目标的朝向。</li><li><strong>候选目标聚类</strong><br>基于预测的 SE，将每个点的位置加上距离目标中心点的 offset，然后可通过简单的聚类算法(如 K-means)即可得到各个目标的点云集合，取 top k 个该点云集合回归的目标框属性，作下一步的目标框进一步优化。</li><li><strong>目标框优化</strong><br>基于候选目标聚类得到的目标框，提取目标点集，将其转换到该目标 Local 坐标系下，作进一步的目标框优化。</li></ul><h2 id="instance-aware-se">2. Instance-aware SE</h2><p>　　该框架的关键是 Instance-aware SE 的回归，回归量有：距离目标中心点的 offset，目标 size，目标 orientation。传统的 Instance Segmentation 做法是 Feature Embedding，将相同 Instance 的特征拉近，不同的 Instance 的特征推远，这种方法很难构造有效的 Loss 函数，而且同为车的不同 Instance，其特征已经非常接近。而本文 Spatial Embedding 中 offset 的回归量，经过聚类后处理，可以很容易的得到 Instance Segmentation 结果。<br>　　Apollo 点云分割的方案中，是在俯视图的 2D 栅格下做的，主要回归量也是这三种，不同的是，2D 栅格是离散的，所以根据 offset 找某一点的中心点时，可以迭代的进行，然后投票出中心点位置，后处理可以做的更细致。这里不做展开，有机会以后写一篇详解。</p><h2 id="loss">3. Loss</h2><p>　　Loss 项由 Semantic Segmentation，SE，3D BBox regression 组成： <span class="math display">\[ L = L _ {seg-cls}+L _ {SE}+L _ {reg} \tag{1}\]</span> Semantic Segmentation Loss 为： <span class="math display">\[ L _ {seg-cls}=-\sum _ {i=1}^C (y _ i\mathrm{log}(p _ i)(1-p _ i)^{\gamma}\alpha _ i+(1- y _ i)\mathrm{log}(1-p _ i)(p _ i)^{\gamma}(1-\alpha _ i)) \tag{2}\]</span> 其中 \(C\) 表示类别数；如果某点属于某类，那么 \(y _ i=1\)；\(p _ i\) 表示预测为第 \(i\) 类的概率；\(\gamma,\alpha\) 为超参数。<br>SE Loss 为： <span class="math display">\[ L _ {SE} = \frac{1}{N}\sum _ {i=1}^N\frac{1}{N _ c}\sum _ {i\in ins _ c}^{N _ c}(\mathcal{l} _ {offset}^i+\mathcal{l} _ {size}^i+\mathcal{l} _ {\theta}^i) \tag{3}\]</span> 其中 \(N\) 为 Instance 个数，\(N _ c\) 为内部点数，\(\mathcal{l}\) 为 L1 Smooth Loss。<br>BBox regression Loss 为 rotated 3D IOU Loss： <span class="math display">\[ L _ {reg} = 1-\mathbf{IoU}(B _ g,B _ d)\tag{4}\]</span></p><h2 id="reference">4. Reference</h2><p><a id="1" href="#1ref">[1]</a> Zhou, Dingfu, et al. &quot;Joint 3D Instance Segmentation and Object Detection for Autonomous Driving.&quot; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2020.</p>]]></content>
     
     <summary type="html">
     
       
       
-        &lt;p&gt;　　Voxel-based 3D Detection 相比 &lt;a href=&quot;/Point-based-3D-Det/&quot; title=&quot;Point-based 3D Detection&quot;&gt;Point-based 3D Detection&lt;/a&gt; 的缺点是特征提取不仅在 Vo
+        &lt;p&gt;　　检测的发展基本上是从 Anchor-based 这种稀疏的方式到 Anchor-free 这种密集检测方案演进的。相比于 Anchor-free 这种特征层像素级别的回归与分类来检测，更密集的方式，是直接作 Instance Segmentation，然后经过聚类等后处
       
     
     </summary>
@@ -608,36 +645,7 @@
     
       <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
     
-  </entry>
-  
-  <entry>
-    <title>[paper_reading]-&quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds&quot;</title>
-    <link href="https://leijiezhang001.github.io/DENFIDet/"/>
-    <id>https://leijiezhang001.github.io/DENFIDet/</id>
-    <published>2020-05-22T03:27:38.000Z</published>
-    <updated>2020-06-12T02:22:23.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文<a href="#1" id="1ref"><sup>[1]</sup></a> 提出了一种能捕捉目标边缘信息的网络结构，从而作更准确的目标检测。</p><h2 id="framework">1. Framework</h2><p><img src="/DENFIDet/framework.png" width="80%" height="80%" title="图 1. Framework of DENFIDet"> 　　如图 1. 所示，在传统的 One-Stage 2D/3D 检测框架下，嵌入了 DENFI 模块，该模块首先通过 DBPM 生成稠密的目标边缘 proposals，然后指导 DENFIConv 去提取更准确的目标特征，输出到检测头作 3D 目标框属性的分类与回归。</p><h2 id="denfidense-feature-indicator">2. DENFI(Dense Feature Indicator)</h2><h3 id="dbpmdense-boundary-proposal-module">2.1. DBPM(Dense Boundary Proposal Module)</h3><p><img src="/DENFIDet/DBPM.png" width="60%" height="60%" title="图 2. DBPM"> 　　DBPM 的输入为 Backbone 输出的 \(H\times W\times C\) 特征图，其由分类和回归两个分支构成：</p><ul><li>分类分支<br>分类分支经过 \(1\times 1\) 卷积输出 \(H\times W\times K\) 大小的 pixel 级别的 Score Map，其中 \(K\) 为类别数；</li><li>回归分支<br>回归分支也经过 \(1\times 1\) 卷积，输出 \(H\times W\times (4+n\times 2)\) 大小的回归量。回归量包括 \((l,t,r,b)\) 以及角度 \((\theta ^{bin}, \theta ^{res})\)(角度回归分解成了 n 个 bin 分类与 bin 内残差回归两个问题)。最终解码为描述目标边缘的信息：\((l,t,r,b,\theta)\)。</li></ul><p>　　Loss 的计算首先得区分正负样本。正负样本的划分思想与传统的差不多，主要思想是正负样本过渡区域引入 Ignore。如图 4. 所示，设 3D 真值框属性表示为 \((x,y,w,l,\theta)\)，正样本区域设计为 \((x,y,\sigma _ 1w,\sigma _ 1l,\theta)\)，定义另一缩小框 \((x,y,\sigma _ 2w,\sigma _ 2l,\theta)\)，其中 \(\sigma _ 1 &lt; \sigma _ 2\)。由此可得，灰色为正样本区域，黄色为 Ignore 区域，其它为负样本区域。<br>　　对于分类的 Loss，直接对正负样本进行 Focal Loss 计算。对于回归分支，则采用正样本的平均 Loss。回归 Loss 由目标框的 IoU Loss 以及角度 Loss 组成，角度 Loss 又由 bin 分类 Loss 加 bin 残差回归 Loss 组成。这里不做展开。<br>　　需要注意的是，分类分支只在训练的时候计算，Inference 时候只作回归分支的计算，从而得到每个像素感知到的目标边缘的信息。</p><h3 id="denficonv">2.2. DENFIConv</h3><p><img src="/DENFIDet/dconv.png" width="80%" height="80%" title="图 3. dconv"> 　　如图 3. 所示，Deformable Convolution 的思想是自动去寻找感兴趣的卷积区域。DBPM 获得每个像素点的目标边缘信息以后，自然的，接下来对像素点的卷积运算，运用可变形卷积可以捕捉更准确的目标区域信息。 <img src="/DENFIDet/DSDC.png" width="60%" height="60%" title="图 4. DSDC"> 　　如图 4. 所示，结合 Deformable Convolution 与 depth-wise separable Convolution，本文提出了 Depth-wise Separable Deformable Convolution。即将 \(3\times 3\) 的可变形卷积拆解成 \(3\times 3\) 的 Depth-wise 卷积以及 \(1\times 1\) 的可变形卷积，极大减少参数量。</p><h2 id="reference">3. Reference</h2><p><a id="1" href="#1ref">[1]</a> Xu, Guodong, et al. &quot;Boundary-Aware Dense Feature Indicator for Single-Stage 3D Object Detection from Point Clouds.&quot; arXiv (2020): arXiv-2004.</p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;　　俯视图下 Voxel-based 点云 3D 目标检测一般会使用 2D 检测网络及相关策略。但是不同于图像的 2D 目标检测，俯视图下目标的点云信息基本在边缘处，所以如何准确得捕捉目标的边缘信息对特征提取的有效性非常关键。本文&lt;a href=&quot;#1&quot; id=&quot;1ref&quot;
-      
-    
-    </summary>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/categories/3D-Detection/"/>
-    
-    
-      <category term="Deep Learning" scheme="https://leijiezhang001.github.io/tags/Deep-Learning/"/>
-    
-      <category term="3D Detection" scheme="https://leijiezhang001.github.io/tags/3D-Detection/"/>
-    
-      <category term="paper reading" scheme="https://leijiezhang001.github.io/tags/paper-reading/"/>
-    
-      <category term="Autonomous Driving" scheme="https://leijiezhang001.github.io/tags/Autonomous-Driving/"/>
+      <category term="Semantic Segmentation" scheme="https://leijiezhang001.github.io/tags/Semantic-Segmentation/"/>
     
   </entry>
   
