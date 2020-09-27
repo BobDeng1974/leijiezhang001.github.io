@@ -450,7 +450,7 @@
                   <span class="post-meta-item-text">Words count in article&#58;</span>
                 
                 <span title="Words count in article">
-                  1.4k 字
+                  1.5k 字
                 </span>
               
 
@@ -466,7 +466,7 @@
                   <span class="post-meta-item-text">Reading time &asymp;</span>
                 
                 <span title="Reading time">
-                  6 分钟
+                  7 分钟
                 </span>
               
             </div>
@@ -510,7 +510,9 @@
 </ol>
 <p>其中步骤一不用作任何额外训练的操作，神经网络中的每个操作都有对应的 ADF 操作，代码可参考<a href="#2" id="2ref">[2]</a>。比如基于 Pytorch的 2D 卷积： <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">class Conv2d(_ConvNd):</span><br><span class="line">    def __init__(self, in_channels, out_channels, kernel_size, stride=1,</span><br><span class="line">        padding=0, dilation=1, groups=1, bias=True,</span><br><span class="line">        keep_variance_fn=None, padding_mode=&apos;zeros&apos;):</span><br><span class="line">        self._keep_variance_fn = keep_variance_fn</span><br><span class="line">        kernel_size = _pair(kernel_size)</span><br><span class="line">        stride = _pair(stride)</span><br><span class="line">        padding = _pair(padding)</span><br><span class="line">        dilation = _pair(dilation)</span><br><span class="line">        super(Conv2d, self).__init__(</span><br><span class="line">            in_channels, out_channels, kernel_size, stride, padding, dilation,</span><br><span class="line">            False, _pair(0), groups, bias, padding_mode)</span><br><span class="line"></span><br><span class="line">        def forward(self, inputs_mean, inputs_variance):</span><br><span class="line">            outputs_mean = F.conv2d(inputs_mean, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)</span><br><span class="line">            outputs_variance = F.conv2d(inputs_variance, self.weight ** 2, None, self.stride, self.padding, self.dilation, self.groups)</span><br><span class="line">            if self._keep_variance_fn is not None:</span><br><span class="line">                outputs_variance = self._keep_variance_fn(outputs_variance)</span><br><span class="line">                return outputs_mean, outputs_variance</span><br></pre></td></tr></table></figure></p>
 <p>Softmax: <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">class Softmax(nn.Module):</span><br><span class="line">    def __init__(self, dim=1, keep_variance_fn=None):</span><br><span class="line">        super(Softmax, self).__init__()</span><br><span class="line">        self.dim = dim</span><br><span class="line">        self._keep_variance_fn = keep_variance_fn</span><br><span class="line"></span><br><span class="line">        def forward(self, features_mean, features_variance, eps=1e-5):</span><br><span class="line">            &quot;&quot;&quot;Softmax function applied to a multivariate Gaussian distribution.</span><br><span class="line">            It works under the assumption that features_mean and features_variance </span><br><span class="line">            are the parameters of a the indepent gaussians that contribute to the </span><br><span class="line">            multivariate gaussian. </span><br><span class="line">            Mean and variance of the log-normal distribution are computed following</span><br><span class="line">            https://en.wikipedia.org/wiki/Log-normal_distribution.&quot;&quot;&quot;&quot;&quot;</span><br><span class="line">                    </span><br><span class="line">            log_gaussian_mean = features_mean + 0.5 * features_variance</span><br><span class="line">            log_gaussian_variance = 2 * log_gaussian_mean</span><br><span class="line">                    </span><br><span class="line">            log_gaussian_mean = torch.exp(log_gaussian_mean)</span><br><span class="line">            log_gaussian_variance = torch.exp(log_gaussian_variance)</span><br><span class="line">            log_gaussian_variance = log_gaussian_variance*(torch.exp(features_variance)-1)</span><br><span class="line">                    </span><br><span class="line">            constant = torch.sum(log_gaussian_mean, dim=self.dim) + eps</span><br><span class="line">            constant = constant.unsqueeze(self.dim)</span><br><span class="line">            outputs_mean = log_gaussian_mean/constant</span><br><span class="line">            outputs_variance = log_gaussian_variance/(constant**2)</span><br><span class="line">                    </span><br><span class="line">            if self._keep_variance_fn is not None:</span><br><span class="line">                outputs_variance = self._keep_variance_fn(outputs_variance)</span><br><span class="line">                return outputs_mean, outputs_variance</span><br></pre></td></tr></table></figure></p>
-<h2 id="reference">3. Reference</h2>
+<h2 id="experiments">4. Experiments</h2>
+<p>　　本文在 Steering Angle Prediction，Object Future Motion Prediction，Object Recognition，Closed-Loop Control of a Quadrotor 等任务上作了 Uncertainty 的估计，用 KL，NLL 来评估预测好坏。KL 本质上用于描述两个分布的距离。NLL(Negative Log-likelihood) 数学形式为 \(\frac{1}{2}\mathrm{log}(\sigma _ {tot})+\frac{1}{2\sigma _ {tot}}(y _ {gt}-y _ {pred}) ^ 2\)，即为 <a href="/Heteroscedastic-Aleatoric-Uncertainty/" title="Heteroscedastic Aleatoric Uncertainty">Heteroscedastic Aleatoric Uncertainty</a> 中预测 Uncertainty 方法中的 Loss 项。</p>
+<h2 id="reference">5. Reference</h2>
 <p><a id="1" href="#1ref">[1]</a> Loquercio, Antonio , Segù, Mattia, and D. Scaramuzza . &quot;A General Framework for Uncertainty Estimation in Deep Learning.&quot; (2019).<br>
 <a id="2" href="#2ref">[2]</a> https://github.com/mattiasegu/uncertainty_estimation_deep_learning/blob/master/contrib/adf.py</p>
 
@@ -782,7 +784,7 @@
               
 
               
-                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertaintydata-uncertainty"><span class="nav-text">1. Aleatoric Uncertainty(Data Uncertainty)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#epistemic-uncertaintymodel-uncertainty"><span class="nav-text">2. Epistemic Uncertainty(Model Uncertainty)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#total-uncertainty"><span class="nav-text">3. Total Uncertainty</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">3. Reference</span></a></li></ol></div>
+                <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#aleatoric-uncertaintydata-uncertainty"><span class="nav-text">1. Aleatoric Uncertainty(Data Uncertainty)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#epistemic-uncertaintymodel-uncertainty"><span class="nav-text">2. Epistemic Uncertainty(Model Uncertainty)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#total-uncertainty"><span class="nav-text">3. Total Uncertainty</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#experiments"><span class="nav-text">4. Experiments</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-text">5. Reference</span></a></li></ol></div>
               
 
             </div>
@@ -818,7 +820,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">121.8k</span>
+    <span title="Site words total count">121.9k</span>
   
 </div>
 <!--
